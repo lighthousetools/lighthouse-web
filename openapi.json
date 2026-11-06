@@ -1,0 +1,2918 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Lighthouse API",
+        "description": "HTTP API of the server.",
+        "license": {
+            "name": "MIT",
+            "identifier": "MIT"
+        },
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/agents": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Lists the agents.",
+                "operationId": "agents",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AgentInfo"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Creates or replaces an agent. The ID comes from the file.",
+                "operationId": "save_agent",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AgentSource"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentInfo"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid file or read-only agent"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/agents/draft": {
+            "post": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Writes an agent file from a description, without saving it.",
+                "operationId": "draft_agent",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AgentDraftRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentSource"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "The model wrote no valid agent"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/agents/{id}": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Reads an agent.",
+                "operationId": "agent",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Agent ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentInfo"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown agent"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Deletes an agent created in the apps.",
+                "operationId": "delete_agent",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Agent ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {},
+                    "404": {
+                        "description": "Unknown agent"
+                    },
+                    "422": {
+                        "description": "Read-only agent"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/agents/{id}/run": {
+            "post": {
+                "tags": [],
+                "summary": "Starts an agent.",
+                "operationId": "run_agent",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Agent ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunStarted"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown agent"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/agents/{id}/runs": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Lists the latest runs of an agent.",
+                "operationId": "agent_runs",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Agent ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RunRecord"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/approvals": {
+            "get": {
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Lists proposals, newest first.",
+                "operationId": "list_approvals",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "pending, approved, denied or expired",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of proposals",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Approval"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/approvals/decisions": {
+            "post": {
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Decides many proposals at once.",
+                "operationId": "decide_approvals",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BatchDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BatchResult"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/approvals/{id}/decision": {
+            "post": {
+                "tags": [
+                    "approvals"
+                ],
+                "summary": "Decides one proposal. The first decision wins.",
+                "operationId": "decide_approval",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Approval ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Decision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Approval"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Already decided, expired or unknown"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/auth/devices": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Lists the signed-in devices.",
+                "operationId": "devices",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Device"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/auth/devices/{id}": {
+            "delete": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Signs out a device.",
+                "operationId": "revoke_device",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Device ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {},
+                    "404": {
+                        "description": "Unknown device"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Signs in a new device.",
+                "operationId": "login",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenIssued"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Wrong password"
+                    },
+                    "429": {
+                        "description": "Too many failed attempts"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Signs out the current device.",
+                "operationId": "logout",
+                "responses": {
+                    "204": {}
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/auth/setup": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sets the owner password. This signs out every device.",
+                "operationId": "setup",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetupRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {},
+                    "400": {
+                        "description": "Password too short"
+                    }
+                },
+                "security": [
+                    {
+                        "admin_token": []
+                    }
+                ]
+            }
+        },
+        "/auth/status": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reports whether the instance is set up.",
+                "operationId": "auth_status",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthStatus"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/tokens": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Issues a token for a desktop agent or a script.",
+                "operationId": "issue_token",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TokenRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenIssued"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/ask": {
+            "post": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Asks a question and answers from the stored entries.",
+                "operationId": "ask_brain",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AskRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AskAnswer"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "The model could not answer"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/entries": {
+            "get": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Lists entries, latest first.",
+                "operationId": "list_entries",
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Entry kind",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of entries",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/EntrySummary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Stores an entry. Without sources it counts as entered in the app.",
+                "operationId": "create_entry",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewEntry"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryDetail"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Invalid entry"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/entries/{id}": {
+            "get": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Reads an entry.",
+                "operationId": "get_entry",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown entry"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Deletes an entry for real, with its original and all index data.",
+                "operationId": "delete_entry",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {},
+                    "404": {
+                        "description": "Unknown entry"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Changes an entry.",
+                "operationId": "update_entry",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EntryPatch"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown entry"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/files": {
+            "post": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Uploads a file. The body is the file, `Content-Type` its type.",
+                "operationId": "upload_file",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "description": "File name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/octet-stream": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "format": "int32",
+                                    "minimum": 0
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/EntryDetail"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unsupported file, or no model for it"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/files/{id}": {
+            "get": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Downloads the original of a file.",
+                "operationId": "download_file",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Entry ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The file"
+                    },
+                    "404": {
+                        "description": "No file"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/brain/search": {
+            "get": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Searches the Brain.",
+                "operationId": "search_brain",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search terms",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of hits",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SearchHit"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/connectors": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Lists the connectors and whether they are connected.",
+                "operationId": "connectors",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ConnectorInfo"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/connectors/{id}/connect": {
+            "post": {
+                "tags": [],
+                "summary": "Starts the OAuth flow of a connector.",
+                "operationId": "connect",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Connector name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConnectStarted"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cannot start the flow"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/costs": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Sums the model costs per day and provider.",
+                "operationId": "costs",
+                "parameters": [
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "description": "Days to look back",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DailyCost"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/credentials": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Lists the names of stored credentials. Values never leave the server.",
+                "operationId": "list_credentials",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/credentials/{name}": {
+            "put": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Stores a credential, for example `anthropic`, `mcp:linear` or `smtp`.",
+                "operationId": "put_credential",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "path",
+                        "description": "Credential name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CredentialValue"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {},
+                    "400": {
+                        "description": "Empty value"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Deletes a credential.",
+                "operationId": "delete_credential",
+                "parameters": [
+                    {
+                        "name": "name",
+                        "in": "path",
+                        "description": "Credential name",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {},
+                    "404": {
+                        "description": "Unknown credential"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [],
+                "summary": "Reports that the server is up.",
+                "operationId": "health",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Health"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/node/permissions": {
+            "post": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Forwards a permission request of a session.",
+                "operationId": "request_permission",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NewPermission"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Permission"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/node/permissions/{id}": {
+            "get": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Waits for a decision. Answers once it is made or after `wait` seconds.",
+                "operationId": "await_decision",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Request ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "wait",
+                        "in": "query",
+                        "description": "Seconds to wait, at most 60",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64",
+                            "minimum": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Permission"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown request"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/node/report": {
+            "post": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Reports the state of a desktop agent.",
+                "operationId": "report_node",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NodeReport"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NodeState"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/nodes": {
+            "get": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Lists the desktop agents.",
+                "operationId": "nodes",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Node"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/nodes/{id}": {
+            "patch": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Pauses a desktop agent or lets it continue. This is the kill switch.",
+                "operationId": "update_node",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Node ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/NodeChange"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {},
+                    "404": {
+                        "description": "Unknown node"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/permissions": {
+            "get": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Lists permission requests, newest first.",
+                "operationId": "permissions",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "pending, allowed, denied or expired",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of requests",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Permission"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/permissions/{id}/decision": {
+            "post": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Decides a permission request. The first decision wins.",
+                "operationId": "decide_permission",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Request ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PermissionDecision"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Permission"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Already decided, expired or unknown"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/runs": {
+            "get": {
+                "tags": [],
+                "summary": "Lists the latest runs.",
+                "operationId": "list_runs",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of runs",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RunRecord"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/runs/{id}": {
+            "get": {
+                "tags": [],
+                "summary": "Returns a run with all its steps.",
+                "operationId": "get_run",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Run ID",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunDetail"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown run"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/sessions": {
+            "get": {
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Lists Claude Code sessions, latest first.",
+                "operationId": "sessions",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Maximum number of sessions",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Session"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/skills": {
+            "get": {
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "Lists the skills.",
+                "operationId": "skills",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SkillInfo"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AgentDraftRequest": {
+                "type": "object",
+                "description": "A description of a new agent.",
+                "required": [
+                    "description"
+                ],
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "What the agent should do."
+                    }
+                }
+            },
+            "AgentInfo": {
+                "type": "object",
+                "description": "An agent.",
+                "required": [
+                    "id",
+                    "name",
+                    "tools",
+                    "skills",
+                    "deliver",
+                    "blocked",
+                    "editable",
+                    "source"
+                ],
+                "properties": {
+                    "blocked": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Tools that keep it from starting, with the reason."
+                    },
+                    "deliver": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Delivery targets."
+                    },
+                    "editable": {
+                        "type": "boolean",
+                        "description": "Whether the apps can change it."
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "Agent ID."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name."
+                    },
+                    "next_run": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "Next scheduled run."
+                    },
+                    "schedule": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Cron expression, if it runs on a schedule."
+                    },
+                    "skills": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Skills."
+                    },
+                    "source": {
+                        "type": "string",
+                        "description": "The agent file."
+                    },
+                    "tools": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AgentTool"
+                        },
+                        "description": "Tools."
+                    }
+                }
+            },
+            "AgentSource": {
+                "type": "object",
+                "description": "An agent file.",
+                "required": [
+                    "source"
+                ],
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "File content."
+                    }
+                }
+            },
+            "AgentTool": {
+                "type": "object",
+                "description": "A tool of an agent.",
+                "required": [
+                    "name",
+                    "level"
+                ],
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "Declared level: `read`, `draft` or `write`."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Qualified name."
+                    }
+                }
+            },
+            "Approval": {
+                "type": "object",
+                "description": "A proposed tool call.",
+                "required": [
+                    "id",
+                    "run_id",
+                    "agent_id",
+                    "tool",
+                    "input",
+                    "quotes_external",
+                    "status",
+                    "created_at",
+                    "expires_at"
+                ],
+                "properties": {
+                    "agent_id": {
+                        "type": "string",
+                        "description": "The agent that proposes the call."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it was proposed."
+                    },
+                    "decided_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "When it was decided."
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it counts as denied."
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Approval ID."
+                    },
+                    "input": {
+                        "description": "Tool arguments."
+                    },
+                    "quotes_external": {
+                        "type": "boolean",
+                        "description": "Whether the run had read external content, which may have shaped the proposal."
+                    },
+                    "run_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The paused run."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`pending`, `approved`, `denied` or `expired`."
+                    },
+                    "tool": {
+                        "type": "string",
+                        "description": "Qualified tool name."
+                    }
+                }
+            },
+            "AskAnswer": {
+                "type": "object",
+                "description": "An answer from the Brain.",
+                "required": [
+                    "run_id",
+                    "answer",
+                    "sources"
+                ],
+                "properties": {
+                    "answer": {
+                        "type": "string",
+                        "description": "The answer in Markdown."
+                    },
+                    "run_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Run that holds the costs of this answer."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/EntrySummary"
+                        },
+                        "description": "The entries it is based on."
+                    }
+                }
+            },
+            "AskRequest": {
+                "type": "object",
+                "description": "A question to the Brain.",
+                "required": [
+                    "question"
+                ],
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "The question."
+                    }
+                }
+            },
+            "AuthStatus": {
+                "type": "object",
+                "description": "State of the sign-in.",
+                "required": [
+                    "setup_required"
+                ],
+                "properties": {
+                    "setup_required": {
+                        "type": "boolean",
+                        "description": "Whether the owner still has to set a password."
+                    }
+                }
+            },
+            "BatchDecision": {
+                "type": "object",
+                "description": "One decision on many proposals, for example a batch of similar ones.",
+                "required": [
+                    "ids",
+                    "approve"
+                ],
+                "properties": {
+                    "approve": {
+                        "type": "boolean",
+                        "description": "Whether the actions may run."
+                    },
+                    "ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "The proposals."
+                    }
+                }
+            },
+            "BatchResult": {
+                "type": "object",
+                "description": "Result of a batch decision.",
+                "required": [
+                    "decided",
+                    "skipped"
+                ],
+                "properties": {
+                    "decided": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Proposals decided by this request."
+                    },
+                    "skipped": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Proposals already decided or expired."
+                    }
+                }
+            },
+            "ConnectStarted": {
+                "type": "object",
+                "description": "Answer when an OAuth flow started.",
+                "required": [
+                    "authorize_url"
+                ],
+                "properties": {
+                    "authorize_url": {
+                        "type": "string",
+                        "description": "URL to open in a browser."
+                    }
+                }
+            },
+            "ConnectorInfo": {
+                "type": "object",
+                "description": "A connector.",
+                "required": [
+                    "name",
+                    "auth",
+                    "connected",
+                    "read_tools",
+                    "draft_tools"
+                ],
+                "properties": {
+                    "auth": {
+                        "type": "string",
+                        "description": "`none`, `bearer`, `oauth` or `process`."
+                    },
+                    "connected": {
+                        "type": "boolean",
+                        "description": "Whether the needed credential is stored."
+                    },
+                    "draft_tools": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Reversible tools."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Connector name."
+                    },
+                    "read_tools": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Tools that run directly because they only read."
+                    }
+                }
+            },
+            "CredentialValue": {
+                "type": "object",
+                "description": "A credential to store.",
+                "required": [
+                    "value"
+                ],
+                "properties": {
+                    "value": {
+                        "type": "string",
+                        "description": "The secret value."
+                    }
+                }
+            },
+            "DailyCost": {
+                "type": "object",
+                "description": "Model costs of one day and provider.",
+                "required": [
+                    "day",
+                    "provider",
+                    "cost_eur",
+                    "input_tokens",
+                    "output_tokens"
+                ],
+                "properties": {
+                    "cost_eur": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Costs in EUR."
+                    },
+                    "day": {
+                        "type": "string",
+                        "description": "The day, as `YYYY-MM-DD` in UTC."
+                    },
+                    "input_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Input tokens."
+                    },
+                    "output_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Output tokens."
+                    },
+                    "provider": {
+                        "type": "string",
+                        "description": "Provider name."
+                    }
+                }
+            },
+            "Decision": {
+                "type": "object",
+                "description": "A decision on one proposal.",
+                "required": [
+                    "approve"
+                ],
+                "properties": {
+                    "approve": {
+                        "type": "boolean",
+                        "description": "Whether the action may run."
+                    },
+                    "input": {
+                        "description": "Replaces the proposed arguments."
+                    }
+                }
+            },
+            "Device": {
+                "type": "object",
+                "description": "A device that can sign in.",
+                "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "created_at"
+                ],
+                "properties": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When the device signed in."
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Device ID."
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "Client kind."
+                    },
+                    "last_used_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "Last request, to the minute."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name chosen at sign-in."
+                    }
+                }
+            },
+            "DeviceKind": {
+                "type": "string",
+                "description": "What kind of client holds a token.",
+                "enum": [
+                    "web",
+                    "mac",
+                    "ios",
+                    "node",
+                    "api"
+                ]
+            },
+            "Entry": {
+                "type": "object",
+                "description": "An entry of the Brain.",
+                "required": [
+                    "id",
+                    "type",
+                    "title",
+                    "scope",
+                    "status",
+                    "sources",
+                    "created",
+                    "updated"
+                ],
+                "properties": {
+                    "created": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it was created."
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Entry ID."
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Links to other entries, such as `project:release-2-14`."
+                    },
+                    "original": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "File name of the original, for uploaded files."
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Who the entry belongs to."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Source"
+                        },
+                        "description": "Sources."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`active`, `superseded` or `archived`."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Title."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "One of [`KINDS`]."
+                    },
+                    "updated": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it last changed."
+                    }
+                }
+            },
+            "EntryDetail": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/Entry",
+                        "description": "The entry."
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "body"
+                        ],
+                        "properties": {
+                            "body": {
+                                "type": "string",
+                                "description": "Markdown text."
+                            }
+                        }
+                    }
+                ],
+                "description": "Full entry with its text."
+            },
+            "EntryPatch": {
+                "type": "object",
+                "description": "A change to an entry.",
+                "properties": {
+                    "body": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "New text."
+                    },
+                    "links": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "New links."
+                    },
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`active`, `superseded` or `archived`."
+                    },
+                    "title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "New title."
+                    }
+                }
+            },
+            "EntrySummary": {
+                "type": "object",
+                "description": "An entry without its text, for lists.",
+                "required": [
+                    "id",
+                    "type",
+                    "title",
+                    "status",
+                    "snippet",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Entry ID."
+                    },
+                    "original": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "File name of the original, for uploaded files."
+                    },
+                    "snippet": {
+                        "type": "string",
+                        "description": "Start of the text."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Title."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Kind of entry."
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it last changed."
+                    }
+                }
+            },
+            "Health": {
+                "type": "object",
+                "description": "Answer of the health check.",
+                "required": [
+                    "status",
+                    "version"
+                ],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "description": "Always `ok`."
+                    },
+                    "version": {
+                        "type": "string",
+                        "description": "Server version."
+                    }
+                }
+            },
+            "LoginRequest": {
+                "type": "object",
+                "description": "A sign-in attempt.",
+                "required": [
+                    "password",
+                    "device_name",
+                    "device_kind"
+                ],
+                "properties": {
+                    "device_kind": {
+                        "$ref": "#/components/schemas/DeviceKind",
+                        "description": "Client kind."
+                    },
+                    "device_name": {
+                        "type": "string",
+                        "description": "Name of this device."
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "The password."
+                    }
+                }
+            },
+            "NewEntry": {
+                "type": "object",
+                "description": "A new entry.",
+                "required": [
+                    "type",
+                    "title",
+                    "body"
+                ],
+                "properties": {
+                    "body": {
+                        "type": "string",
+                        "description": "Markdown text."
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Links to other entries."
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/Source"
+                        },
+                        "description": "Sources. An entry without a source is not stored."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Title."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "One of the entry kinds."
+                    }
+                }
+            },
+            "NewPermission": {
+                "type": "object",
+                "description": "A permission request from a session.",
+                "required": [
+                    "session_id",
+                    "project",
+                    "tool",
+                    "input"
+                ],
+                "properties": {
+                    "input": {
+                        "description": "Tool arguments."
+                    },
+                    "project": {
+                        "type": "string",
+                        "description": "Project name."
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Session ID."
+                    },
+                    "tool": {
+                        "type": "string",
+                        "description": "Tool name."
+                    }
+                }
+            },
+            "Node": {
+                "type": "object",
+                "description": "A machine with a desktop agent.",
+                "required": [
+                    "id",
+                    "name",
+                    "paused",
+                    "online",
+                    "last_seen_at"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Node ID, the same as its device ID."
+                    },
+                    "last_seen_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Last report."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Machine name."
+                    },
+                    "online": {
+                        "type": "boolean",
+                        "description": "Whether it reported recently."
+                    },
+                    "paused": {
+                        "type": "boolean",
+                        "description": "Whether remote actions are paused."
+                    }
+                }
+            },
+            "NodeChange": {
+                "type": "object",
+                "description": "A change to a node.",
+                "required": [
+                    "paused"
+                ],
+                "properties": {
+                    "paused": {
+                        "type": "boolean",
+                        "description": "Pauses remote actions and denies open requests."
+                    }
+                }
+            },
+            "NodeReport": {
+                "type": "object",
+                "description": "What a desktop agent sends regularly.",
+                "required": [
+                    "name",
+                    "sessions"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Machine name."
+                    },
+                    "sessions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SessionReport"
+                        },
+                        "description": "Current sessions."
+                    }
+                }
+            },
+            "NodeState": {
+                "type": "object",
+                "description": "The answer to a report.",
+                "required": [
+                    "paused"
+                ],
+                "properties": {
+                    "paused": {
+                        "type": "boolean",
+                        "description": "Whether remote actions are paused."
+                    }
+                }
+            },
+            "Permission": {
+                "type": "object",
+                "description": "A stored permission request.",
+                "required": [
+                    "id",
+                    "node_id",
+                    "session_id",
+                    "project",
+                    "tool",
+                    "input",
+                    "status",
+                    "created_at",
+                    "expires_at"
+                ],
+                "properties": {
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it was asked."
+                    },
+                    "decided_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "When it was decided."
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When it lapses."
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Request ID."
+                    },
+                    "input": {
+                        "description": "Tool arguments."
+                    },
+                    "node_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The machine."
+                    },
+                    "project": {
+                        "type": "string",
+                        "description": "Project name."
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "description": "Session ID."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`pending`, `allowed`, `denied` or `expired`."
+                    },
+                    "tool": {
+                        "type": "string",
+                        "description": "Tool name."
+                    }
+                }
+            },
+            "PermissionDecision": {
+                "type": "object",
+                "description": "A decision on a permission request.",
+                "required": [
+                    "allow"
+                ],
+                "properties": {
+                    "allow": {
+                        "type": "boolean",
+                        "description": "Whether the tool may run."
+                    }
+                }
+            },
+            "RunDetail": {
+                "type": "object",
+                "description": "A run with its steps.",
+                "required": [
+                    "run",
+                    "steps"
+                ],
+                "properties": {
+                    "run": {
+                        "$ref": "#/components/schemas/RunRecord",
+                        "description": "The run."
+                    },
+                    "steps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/StepRecord"
+                        },
+                        "description": "Its steps in order."
+                    }
+                }
+            },
+            "RunRecord": {
+                "type": "object",
+                "description": "A run as stored.",
+                "required": [
+                    "id",
+                    "agent_id",
+                    "trigger",
+                    "status",
+                    "input_tokens",
+                    "output_tokens",
+                    "cost_eur",
+                    "started_at"
+                ],
+                "properties": {
+                    "agent_id": {
+                        "type": "string",
+                        "description": "Agent ID."
+                    },
+                    "cost_eur": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Total cost in EUR."
+                    },
+                    "finished_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "End time."
+                    },
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Run ID."
+                    },
+                    "input_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Total input tokens."
+                    },
+                    "output_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Total output tokens."
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Why the run did not succeed."
+                    },
+                    "report": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The final report."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Start time."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status name."
+                    },
+                    "trigger": {
+                        "type": "string",
+                        "description": "What started the run."
+                    }
+                }
+            },
+            "RunStarted": {
+                "type": "object",
+                "description": "Answer when a run started.",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID of the new run."
+                    }
+                }
+            },
+            "SearchHit": {
+                "type": "object",
+                "description": "One search result.",
+                "required": [
+                    "entry",
+                    "score"
+                ],
+                "properties": {
+                    "entry": {
+                        "$ref": "#/components/schemas/EntrySummary",
+                        "description": "The entry."
+                    },
+                    "score": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Fusion score. Only the order means anything."
+                    }
+                }
+            },
+            "Session": {
+                "type": "object",
+                "description": "A session with its machine.",
+                "required": [
+                    "id",
+                    "node_id",
+                    "node_name",
+                    "project",
+                    "status",
+                    "cost_eur",
+                    "started_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "branch": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Git branch."
+                    },
+                    "cost_eur": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Costs so far in EUR."
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "Session ID."
+                    },
+                    "node_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The machine."
+                    },
+                    "node_name": {
+                        "type": "string",
+                        "description": "Machine name."
+                    },
+                    "project": {
+                        "type": "string",
+                        "description": "Project name."
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "First report."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`running`, `waiting` or `done`."
+                    },
+                    "summary": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Latest status text."
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Latest report."
+                    }
+                }
+            },
+            "SessionReport": {
+                "type": "object",
+                "description": "A session as a desktop agent reports it.",
+                "required": [
+                    "id",
+                    "project",
+                    "status"
+                ],
+                "properties": {
+                    "branch": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Git branch."
+                    },
+                    "cost_eur": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Costs so far in EUR."
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "Session ID from Claude Code."
+                    },
+                    "project": {
+                        "type": "string",
+                        "description": "Project name."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "`running`, `waiting` or `done`."
+                    },
+                    "summary": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Latest status text."
+                    }
+                }
+            },
+            "SetupRequest": {
+                "type": "object",
+                "description": "A new password.",
+                "required": [
+                    "password"
+                ],
+                "properties": {
+                    "password": {
+                        "type": "string",
+                        "description": "The password, at least 12 characters."
+                    }
+                }
+            },
+            "SkillInfo": {
+                "type": "object",
+                "description": "A skill.",
+                "required": [
+                    "name",
+                    "description"
+                ],
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "What it is for."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Skill name."
+                    }
+                }
+            },
+            "Source": {
+                "type": "object",
+                "description": "Where an entry comes from. Every entry needs at least one source.",
+                "required": [
+                    "kind",
+                    "ref"
+                ],
+                "properties": {
+                    "kind": {
+                        "type": "string",
+                        "description": "Kind of source, for example `app`, `meeting` or `agent`."
+                    },
+                    "ref": {
+                        "type": "string",
+                        "description": "Reference inside that source."
+                    }
+                }
+            },
+            "StepRecord": {
+                "type": "object",
+                "description": "A step as stored.",
+                "required": [
+                    "seq",
+                    "kind",
+                    "name",
+                    "status",
+                    "input_tokens",
+                    "output_tokens",
+                    "cost_eur",
+                    "duration_ms",
+                    "created_at"
+                ],
+                "properties": {
+                    "cost_eur": {
+                        "type": "number",
+                        "format": "double",
+                        "description": "Cost in EUR."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Time of the record."
+                    },
+                    "detail": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Extra information."
+                    },
+                    "duration_ms": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Duration in milliseconds."
+                    },
+                    "input_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Input tokens."
+                    },
+                    "kind": {
+                        "type": "string",
+                        "description": "Step kind."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Step name."
+                    },
+                    "output_tokens": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "Output tokens."
+                    },
+                    "seq": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "Position in the run."
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Status."
+                    }
+                }
+            },
+            "TokenIssued": {
+                "type": "object",
+                "description": "A device token. It is shown only once.",
+                "required": [
+                    "id",
+                    "token"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Device ID."
+                    },
+                    "token": {
+                        "type": "string",
+                        "description": "The bearer token."
+                    }
+                }
+            },
+            "TokenRequest": {
+                "type": "object",
+                "description": "A request for a token without a password.",
+                "required": [
+                    "name",
+                    "kind"
+                ],
+                "properties": {
+                    "kind": {
+                        "$ref": "#/components/schemas/DeviceKind",
+                        "description": "Client kind."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the token."
+                    }
+                }
+            }
+        },
+        "securitySchemes": {
+            "admin_token": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "bearer": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}
