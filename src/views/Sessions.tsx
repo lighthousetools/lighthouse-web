@@ -1,60 +1,73 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, must } from "../api/client";
-import { Failure, Loaded, Status, euro, when } from "../ui";
+import { useSessions } from "../data";
+import { dateTime, euro } from "../format";
+import { t, useLanguage } from "../i18n";
+import { Dot, Failure, Head, Loaded, Section, Status } from "../ui";
+
+const EDGE: Record<string, string> = { waiting: "attn", running: "info", done: "ok" };
 
 export function Sessions() {
+  useLanguage();
   const client = useQueryClient();
   const nodes = useQuery({ queryKey: ["nodes"], queryFn: () => must(api.GET("/nodes")) });
-  const sessions = useQuery({
-    queryKey: ["sessions"],
-    queryFn: () => must(api.GET("/sessions", { params: { query: {} } })),
-  });
+  const sessions = useSessions();
   const pause = useMutation({
     mutationFn: ({ id, paused }: { id: string; paused: boolean }) =>
       must(api.PATCH("/nodes/{id}", { params: { path: { id } }, body: { paused } })),
     onSuccess: () => client.invalidateQueries({ queryKey: ["nodes"] }),
   });
   return (
-    <>
-      <h1>Sessions</h1>
-      <h2>Machines</h2>
+    <div className="content narrow">
+      <Head title={t("nav.sessions")} lead={t("sessions.lead")} />
       <Failure error={pause.error} />
-      <Loaded query={nodes} empty="No machine is connected. See Settings to add one.">
-        {(items) =>
-          items.map((node) => (
-            <div className="card row" key={node.id}>
-              <span>
-                {node.name} <span className="muted">{node.online ? "online" : "offline"}</span>
-              </span>
-              <button
-                className={node.paused ? "primary" : "danger"}
-                onClick={() => pause.mutate({ id: node.id, paused: !node.paused })}
-              >
-                {node.paused ? "Resume" : "Pause, deny all"}
-              </button>
+      <Section title={t("sessions.machines")} count={nodes.data?.length}>
+        <Loaded query={nodes} empty={t("sessions.none")} hint={t("sessions.noneHint")}>
+          {(items) => (
+            <div className="card">
+              {items.map((node) => (
+                <div className="qrow" key={node.id}>
+                  <Dot tone={node.paused ? "attn" : node.online ? "ok" : "off"} />
+                  <span className="l">
+                    {node.name}{" "}
+                    <span className="muted">
+                      {node.paused ? t("sessions.paused") : node.online ? t("sessions.online") : t("sessions.offline")}
+                    </span>
+                  </span>
+                  <button
+                    className={`btn sm ${node.paused ? "" : "danger"}`}
+                    onClick={() => pause.mutate({ id: node.id, paused: !node.paused })}
+                  >
+                    {node.paused ? t("sessions.resume") : t("sessions.pause")}
+                  </button>
+                </div>
+              ))}
             </div>
-          ))
-        }
-      </Loaded>
-      <h2>Claude Code</h2>
-      <Loaded query={sessions} empty="No sessions yet.">
-        {(items) =>
-          items.map((session) => (
-            <div className="card" key={`${session.node_id}-${session.id}`}>
-              <div className="row">
-                <strong>{session.project}</strong>
-                <Status value={session.status} />
-              </div>
-              <p className="muted">
-                {session.node_name}
-                {session.branch ? `, ${session.branch}` : ""}, {when(session.updated_at)},{" "}
-                {euro(session.cost_eur)}
-              </p>
-              {session.summary && <p>{session.summary}</p>}
-            </div>
-          ))
-        }
-      </Loaded>
-    </>
+          )}
+        </Loaded>
+      </Section>
+      <Section title={t("sessions.claude")} count={sessions.data?.length}>
+        <Loaded query={sessions} empty={t("sessions.empty")}>
+          {(items) =>
+            items.map((session) => (
+              <article className={`edge ${EDGE[session.status] ?? ""}`} key={`${session.node_id}-${session.id}`}>
+                <div className="spread">
+                  <div className="top">
+                    <span className="src">{session.node_name}</span>
+                    {session.branch}
+                  </div>
+                  <Status value={session.status} />
+                </div>
+                <h3 className="ti">{session.project}</h3>
+                {session.summary && <p className="de">{session.summary}</p>}
+                <p className="muted">
+                  {dateTime(session.updated_at)} · {euro(session.cost_eur)}
+                </p>
+              </article>
+            ))
+          }
+        </Loaded>
+      </Section>
+    </div>
   );
 }

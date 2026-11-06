@@ -1,20 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api, must, storeToken } from "../api/client";
-import { Failure, Loaded, when } from "../ui";
+import { useConnectors } from "../data";
+import { dateTime } from "../format";
+import { t, tOr, useLanguage } from "../i18n";
+import { Dot, Failure, Head, Loaded, Section } from "../ui";
+import { LanguagePicker } from "./LanguagePicker";
 
 function Credentials() {
   const client = useQueryClient();
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
-  const names = useQuery({
-    queryKey: ["credentials"],
-    queryFn: () => must(api.GET("/credentials")),
-  });
+  const names = useQuery({ queryKey: ["credentials"], queryFn: () => must(api.GET("/credentials")) });
   const refresh = () => client.invalidateQueries({ queryKey: ["credentials"] });
   const save = useMutation({
-    mutationFn: () =>
-      must(api.PUT("/credentials/{name}", { params: { path: { name } }, body: { value } })),
+    mutationFn: () => must(api.PUT("/credentials/{name}", { params: { path: { name } }, body: { value } })),
     onSuccess: () => {
       setName("");
       setValue("");
@@ -27,91 +27,79 @@ function Credentials() {
     onSuccess: refresh,
   });
   return (
-    <>
-      <h2>Credentials</h2>
-      <p className="muted">
-        Values are stored encrypted and never shown again. Use the provider name, such as
-        anthropic, or mcp:linear, smtp and slack:team.
-      </p>
-      <Loaded query={names} empty="No credentials yet.">
-        {(items) =>
-          items.map((item) => (
-            <div className="card row" key={item}>
-              <span className="mono">{item}</span>
-              <button className="danger" onClick={() => remove.mutate(item)}>
-                Delete
-              </button>
-            </div>
-          ))
-        }
-      </Loaded>
+    <Section title={t("settings.credentials")} count={names.data?.length}>
+      <p className="muted" style={{ marginBottom: 8 }}>{t("settings.credentialsHint")}</p>
       <div className="card">
-        <label>
-          Name
-          <input value={name} onChange={(event) => setName(event.target.value)} />
+        <Loaded query={names} empty={t("settings.credentialsEmpty")}>
+          {(items) =>
+            items.map((item) => (
+              <div className="qrow" key={item}>
+                <span className="l mono">{item}</span>
+                <button className="btn sm danger" onClick={() => remove.mutate(item)}>{t("common.delete")}</button>
+              </div>
+            ))
+          }
+        </Loaded>
+      </div>
+      <div className="card">
+        <label className="lab">
+          {t("settings.name")}
+          <input className="field" value={name} onChange={(event) => setName(event.target.value)} />
         </label>
-        <label>
-          Value
-          <input
-            type="password"
-            autoComplete="off"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-          />
+        <label className="lab">
+          {t("settings.value")}
+          <input className="field" type="password" autoComplete="off" value={value} onChange={(event) => setValue(event.target.value)} />
         </label>
         <Failure error={save.error ?? remove.error} />
-        <button className="primary" disabled={!name || !value} onClick={() => save.mutate()}>
-          Store
+        <button className="btn primary" disabled={!name || !value} onClick={() => save.mutate()}>
+          {t("settings.store")}
         </button>
       </div>
-    </>
+    </Section>
   );
 }
 
 function Connectors() {
-  const connectors = useQuery({
-    queryKey: ["connectors"],
-    queryFn: () => must(api.GET("/connectors")),
-  });
+  const connectors = useConnectors();
   const connect = useMutation({
-    mutationFn: (id: string) =>
-      must(api.POST("/connectors/{id}/connect", { params: { path: { id } } })),
+    mutationFn: (id: string) => must(api.POST("/connectors/{id}/connect", { params: { path: { id } } })),
     onSuccess: (started) => window.open(started.authorize_url, "_blank", "noopener"),
   });
   return (
-    <>
-      <h2>Connectors</h2>
+    <Section title={t("settings.connectors")} count={connectors.data?.length}>
       <Failure error={connect.error} />
-      <Loaded query={connectors} empty="No connectors configured.">
-        {(items) =>
-          items.map((item) => (
-            <div className="card row" key={item.name}>
-              <span>
-                {item.name} <span className="muted">{item.connected ? "connected" : "not connected"}</span>
-              </span>
-              {item.auth === "oauth" && (
-                <button className="plain" onClick={() => connect.mutate(item.name)}>
-                  {item.connected ? "Reconnect" : "Connect"}
-                </button>
-              )}
-            </div>
-          ))
-        }
+      <Loaded query={connectors} empty={t("settings.connectorsEmpty")}>
+        {(items) => (
+          <div className="card">
+            {items.map((item) => (
+              <div className="qrow" key={item.name}>
+                <Dot tone={item.connected ? "ok" : "err"} />
+                <span className="l">
+                  {item.name}{" "}
+                  <span className="muted">
+                    {item.connected ? t("settings.connected") : t("settings.notConnected")}
+                  </span>
+                </span>
+                {item.auth === "oauth" && (
+                  <button className="btn sm" onClick={() => connect.mutate(item.name)}>
+                    {item.connected ? t("settings.reconnect") : t("settings.connect")}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </Loaded>
-    </>
+    </Section>
   );
 }
 
 function Devices() {
   const client = useQueryClient();
-  const devices = useQuery({
-    queryKey: ["devices"],
-    queryFn: () => must(api.GET("/auth/devices")),
-  });
+  const devices = useQuery({ queryKey: ["devices"], queryFn: () => must(api.GET("/auth/devices")) });
   const refresh = () => client.invalidateQueries({ queryKey: ["devices"] });
   const revoke = useMutation({
-    mutationFn: (id: string) =>
-      must(api.DELETE("/auth/devices/{id}", { params: { path: { id } } })),
+    mutationFn: (id: string) => must(api.DELETE("/auth/devices/{id}", { params: { path: { id } } })),
     onSuccess: refresh,
   });
   const [name, setName] = useState("");
@@ -120,50 +108,49 @@ function Devices() {
     onSuccess: refresh,
   });
   return (
-    <>
-      <h2>Devices</h2>
-      <Loaded query={devices} empty="No devices.">
-        {(items) =>
-          items.map((device) => (
-            <div className="card row" key={device.id}>
-              <span>
-                {device.name}{" "}
-                <span className="muted">
-                  {device.kind}, last seen {when(device.last_used_at)}
-                </span>
-              </span>
-              <button className="danger" onClick={() => revoke.mutate(device.id)}>
-                Sign out
-              </button>
-            </div>
-          ))
-        }
-      </Loaded>
+    <Section title={t("settings.devices")} count={devices.data?.length}>
       <div className="card">
-        <label>
-          Add a machine with the desktop agent
-          <input
-            value={name}
-            placeholder="MacBook"
-            onChange={(event) => setName(event.target.value)}
-          />
+        <Loaded query={devices} empty={t("settings.devicesEmpty")}>
+          {(items) =>
+            items.map((device) => (
+              <div className="qrow" key={device.id}>
+                <span className="l">
+                  {device.name}{" "}
+                  <span className="muted">
+                    {tOr(`device.${device.kind}`, device.kind)} ·{" "}
+                    {t("settings.lastSeen", { time: dateTime(device.last_used_at) })}
+                  </span>
+                </span>
+                <button className="btn sm danger" onClick={() => revoke.mutate(device.id)}>
+                  {t("settings.revoke")}
+                </button>
+              </div>
+            ))
+          }
+        </Loaded>
+      </div>
+      <div className="card">
+        <label className="lab">
+          {t("settings.addMachine")}
+          <input className="field" value={name} placeholder={t("settings.machinePlaceholder")} onChange={(event) => setName(event.target.value)} />
         </label>
         <Failure error={pair.error ?? revoke.error} />
-        <button className="primary" disabled={!name} onClick={() => pair.mutate()}>
-          Create token
+        <button className="btn" disabled={!name} onClick={() => pair.mutate()}>
+          {t("settings.createToken")}
         </button>
         {pair.data && (
           <>
-            <p className="notice">This token is shown once.</p>
-            <pre>{pair.data.token}</pre>
+            <p className="note">{t("settings.tokenOnce")}</p>
+            <pre className="code">{pair.data.token}</pre>
           </>
         )}
       </div>
-    </>
+    </Section>
   );
 }
 
 export function Settings() {
+  useLanguage();
   const client = useQueryClient();
   const logout = async () => {
     await api.POST("/auth/logout");
@@ -172,16 +159,18 @@ export function Settings() {
     location.reload();
   };
   return (
-    <>
-      <div className="row">
-        <h1>Settings</h1>
-        <button className="plain" onClick={() => void logout()}>
-          Sign out
-        </button>
-      </div>
+    <div className="content narrow">
+      <Head title={t("nav.settings")}>
+        <button className="btn" onClick={() => void logout()}>{t("settings.signOut")}</button>
+      </Head>
+      <Section title={t("settings.appearance")}>
+        <div className="card">
+          <LanguagePicker />
+        </div>
+      </Section>
       <Connectors />
       <Credentials />
       <Devices />
-    </>
+    </div>
   );
 }

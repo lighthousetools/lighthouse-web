@@ -278,6 +278,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/brain/ask/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answers a question as a stream of server-sent events.
+         * @description `delta` events carry text, and a final `done` or `failed` event ends it.
+         */
+        post: operations["ask_brain_stream"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/brain/entries": {
         parameters: {
             query?: never;
@@ -341,6 +361,23 @@ export interface paths {
         };
         /** Downloads the original of a file. */
         get: operations["download_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/brain/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Finds the entry behind a `[[Title]]` link. */
+        get: operations["resolve_entry"];
         put?: never;
         post?: never;
         delete?: never;
@@ -452,6 +489,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tells a client when to reload, as a stream of server-sent events.
+         * @description A `changed` event means something the apps show has changed.
+         */
+        get: operations["events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -461,6 +518,23 @@ export interface paths {
         };
         /** Reports that the server is up. */
         get: operations["health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the signed-in owner. */
+        get: operations["me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -707,6 +781,8 @@ export interface components {
         Approval: {
             /** @description The agent that proposes the call. */
             agent_id: string;
+            /** @description Tools the run had used before the proposal. */
+            consulted: string[];
             /**
              * Format: date-time
              * @description When it was proposed.
@@ -731,6 +807,8 @@ export interface components {
             input: unknown;
             /** @description Whether the run had read external content, which may have shaped the proposal. */
             quotes_external: boolean;
+            /** @description What the agent said before it proposed the call. */
+            reason?: string | null;
             /**
              * Format: uuid
              * @description The paused run.
@@ -890,6 +968,8 @@ export interface components {
         };
         /** @description Full entry with its text. */
         EntryDetail: components["schemas"]["Entry"] & {
+            /** @description Entries that link here. */
+            backlinks?: components["schemas"]["EntrySummary"][];
             /** @description Markdown text. */
             body: string;
         };
@@ -942,6 +1022,11 @@ export interface components {
             device_name: string;
             /** @description The password. */
             password: string;
+        };
+        /** @description The signed-in owner. */
+        Me: {
+            /** @description Display name. */
+            name: string;
         };
         /** @description A new entry. */
         NewEntry: {
@@ -1046,6 +1131,14 @@ export interface components {
             /** @description Whether the tool may run. */
             allow: boolean;
         };
+        /** @description The entry behind a link. */
+        ResolvedEntry: {
+            /**
+             * Format: uuid
+             * @description Entry ID.
+             */
+            id: string;
+        };
         /** @description A run with its steps. */
         RunDetail: {
             /** @description The run. */
@@ -1055,6 +1148,8 @@ export interface components {
         };
         /** @description A run as stored. */
         RunRecord: {
+            /** @description Name of the latest step, which says what a running agent is doing. */
+            activity?: string | null;
             /** @description Agent ID. */
             agent_id: string;
             /**
@@ -1726,6 +1821,30 @@ export interface operations {
             };
         };
     };
+    ask_brain_stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+        };
+    };
     list_entries: {
         parameters: {
             query?: {
@@ -1930,6 +2049,35 @@ export interface operations {
             };
         };
     };
+    resolve_entry: {
+        parameters: {
+            query: {
+                /** @description Entry title */
+                title: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedEntry"];
+                };
+            };
+            /** @description Unknown title */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     search_brain: {
         parameters: {
             query: {
@@ -2101,6 +2249,26 @@ export interface operations {
             };
         };
     };
+    events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -2116,6 +2284,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
         };

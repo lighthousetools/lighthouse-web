@@ -629,6 +629,39 @@
                 ]
             }
         },
+        "/brain/ask/stream": {
+            "post": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Answers a question as a stream of server-sent events.",
+                "description": "`delta` events carry text, and a final `done` or `failed` event ends it.",
+                "operationId": "ask_brain_stream",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AskRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Server-sent events",
+                        "content": {
+                            "text/event-stream": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
         "/brain/entries": {
             "get": {
                 "tags": [
@@ -920,6 +953,45 @@
                 ]
             }
         },
+        "/brain/resolve": {
+            "get": {
+                "tags": [
+                    "brain"
+                ],
+                "summary": "Finds the entry behind a `[[Title]]` link.",
+                "operationId": "resolve_entry",
+                "parameters": [
+                    {
+                        "name": "title",
+                        "in": "query",
+                        "description": "Entry title",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResolvedEntry"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown title"
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
         "/brain/search": {
             "get": {
                 "tags": [
@@ -1172,6 +1244,27 @@
                 ]
             }
         },
+        "/events": {
+            "get": {
+                "tags": [],
+                "summary": "Tells a client when to reload, as a stream of server-sent events.",
+                "description": "A `changed` event means something the apps show has changed.",
+                "operationId": "events",
+                "responses": {
+                    "200": {
+                        "description": "Server-sent events",
+                        "content": {
+                            "text/event-stream": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
         "/health": {
             "get": {
                 "tags": [],
@@ -1188,6 +1281,29 @@
                         }
                     }
                 }
+            }
+        },
+        "/me": {
+            "get": {
+                "tags": [],
+                "summary": "Returns the signed-in owner.",
+                "operationId": "me",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Me"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
             }
         },
         "/node/permissions": {
@@ -1756,6 +1872,7 @@
                     "tool",
                     "input",
                     "quotes_external",
+                    "consulted",
                     "status",
                     "created_at",
                     "expires_at"
@@ -1764,6 +1881,13 @@
                     "agent_id": {
                         "type": "string",
                         "description": "The agent that proposes the call."
+                    },
+                    "consulted": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Tools the run had used before the proposal."
                     },
                     "created_at": {
                         "type": "string",
@@ -1794,6 +1918,13 @@
                     "quotes_external": {
                         "type": "boolean",
                         "description": "Whether the run had read external content, which may have shaped the proposal."
+                    },
+                    "reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "What the agent said before it proposed the call."
                     },
                     "run_id": {
                         "type": "string",
@@ -2157,6 +2288,13 @@
                             "body"
                         ],
                         "properties": {
+                            "backlinks": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/EntrySummary"
+                                },
+                                "description": "Entries that link here."
+                            },
                             "body": {
                                 "type": "string",
                                 "description": "Markdown text."
@@ -2288,6 +2426,19 @@
                     "password": {
                         "type": "string",
                         "description": "The password."
+                    }
+                }
+            },
+            "Me": {
+                "type": "object",
+                "description": "The signed-in owner.",
+                "required": [
+                    "name"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Display name."
                     }
                 }
             },
@@ -2514,6 +2665,20 @@
                     }
                 }
             },
+            "ResolvedEntry": {
+                "type": "object",
+                "description": "The entry behind a link.",
+                "required": [
+                    "id"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Entry ID."
+                    }
+                }
+            },
             "RunDetail": {
                 "type": "object",
                 "description": "A run with its steps.",
@@ -2549,6 +2714,13 @@
                     "started_at"
                 ],
                 "properties": {
+                    "activity": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Name of the latest step, which says what a running agent is doing."
+                    },
                     "agent_id": {
                         "type": "string",
                         "description": "Agent ID."
