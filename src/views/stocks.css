@@ -21,3 +21,4 @@
 .st-thr:hover { background: var(--active); }
 .st-thr b { font-weight: 500; }
 .st-th .btn { justify-self: start; }
+.sst { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important; }

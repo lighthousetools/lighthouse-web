@@ -116,11 +116,6 @@ export function Finance() {
         <div className="bz-fg">
           <Card>
             <div className="fch">
-              {months.length > 0 && (
-                <span style={{ float: "right" }}>
-                  <Seg<Scenario> label={t("finance.scenario")} value={scenario} onChange={setScenario} options={[["base", t("finance.withoutDeals")], ["pipeline", t("finance.withPipeline")]]} />
-                </span>
-              )}
               <div>
                 <div className="l">{months.length ? t("finance.balanceForecast", { count: months.length }) : t("finance.balance")}</div>
                 <div className="vv">
@@ -129,6 +124,11 @@ export function Finance() {
                   {first?.runway_months != null && <span className="faint">{t("finance.runway", { months: first.runway_months.toFixed(1) })}</span>}
                 </div>
               </div>
+              {months.length > 0 && (
+                <span style={{ marginLeft: "auto", flex: "none" }}>
+                  <Seg<Scenario> label={t("finance.scenario")} value={scenario} onChange={setScenario} options={[["base", t("finance.withoutDeals")], ["pipeline", t("finance.withPipeline")]]} />
+                </span>
+              )}
             </div>
             <div style={{ padding: "12px 16px" }}>
               {transactions.isPending ? <Skeleton count={1} height={240} /> : (

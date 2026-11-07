@@ -3,7 +3,7 @@ import { CalendarClock, Check, PlugZap, ShieldCheck, Sunrise } from "lucide-reac
 import { cronText } from "../cron";
 import { useAgentNames, useAgents, useBrief, useConnectors, useCosts, useMe, useReady, useRuns } from "../data";
 import { dayTime, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
-import { t, useLanguage } from "../i18n";
+import { t, useLanguage, type Key } from "../i18n";
 import { go } from "../router";
 import { openExternal } from "../shell/bridge";
 import { Btn, Empty, Failure, ServiceIcon, Skeleton, brandOf } from "../ui";
@@ -57,6 +57,10 @@ function WeekAhead({ days }: { days: Schemas["WeekDay"][] }) {
   );
 }
 
+const SERVICE_NAMES: Record<string, Key> = { mail: "nav.mail", calendar: "nav.calendar", issues: "nav.issues", code: "nav.code", deals: "nav.pipeline", crm: "nav.pipeline", invoices: "nav.invoices", bank: "nav.finance", rooms: "nav.rooms", contracts: "nav.contracts", holdings: "nav.stocks" };
+/** A service as people say it: "Mail", "Pipeline", or the brand. */
+export const serviceLabel = (service: string) => (SERVICE_NAMES[service] ? t(SERVICE_NAMES[service]!) : service.charAt(0).toUpperCase() + service.slice(1));
+
 /** "Das hängt zusammen": how items across services belong together, with their sources in a chain. */
 function Connected({ connection, count }: { connection: Schemas["Connection"]; count: number }) {
   return (
@@ -65,7 +69,8 @@ function Connected({ connection, count }: { connection: Schemas["Connection"]; c
         label={linkedLabel()}
         chain={(connection.items ?? []).slice(0, 5).map((source) => ({
           svc: brandOf(source.service) ?? source.service,
-          label: source.reference ?? source.service,
+          // A bare id such as "t1" says nothing; then the service names the source.
+          label: source.reference && !/^[a-z]{0,3}\d+$/i.test(source.reference) ? source.reference : serviceLabel(source.service),
           fallback: source.service,
           run: () => (source.url ? openExternal(source.url) : undefined),
         }))}
