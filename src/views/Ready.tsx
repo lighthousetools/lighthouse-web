@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, ArrowRight, Brain, Check, ChevronDown, ListTodo, PencilLine, Sparkles, X,
+  AlertTriangle, ArrowRight, Brain, Check, ChevronDown, ListTodo, PencilLine, Send, Sparkles, X,
 } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, must, type Schemas } from "../api/client";
@@ -12,10 +12,11 @@ import { toast } from "../shell/state";
 import { createStore } from "../store";
 import { Badge, Btn, Card, Empty, Failure, Menu, Progress, Seg, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { plainFields } from "./Decisions";
+import { LaterMenu } from "./later";
 import "./ready.css";
 
 type ReadyItem = Schemas["ReadyItem"];
-type Kind = "approval" | "permission" | "draft" | "task" | "fact";
+type Kind = "approval" | "permission" | "draft" | "task" | "fact" | "post";
 type Filter = "all" | "decisions" | "drafts" | "suggestions";
 type Decided = { key: string; title: string; stamp: string };
 type Action = { label: string; icon: ReactNode; kbd: string; run: () => Promise<unknown>; stamp: string; primary?: boolean };
@@ -74,7 +75,7 @@ const kindLabel = (kind: string) => t(`ready.kind.${kind as Kind}`);
 function useRefresh() {
   const client = useQueryClient();
   return () => {
-    for (const key of ["ready", "approvals", "permissions", "tasks", "memory"]) void client.invalidateQueries({ queryKey: [key] });
+    for (const key of ["ready", "approvals", "permissions", "tasks", "memory", "posts"]) void client.invalidateQueries({ queryKey: [key] });
   };
 }
 
@@ -149,11 +150,25 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
       { label: t("ready.accept"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampAccepted"), run: () => post(api.POST("/tasks/{id}/accept", { params: { path: { id: item.id } } })) },
       { label: t("ready.reject"), icon: <X />, kbd: "R", stamp: t("ready.stampRejected"), run: () => post(api.DELETE("/tasks/{id}", { params: { path: { id: item.id } } })) },
     ],
+    post: [
+      { label: t("ready.keepIdea"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampKept"), run: () => post(api.PATCH("/posts/{id}", { params: { path: { id: item.id } }, body: { status: "draft" } })) },
+      { label: t("ready.discard"), icon: <X />, kbd: "R", stamp: t("ready.stampRejected"), run: () => post(api.DELETE("/posts/{id}", { params: { path: { id: item.id } } })) },
+    ],
     fact: [
       { label: t("ready.confirm"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampConfirmed"), run: () => post(api.POST("/memory/{id}/confirm", { params: { path: { id: item.id } } })) },
       { label: t("ready.forget"), icon: <X />, kbd: "R", stamp: t("ready.stampForgotten"), run: () => post(api.DELETE("/memory/{id}", { params: { path: { id: item.id } } })) },
     ],
   }[kind] ?? [];
+  const later = useMutation({
+    mutationFn: (until: Date) => must(api.POST("/ready/{kind}/{id}/snooze", { params: { path: { kind, id: item.id } }, body: { until: until.toISOString() } })),
+    onSuccess: (_, until) => {
+      const stamp = t("ready.stampLater", { time: dateTime(until.toISOString()) });
+      onDecided(stamp);
+      toast(`${stamp}: ${titleOf(item, names)}`);
+      refresh();
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
   const decide = useMutation({
     mutationFn: (action: Action) => action.run(),
     onSuccess: (_, action) => {
@@ -251,6 +266,15 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
             )}
           </>
         )}
+        {kind === "post" && (
+          <>
+            <div className="rea-dh"><span>{t("ready.postLead")}</span></div>
+            <div className="ta body" style={{ marginTop: 0, whiteSpace: "pre-wrap" }}>{String(detail.body ?? item.title)}</div>
+            {Boolean(detail.pillar) && (
+              <div className="rd-evd"><span className="faint">{t("posts.pillar")}</span><span className="rea-srcchip">{String(detail.pillar)}{detail.topic ? ` · ${String(detail.topic)}` : ""}</span></div>
+            )}
+          </>
+        )}
         {kind === "fact" && (
           <>
             <div className="rea-dh"><span>{t("ready.factLead")}</span></div>
@@ -290,6 +314,13 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
             )}
           </Fragment>
         ))}
+        {kind === "post" && (
+          <Btn onClick={() => go("posts", item.id)}>
+            <Send />
+            {t("ready.openPost")}
+          </Btn>
+        )}
+        <LaterMenu onPick={(until) => later.mutate(until)} />
         {kind === "task" && (
           <Btn onClick={() => go("tasks")}>
             <ListTodo />
