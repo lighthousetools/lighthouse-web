@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Clock, ExternalLink, MapPin, Plus, Users, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Clock, ExternalLink, MapPin, Plus, Target, Users, X } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api, must } from "../api/client";
 import { language, t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
+import { toast } from "../shell/state";
 import { Btn, Empty, Failure, Seg, ServiceIcon, Skeleton } from "../ui";
 import { useNow } from "../ui/live";
 import { Freshness, NoSource, canDo, field, openItem, useAction, useDomains, useItems, useSources, type Item } from "./connected";
@@ -117,13 +118,14 @@ function toLocalInput(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function NewEvent({ day, onClose }: { day: Date; onClose: () => void }) {
+function NewEvent({ day, starts, minutes = 60, onClose }: { day: Date; starts?: Date; minutes?: number; onClose: () => void }) {
   const sources = useSources();
   const action = useAction();
   const source = (sources.data ?? []).find((item) => item.domain === "calendar" && item.actions.includes("create"));
   const [title, setTitle] = useState("");
-  const [from, setFrom] = useState(toLocalInput(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10)));
-  const [to, setTo] = useState(toLocalInput(new Date(day.getFullYear(), day.getMonth(), day.getDate(), 11)));
+  const start = starts ?? new Date(day.getFullYear(), day.getMonth(), day.getDate(), 10);
+  const [from, setFrom] = useState(toLocalInput(start));
+  const [to, setTo] = useState(toLocalInput(new Date(start.getTime() + minutes * 60_000)));
   return (
     <aside className="cal-side" aria-label={t("calendar.new")}>
       <div className="cal-sh2">
@@ -161,6 +163,23 @@ function NewEvent({ day, onClose }: { day: Date; onClose: () => void }) {
   );
 }
 
+/** Blocks focus time through the calendar's create action. A writing tool waits for approval. */
+function useFocus() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { source: string; title: string; minutes: number; starts_at?: string }) => {
+      const { data, error, response } = await api.POST("/calendar/focus", { body });
+      if (error !== undefined || !data) throw new Error((error as unknown as { error?: string } | undefined)?.error ?? t("error.server", { status: response.status }));
+      return data;
+    },
+    onSuccess: (result) => {
+      toast(result.status === "proposed" ? t("calendar.focusWaits") : result.status === "failed" ? t("calendar.focusFailed") : t("calendar.focusDone"), result.status === "failed" ? "bad" : undefined);
+      for (const key of ["connected", "ready", "approvals"]) void client.invalidateQueries({ queryKey: [key] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+}
+
 export function Calendar() {
   useLanguage();
   const route = useRoute();
@@ -170,6 +189,8 @@ export function Calendar() {
   const [mode, setMode] = useState<Mode>("week");
   const [anchor, setAnchor] = useState(() => new Date());
   const [creating, setCreating] = useState(false);
+  const [prefill, setPrefill] = useState<Date | undefined>();
+  const [minutes, setMinutes] = useState(60);
   const grid = useRef<HTMLDivElement>(null);
   const [hour, setHour] = useState(44);
   const days = useMemo(() => {
@@ -182,11 +203,6 @@ export function Calendar() {
   const from = days[0]!;
   const to = addDays(days[days.length - 1]!, 1);
   const events = useItems("/calendar/events", { from: from.toISOString(), to: to.toISOString(), limit: 500 }, domains.has("calendar"));
-  const busy = useQuery({
-    queryKey: ["connected", "freebusy", dayIso(now)],
-    enabled: domains.has("calendar"),
-    queryFn: () => must(api.GET("/calendar/freebusy", { params: { query: { from: new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString(), to: addDays(now, 2).toISOString() } } })),
-  });
   useLayoutEffect(() => {
     const element = grid.current;
     if (!element || typeof ResizeObserver === "undefined") return;
@@ -204,7 +220,15 @@ export function Calendar() {
       ? from.toLocaleDateString(locale(), { weekday: "long", day: "numeric", month: "long" })
       : `${from.toLocaleDateString(locale(), { day: "numeric", month: "short" })} – ${addDays(to, -1).toLocaleDateString(locale(), { day: "numeric", month: "long" })}`;
   const nowHour = now.getHours() + now.getMinutes() / 60;
-  const slots = [0, 1].flatMap((offset) => freeSlots(busy.data ?? [], addDays(now, offset)).map((slot) => ({ offset, slot }))).filter(({ slot }) => slot[1].getTime() > now.getTime()).slice(0, 8);
+  const focus = useFocus();
+  const focusSource = (sources.data ?? []).find((source) => source.domain === "calendar" && source.actions.includes("create"))?.name;
+  const suggestions = useQuery({
+    queryKey: ["connected", "suggestions", minutes, dayIso(now)],
+    enabled: domains.has("calendar"),
+    queryFn: () => must(api.GET("/calendar/suggestions", { params: { query: { minutes, from: now.toISOString(), to: addDays(now, 7).toISOString(), limit: 8 } } })),
+  });
+  const slots = (suggestions.data ?? []).map((slot) => ({ start: new Date(slot.starts_at), end: new Date(slot.ends_at) }));
+  const blockFocus = (starts?: Date) => focusSource && focus.mutate({ source: focusSource, title: t("calendar.focusTitle"), minutes, ...(starts ? { starts_at: starts.toISOString() } : {}) });
   if (!sources.isPending && !domains.has("calendar")) return <div className="page"><NoSource domain="calendar" /></div>;
   return (
     <div className="cal">
@@ -221,20 +245,27 @@ export function Calendar() {
           <Btn icon size="sm" variant="ghost" aria-label={t("calendar.nextPeriod")} onClick={() => setAnchor(addDays(anchor, mode === "day" ? 1 : 7))}><ChevronRight /></Btn>
         </div>
         <Seg<Mode> label={t("calendar.mode")} value={mode} onChange={setMode} options={[["day", t("calendar.day")], ["week", t("calendar.week")]]} />
+        {focusSource && <Btn size="sm" disabled={focus.isPending} title={t("calendar.focusHint")} onClick={() => blockFocus()}><Target />{t("calendar.focusNext")}</Btn>}
         <Btn size="sm" variant="primary" onClick={() => setCreating(true)}><Plus />{t("calendar.new")}</Btn>
       </div>
       <div className="cal-body">
         <div className="cal-tray">
           <div className="cal-th"><h3>{t("calendar.free")}</h3><em>{slots.length}</em></div>
+          <div style={{ padding: "0 8px 8px" }}>
+            <Seg<string> label={t("calendar.length")} value={String(minutes)} onChange={(value) => setMinutes(Number(value))} options={[["30", "30 min"], ["60", "60 min"], ["90", "90 min"]]} />
+          </div>
           <div className="cal-tl">
-            {busy.isPending && <Skeleton count={3} height={40} />}
-            {slots.map(({ offset, slot }, index) => (
-              <div key={index} className="cal-ti" role="button" tabIndex={0} onClick={() => setCreating(true)}>
-                <b className="tn">{hm(slot[0])} – {hm(slot[1])}</b>
-                <span>{offset === 0 ? t("today.today") : t("tasks.tomorrow")} · {Math.round((slot[1].getTime() - slot[0].getTime()) / 60_000)} min</span>
+            {suggestions.isPending && <Skeleton count={3} height={40} />}
+            {slots.map((slot, index) => (
+              <div key={index} className="cal-ti">
+                <b className="tn">{slot.start.toLocaleDateString(locale(), { weekday: "short" })} {hm(slot.start)} – {hm(slot.end)}</b>
+                <span className="cal-ta">
+                  <button type="button" onClick={() => { setPrefill(slot.start); setCreating(true); }}>{t("calendar.newHere")}</button>
+                  {focusSource && <button type="button" disabled={focus.isPending} onClick={() => blockFocus(slot.start)}><Target size={11} />{t("calendar.focus")}</button>}
+                </span>
               </div>
             ))}
-            {!busy.isPending && slots.length === 0 && <p className="faint" style={{ fontSize: 12, padding: 8 }}>{t("calendar.noFree")}</p>}
+            {!suggestions.isPending && slots.length === 0 && <p className="faint" style={{ fontSize: 12, padding: 8 }}>{t("calendar.noFree")}</p>}
           </div>
           <div className="cal-tf">
             <div className="cal-fh"><span>{t("calendar.busyWeek")}</span><b className="tn">{days.reduce((sum, day) => sum + hoursOf(day), 0).toFixed(1)} h</b></div>
@@ -292,7 +323,7 @@ export function Calendar() {
           </div>
           {!events.isPending && items.length === 0 && <div style={{ position: "absolute", left: "50%", top: "45%", transform: "translateX(-50%)" }}><Empty title={t("calendar.empty")} /></div>}
         </div>
-        {creating ? <NewEvent day={days[0]!} onClose={() => setCreating(false)} /> : current ? <EventPanel key={current.id} item={current} onClose={() => go("calendar")} /> : null}
+        {creating ? <NewEvent key={prefill?.toISOString() ?? "new"} day={days[0]!} starts={prefill} minutes={minutes} onClose={() => { setCreating(false); setPrefill(undefined); }} /> : current ? <EventPanel key={current.id} item={current} onClose={() => go("calendar")} /> : null}
       </div>
     </div>
   );
