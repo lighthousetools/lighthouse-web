@@ -1,9 +1,13 @@
-import { ExternalLink, FileText, Search, ShieldAlert } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Copy, ExternalLink, FilePlus2, FileText, Search, ShieldAlert } from "lucide-react";
+import { api, must } from "../api/client";
+import { toast } from "../shell/state";
 import { useMemo, useState } from "react";
 import { dateTime, shortDate } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
-import { Badge, Btn, Card, Empty, Failure, Seg, ServiceIcon, Skeleton, type Tone } from "../ui";
+import { Badge, Btn, Card, Empty, Failure, Field, Modal, Seg, ServiceIcon, Skeleton, type Tone } from "../ui";
+import { Select } from "../ui/select";
 import { Markdown } from "../ui/markdown";
 import { Freshness, NoSource, field, has, openItem, useAction, useDomains, useItem, useItems, useSources, type Item } from "./connected";
 import "./contracts.css";
@@ -87,6 +91,96 @@ function Detail({ id }: { id: string }) {
   );
 }
 
+/** The `{{field}}` placeholders of a template, each once, in order. */
+export function placeholdersOf(body: string): string[] {
+  return [...new Set([...body.matchAll(/\{\{\s*([\w.-]+)\s*\}\}/g)].map((match) => match[1]!))];
+}
+
+/**
+ * A contract from a template in the Brain: fill in the fields, see the text, and optionally hand it to a source's
+ * `draft` action. Missing fields stay as [TODO]. Nothing is sent or signed.
+ */
+function Compose({ onClose }: { onClose: () => void }) {
+  const client = useQueryClient();
+  const sources = useSources();
+  const templates = useQuery({ queryKey: ["contracts", "templates"], queryFn: () => must(api.GET("/contracts/templates")) });
+  const [templateId, setTemplateId] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const chosen = templateId || templates.data?.[0]?.id || "";
+  const template = useQuery({ queryKey: ["brain", "entry", chosen], enabled: !!chosen, queryFn: () => must(api.GET("/brain/entries/{id}", { params: { path: { id: chosen } } })) });
+  const fields = placeholdersOf(template.data?.body ?? "");
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [title, setTitle] = useState("");
+  const drafters = (sources.data ?? []).filter((source) => source.domain === "documents" && source.actions.includes("draft"));
+  const [target, setTarget] = useState("");
+  const compose = useMutation({
+    mutationFn: () => must(api.POST("/contracts/compose", { body: { template_id: chosen, values, title: title || null, source: target || null } })),
+    onSuccess: (result) => {
+      if (result.action) toast(result.action.status === "proposed" ? t("contracts.draftWaits") : t("contracts.draftDone"));
+      void client.invalidateQueries({ queryKey: ["connected"] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const saveTemplate = useMutation({
+    mutationFn: () => must(api.POST("/contracts/templates", { body: { title: newTitle.trim(), body: newBody } })),
+    onSuccess: (entry) => {
+      void client.invalidateQueries({ queryKey: ["contracts", "templates"] });
+      setTemplateId(entry.id);
+      setCreating(false);
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const result = compose.data;
+  return (
+    <Modal
+      wide
+      title={t("contracts.compose")}
+      sub={t("contracts.composeSub")}
+      onClose={onClose}
+      actions={creating
+        ? <><Btn onClick={() => setCreating(false)}>{t("common.cancel")}</Btn><Btn variant="primary" disabled={!newTitle.trim() || !newBody.trim() || saveTemplate.isPending} onClick={() => saveTemplate.mutate()}>{t("contracts.saveTemplate")}</Btn></>
+        : <><Btn onClick={() => setCreating(true)}><FilePlus2 />{t("contracts.newTemplate")}</Btn><span className="grow" /><Btn onClick={onClose}>{t("common.close")}</Btn><Btn variant="primary" disabled={!chosen || compose.isPending} onClick={() => compose.mutate()}>{target ? t("contracts.composeDraft") : t("contracts.composeText")}</Btn></>}
+    >
+      {creating ? (
+        <>
+          <Field autoFocus label={t("contracts.templateTitle")} value={newTitle} onChange={setNewTitle} placeholder={t("contracts.templateTitlePlaceholder")} />
+          <textarea className="ta" style={{ width: "100%", minHeight: 220, marginTop: 8, fontFamily: "var(--mono)", fontSize: "var(--t-12)" }} aria-label={t("contracts.templateBody")} placeholder={t("contracts.templateBodyPlaceholder")} value={newBody} onChange={(event) => setNewBody(event.target.value)} />
+          <p className="faint" style={{ fontSize: "var(--t-12)", marginTop: 6 }}>{t("contracts.placeholdersHint")}</p>
+        </>
+      ) : templates.isPending ? <Skeleton count={3} /> : !templates.data?.length ? (
+        <Empty title={t("contracts.noTemplates")} sub={t("contracts.noTemplatesSub")} action={<Btn size="sm" onClick={() => setCreating(true)}><FilePlus2 />{t("contracts.newTemplate")}</Btn>} />
+      ) : (
+        <div className="ct-comp">
+          <div className="ct-form">
+            <Select label={t("contracts.template")} value={chosen} onChange={(value) => { setTemplateId(value); setValues({}); compose.reset(); }} options={templates.data.map((item) => [item.id, item.title] as const)} />
+            <Field label={t("contracts.docTitle")} value={title} onChange={setTitle} placeholder={templates.data.find((item) => item.id === chosen)?.title ?? ""} />
+            {fields.map((name) => (
+              <Field key={name} label={name} value={values[name] ?? ""} onChange={(value) => setValues({ ...values, [name]: value })} />
+            ))}
+            {template.data && fields.length === 0 && <p className="faint" style={{ fontSize: "var(--t-12)" }}>{t("contracts.noFields")}</p>}
+            {drafters.length > 0 && (
+              <Select label={t("contracts.target")} value={target} onChange={setTarget} options={[["", t("contracts.textOnly")], ...drafters.map((source) => [source.name, source.name] as const)]} />
+            )}
+          </div>
+          <div className="ct-out">
+            {result ? (
+              <>
+                {result.missing.length > 0 && <p className="note-box"><ShieldAlert size={14} />{t("contracts.missing", { fields: result.missing.join(", ") })}</p>}
+                <div className="ct-text"><Markdown source={result.text} /></div>
+                <Btn size="sm" variant="ghost" onClick={() => { void navigator.clipboard?.writeText(result.text); toast(t("posts.copied")); }}><Copy />{t("talk.copy")}</Btn>
+              </>
+            ) : template.data ? (
+              <div className="ct-text faint"><Markdown source={template.data.body} /></div>
+            ) : <Skeleton count={4} />}
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 export function Contracts() {
   useLanguage();
   const route = useRoute();
@@ -95,6 +189,7 @@ export function Contracts() {
   const contracts = useItems("/contracts", { limit: 300, open: false }, domains.has("documents"));
   const [filter, setFilter] = useState<"all" | "open" | "signed" | "expiring">("all");
   const [query, setQuery] = useState("");
+  const [composing, setComposing] = useState(false);
   const all = useMemo(() => contracts.data?.items ?? [], [contracts.data]);
   const needle = query.trim().toLowerCase();
   const shown = all.filter(
@@ -113,7 +208,7 @@ export function Contracts() {
             <h1>{t("nav.contracts")}</h1>
             <p>{t("contracts.lead")}</p>
           </div>
-          <div className="acts"><Freshness domain="documents" /></div>
+          <div className="acts"><Freshness domain="documents" /><Btn size="sm" variant="primary" onClick={() => setComposing(true)}><FilePlus2 />{t("contracts.compose")}</Btn></div>
         </header>
         <div className="cbar">
           <Seg
@@ -150,6 +245,7 @@ export function Contracts() {
           </div>
         )}
       </div>
+      {composing && <Compose onClose={() => setComposing(false)} />}
     </div>
   );
 }
