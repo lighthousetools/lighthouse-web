@@ -9,7 +9,7 @@ import { Avatar, Badge, Btn, cx, Empty, SearchField, Seg } from "../ui";
 import { Select } from "../ui/select";
 import { useOrganizations } from "./connected";
 import { addDays, dayIso, isoWeek, monthDays, nearestTime, openGaps, sameDay, suggestFor, weekStart, weekdayOf } from "./postdates";
-import { fromZone, inZone } from "./zone";
+import { fromZone, inZone, validZone } from "./zone";
 import { inPool, statusLabel, statusTone, Tile, titleOf, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post } from "./publishing";
 
 const locale = () => (language() === "de" ? "de-DE" : "en-GB");
@@ -140,7 +140,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const [showPool, setShowPool] = useState(true);
   const [over, setOver] = useState<string | null>(null);
   // Days follow the owner's time zone, like the server's slots.
-  const zone = me.data?.timezone ?? undefined;
+  const zone = validZone(me.data?.timezone);
   const [ty, tm, td] = inZone(new Date(), zone).day.split("-").map(Number);
   const today = new Date(ty!, tm! - 1, td!);
   const dayOf = (instant: string) => inZone(instant, zone).day;

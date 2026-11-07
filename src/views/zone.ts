@@ -1,12 +1,29 @@
 // Dates in the owner's time zone (`GET /me` → `timezone`, from `server.timezone`), which post slots and "today" follow.
 // Without a zone, the browser's own is used.
 
+/** The zone if this browser knows it, so it can go into any date formatting option safely. */
+export function validZone(zone: string | null | undefined): string | undefined {
+  if (!zone) return undefined;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: zone });
+    return zone;
+  } catch {
+    return undefined;
+  }
+}
+
 const formatters = new Map<string, Intl.DateTimeFormat>();
 function formatter(zone: string | undefined) {
   const key = zone ?? "";
   let found = formatters.get(key);
   if (!found) {
-    found = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+    try {
+      found = new Intl.DateTimeFormat("en-CA", { ...options, timeZone: zone });
+    } catch {
+      // A zone this browser does not know falls back to the browser's own, instead of breaking the page.
+      found = new Intl.DateTimeFormat("en-CA", options);
+    }
     formatters.set(key, found);
   }
   return found;

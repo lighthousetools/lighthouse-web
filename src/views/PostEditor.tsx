@@ -9,7 +9,7 @@ import { Badge, Btn, Confirm, cx, Menu, Seg, Stat } from "../ui";
 import { useMe } from "../data";
 import { useOrganizations } from "./connected";
 import { openRun } from "./runs";
-import { fromZone, inZone } from "./zone";
+import { fromZone, inZone, validZone } from "./zone";
 import { FeedPreview, metricsOf, STEPS, stepOf, Tile, titleOf, useBrainImages, useCheck, usePillars, usePostActions, usePosts, type Metrics, type Post } from "./publishing";
 
 /** Where a post starts to feel long, and where the network cuts it off. */
@@ -77,7 +77,7 @@ function Checks({ text }: { text: string }) {
 
 function Schedule({ post, onSave }: { post: Post; onSave: (at: string | null) => void }) {
   // Dates and times are in the owner's time zone, the one the server plans slots in.
-  const zone = useMe().data?.timezone ?? undefined;
+  const zone = validZone(useMe().data?.timezone);
   const when = post.scheduled_at ? inZone(post.scheduled_at, zone) : null;
   const [day, setDay] = useState(when?.day ?? "");
   const [time, setTime] = useState(when?.time ?? "09:00");
@@ -297,7 +297,7 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
   const pillar = pillars.data?.find((item) => item.name === post.pillar);
   const orgName = post.org ? orgs.data?.find((item) => item.id === post.org)?.name ?? post.org : null;
   const when = post.scheduled_at ?? post.published_at;
-  const sub = [orgName, post.pillar, when ? new Date(when).toLocaleString(locale(), { timeZone: me.data?.timezone ?? undefined, weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
+  const sub = [orgName, post.pillar, when ? new Date(when).toLocaleString(locale(), { timeZone: validZone(me.data?.timezone), weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
   const publish = async () => {
     setAsking(false);
     if (text !== saved.current) {

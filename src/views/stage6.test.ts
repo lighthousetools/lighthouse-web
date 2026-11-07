@@ -16,6 +16,7 @@ describe("the owner's time zone", () => {
     expect(fromZone("2026-07-10", "08:00", "Europe/Berlin")).toBe("2026-07-10T06:00:00.000Z");
     expect(fromZone("2026-03-29", "12:00", "Europe/Berlin")).toBe("2026-03-29T10:00:00.000Z");
     expect(fromZone("2026-11-10", "08:00", "UTC")).toBe("2026-11-10T08:00:00.000Z");
+    expect(inZone("2026-11-10T07:00:00Z", "not a zone").day).toMatch(/^2026-11-1[01]$/);
   });
 });
 
