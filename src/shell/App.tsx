@@ -5,9 +5,9 @@ import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type Li
 import { queriesFor, sessionKey, useAlertCounts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
-import { Dot, Kbd, Logo, Menu, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
+import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
 import { useNow } from "../ui/live";
-import { Ready } from "../views/Ready";
+import { Ready, decidedStore } from "../views/Ready";
 import { Login } from "../views/Login";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
@@ -280,7 +280,7 @@ function useAlertTotal() {
   return counts.data ? counts.data.critical + counts.data.warning + counts.data.info : 0;
 }
 
-function Rail({ view }: { view: View }) {
+function Rail({ view, live }: { view: View; live: LiveState }) {
   const ready = useReady();
   const alerts = useAlertTotal();
   const me = useMe();
@@ -314,6 +314,8 @@ function Rail({ view }: { view: View }) {
         <Menu
           label={t("menu.profile")}
           items={[
+            { label: <span className="mstat"><Dot tone={live === "live" ? "ok" : "warn"} />{live === "live" ? t("status.live") : t("status.reconnecting")} · {location.host}</span>, run: () => go("connections") },
+            "sep",
             { label: t("nav.settings"), run: () => go("settings") },
             { label: t("settings.signOut"), run: () => void signOut() },
           ]}
@@ -328,7 +330,39 @@ function Rail({ view }: { view: View }) {
   );
 }
 
-function Sidebar({ view, live }: { view: View; live: LiveState }) {
+/** The day at a glance, at the bottom of the sidebar: what got done of what lay ready today. */
+function TodayCard() {
+  const ready = useReady();
+  const open = useTasks("today");
+  const done = useTasks("done");
+  const decided = decidedStore.use();
+  const today = new Date().toDateString();
+  const doneToday = (done.data ?? []).filter((task) => task.done_at && new Date(task.done_at).toDateString() === today).length;
+  const finished = doneToday + decided.length;
+  const total = finished + (ready.data?.total ?? 0) + (open.data?.length ?? 0);
+  return (
+    <button type="button" className="sp" onClick={() => go("ready")}>
+      <span className="grow"><b>{t("today.today")}</b><small className="tn">{t("sidebar.doneOf", { done: finished, total })}</small></span>
+      <Progress value={total ? (finished / total) * 100 : 0} />
+    </button>
+  );
+}
+
+/** In the Mac app the menu bar and its island are gone, so waiting sessions show here. */
+function SessionPill() {
+  const needs = useNeedsYou();
+  const waiting = needs.waiting.length;
+  if (!waiting) return null;
+  return (
+    <button type="button" className="sb-pill" onClick={() => go("sessions", sessionKey(needs.waiting[0]!))}>
+      <i />
+      <span className="grow clip">{waiting === 1 ? t("island.waitingOne") : t("island.waiting", { count: waiting })}</span>
+    </button>
+  );
+}
+
+function Sidebar({ view }: { view: View }) {
+  const native = inNativeShell();
   const ready = useReady();
   const tasks = useTasks("today");
   const alerts = useAlertTotal();
@@ -340,6 +374,8 @@ function Sidebar({ view, live }: { view: View; live: LiveState }) {
   return (
     <aside className="sidebar" aria-label={t(group.label)}>
       <h2>{t(group.label)}</h2>
+      {native && <OrgSwitch />}
+      {native && <SessionPill />}
       <button type="button" className="sq" onClick={() => palette.set(true)}>
         <Search size={14} />
         <span className="grow">{t("nav.search")}</span>
@@ -361,13 +397,7 @@ function Sidebar({ view, live }: { view: View; live: LiveState }) {
           </button>
         );
       })}
-      <div className="sp" role="status">
-        <div className="sp-h">
-          <Dot tone={live === "live" ? "ok" : "warn"} />
-          <b className="grow">{live === "live" ? t("status.live") : t("status.reconnecting")}</b>
-        </div>
-        <small className="clip">{location.host}</small>
-      </div>
+      <TodayCard />
     </aside>
   );
 }
@@ -394,7 +424,19 @@ function BridgeSync() {
   useEffect(() => {
     if (!inNativeShell()) return;
     post({ type: "ready", v: 1 });
-    return listenForCommands({ palette: () => palette.set(true), newNote: () => go("brain", "new") });
+    const stopCommands = listenForCommands({
+      palette: () => palette.set(true),
+      newNote: () => go("brain", "new"),
+      // The Mac app's Company menu picks the organization; "" or null means all of them.
+      org: (detail) => setOrg(typeof detail.id === "string" ? detail.id : ""),
+    });
+    // And it hears about every change, so its menu shows the current choice.
+    post({ type: "org", id: orgStore.get() || null });
+    const stopOrg = orgStore.subscribe(() => post({ type: "org", id: orgStore.get() || null }));
+    return () => {
+      stopCommands();
+      stopOrg();
+    };
   }, []);
   useEffect(() => {
     if (!inNativeShell() || !ready.data || needs.loading) return;
@@ -436,8 +478,8 @@ function Shell() {
       <Menubar live={live} />
       <Island live={live} />
       <main className={`window ${solo ? "solo" : ""}`} aria-label={t("app.name")}>
-        <Rail view={route.view} />
-        <Sidebar view={route.view} live={live} />
+        <Rail view={route.view} live={live} />
+        <Sidebar view={route.view} />
         <section className="content">
           <Suspense fallback={<div className="page"><Skeleton /></div>}>
             <Content />

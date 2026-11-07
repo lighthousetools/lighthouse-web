@@ -5,7 +5,8 @@ type Message =
   | { type: "ready"; v: 1 }
   | { type: "badge"; count: number }
   | { type: "notify"; title: string; body?: string; route?: string; id?: string }
-  | { type: "openExternal"; url: string };
+  | { type: "openExternal"; url: string }
+  | { type: "org"; id: string | null };
 
 type Handler = { postMessage: (message: Message) => void };
 
@@ -29,14 +30,18 @@ export function openExternal(url: string) {
   else window.open(url, "_blank", "noopener");
 }
 
-/** Answers the app's menu commands. Returns a function that stops listening. */
-export function listenForCommands(commands: Record<string, () => void>) {
+/**
+ * Answers the app's menu commands. A command can carry more, such as `{ command: "org", id }` (also accepted as
+ * `{ type: "org", id }`), which reaches the handler as its argument. Returns a function that stops listening.
+ */
+export function listenForCommands(commands: Record<string, (detail: Record<string, unknown>) => void>) {
   const listen = (event: Event) => {
-    const command = (event as CustomEvent<{ command?: string }>).detail?.command;
-    const run = command ? commands[command] : undefined;
+    const detail = ((event as CustomEvent<Record<string, unknown>>).detail ?? {}) as Record<string, unknown>;
+    const name = typeof detail.command === "string" ? detail.command : typeof detail.type === "string" ? detail.type : undefined;
+    const run = name ? commands[name] : undefined;
     if (!run) return;
     event.preventDefault();
-    run();
+    run(detail);
   };
   addEventListener("lighthouse:command", listen);
   return () => removeEventListener("lighthouse:command", listen);
