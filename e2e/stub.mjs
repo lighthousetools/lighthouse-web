@@ -28,6 +28,7 @@ function text(name, index) {
   if (key === "color") return ["#5B9AFF", "#2fb380", "#e0a03a"][index % 3];
   if (key === "time") return ["08:00", "10:00", "12:00"][index % 3];
   if (key === "currency") return "EUR";
+  if (key === "timezone" || key === "time_zone") return "Europe/Berlin";
   if (key === "language") return "en";
   if (key === "kind" || key === "type") return ["note", "task", "document"][index % 3];
   if (key === "source" && index >= 0) return "";
