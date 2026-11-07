@@ -6,6 +6,7 @@
 //   pnpm crawl -- posts decks               # some pages
 //   CRAWL_CLICKS=0 pnpm crawl               # only load and measure, no clicking
 //   CRAWL_URL=http://localhost:5173/ pnpm crawl   # against a running dev server, with readable stacks
+//   CRAWL_URL=http://localhost:8088/ CRAWL_PASSWORD=lighthouse-demo pnpm crawl   # against a real server, no stub
 //
 // Needs Google Chrome installed (CRAWL_CHANNEL picks another Playwright channel). Writes e2e/report.json.
 import { spawn } from "node:child_process";
@@ -22,7 +23,21 @@ const ALL = [...router.match(/VIEWS = \[([\s\S]*?)\] as const/)[1].matchAll(/"([
 const views = process.argv.slice(2).filter((arg) => arg !== "--").length ? process.argv.slice(2).filter((arg) => arg !== "--") : ALL;
 const MAX_CLICKS = Number(process.env.CRAWL_CLICKS ?? 60);
 const SKIP = /sign out|abmelden|log out|delete everything|alles löschen/i;
+// Against a real server, leave data in place: no deleting, removing or discarding.
+const SKIP_REAL = /löschen|delete|entfernen|remove|verwerfen|discard/i;
 
+// With a password, the crawl signs in to a real server and leaves its answers alone.
+const REAL = !!process.env.CRAWL_PASSWORD;
+let TOKEN = "crawl";
+if (REAL) {
+  const login = await fetch(new URL("/auth/login", BASE), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password: process.env.CRAWL_PASSWORD, device_name: "Crawl", device_kind: "web" }),
+  });
+  if (!login.ok) throw new Error(`sign-in failed: ${login.status}`);
+  TOKEN = (await login.json()).token;
+}
 const preview = process.env.CRAWL_URL ? null : spawn("pnpm", ["exec", "vite", "preview", "--port", String(PORT), "--strictPort", "--host", "127.0.0.1"], { stdio: "ignore" });
 const stop = () => preview?.kill();
 process.on("exit", stop);
@@ -46,8 +61,8 @@ const add = (kind, key, entry) => {
 
 async function open(look, width) {
   const context = await browser.newContext({ viewport: { width, height: width === 1280 ? 800 : 940 }, colorScheme: look === "light" ? "light" : "dark" });
-  await context.addInitScript((choice) => {
-    localStorage.setItem("lighthouse.token", "crawl");
+  await context.addInitScript(([choice, token]) => {
+    localStorage.setItem("lighthouse.token", token);
     localStorage.setItem("lighthouse.look", choice);
     window.open = () => { window.__requests++; return null; };
     Object.defineProperty(navigator, "clipboard", { value: { writeText: async () => undefined, readText: async () => "" } });
@@ -57,8 +72,8 @@ async function open(look, width) {
       window.__requests++;
       return fetchOriginal(...args);
     };
-  }, look);
-  await context.route("**/*", (route) => {
+  }, [look, TOKEN]);
+  if (!REAL) await context.route("**/*", (route) => {
     const url = new URL(route.request().url());
     const result = url.origin === ORIGIN && !/^\/(assets|src|node_modules|@)/.test(url.pathname) ? answer(route.request().method(), url.pathname) : null;
     return result ? route.fulfill(result) : route.continue();
@@ -128,7 +143,7 @@ async function crawl(page, view) {
   const unique = [];
   const names = new Set();
   for (const label of labels) {
-    if (SKIP.test(label.name) || names.has(label.name)) continue;
+    if (SKIP.test(label.name) || (REAL && SKIP_REAL.test(label.name)) || names.has(label.name)) continue;
     names.add(label.name);
     unique.push(label);
   }
@@ -150,7 +165,7 @@ async function crawl(page, view) {
     await page.keyboard.press("Escape");
     await page.waitForTimeout(80);
     if ((await page.evaluate(() => location.hash)) !== `#${view}` || !(await page.evaluate(() => localStorage.getItem("lighthouse.token")))) {
-      await page.evaluate(() => localStorage.setItem("lighthouse.token", "crawl"));
+      await page.evaluate((token) => localStorage.setItem("lighthouse.token", token), TOKEN);
       await page.goto(`${BASE}?page=${view}#${view}`);
       await page.waitForTimeout(600);
       await page.evaluate((labels) => {
@@ -181,6 +196,6 @@ for (const look of ["glass", "light"]) {
 await browser.close();
 stop();
 writeFileSync(new URL("./report.json", import.meta.url), JSON.stringify(report, null, 2));
-console.log(`${report.pages} page loads, ${report.clicks} clicks over ${views.length} pages (${report.operations} API operations stubbed)`);
+console.log(`${report.pages} page loads, ${report.clicks} clicks over ${views.length} pages (${REAL ? `real server at ${BASE}` : `${report.operations} API operations stubbed`})`);
 console.log(`${report.errors.length} errors, ${report.dead.length} dead controls, ${report.unnamed.length} unnamed controls, ${report.overflow.length} overflow findings`);
 process.exit(0);
