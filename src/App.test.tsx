@@ -163,7 +163,7 @@ describe("approvals", () => {
     expect(plainFields({ nested: { a: 1 }, subject: "x", empty: "", to: ["a", "b"] })).toEqual([
       { key: "to", label: "To", value: "a, b" },
       { key: "subject", label: "Subject", value: "x" },
-      { key: "nested", label: "nested", value: '{"a":1}' },
+      { key: "nested", label: "Nested", value: '{"a":1}' },
     ]);
     expect(plainFields(null)).toEqual([]);
   });

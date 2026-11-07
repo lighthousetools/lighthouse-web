@@ -33,3 +33,6 @@
 .rd-ft .fail { margin: 0; flex: 1; }
 @media (max-width: 1000px) { .rd-grid { grid-template-columns: minmax(0,1fr); } .rd-q { max-height: 240px; } }
 .rd-grid { grid-template-columns: 300px minmax(0,1fr); } .rd-qh .seg { max-width: 100%; overflow-x: auto; }
+
+/* The queue's filters wrap instead of cutting off the last one in narrow windows. */
+.rd-qh .seg { overflow: visible; flex-wrap: wrap; height: auto; row-gap: 2px; }

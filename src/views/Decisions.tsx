@@ -15,6 +15,15 @@ function asText(value: unknown): string {
 }
 
 /** Lists tool arguments as labeled text. Names we don't know keep their own. */
+/** Ids such as `thread_id` or `issueId` mean nothing to a person; they stay in the technical details. */
+export const isInternalKey = (key: string) => /^(id|uuid)$|(_id|Id|_uuid)$/.test(key);
+
+/** `due_date` and `dueDate` as "Due date", for keys without a translation. */
+export function humanizeKey(key: string) {
+  const words = key.replace(/([a-z\d])([A-Z])/g, "$1 $2").replace(/[-_.]+/g, " ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function plainFields(input: unknown): Field[] {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return input === null || input === undefined ? [] : [{ key: "value", label: "", value: asText(input) }];
@@ -24,11 +33,11 @@ export function plainFields(input: unknown): Field[] {
     return index === -1 ? FIELD_ORDER.length : index;
   };
   return Object.entries(input)
-    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .filter(([key, value]) => value !== null && value !== undefined && value !== "" && !isInternalKey(key))
     .sort(([a], [b]) => rank(a) - rank(b))
     .map(([key, value]) => ({
       key,
-      label: tOr(`field.${key}`, key.replace(/[-_]+/g, " ")),
+      label: tOr(`field.${key}`, humanizeKey(key)),
       value: asText(value),
     }));
 }

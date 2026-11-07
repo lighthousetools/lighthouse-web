@@ -125,3 +125,17 @@ describe("helpers", () => {
     expect(queriesFor("changed")).toBe("all");
   });
 });
+
+import { humanizeKey, isInternalKey, plainFields as fieldsOf } from "./Decisions";
+
+describe("approval fields", () => {
+  it("hides internal ids and humanizes unknown keys", () => {
+    expect(isInternalKey("thread_id")).toBe(true);
+    expect(isInternalKey("issueId")).toBe(true);
+    expect(isInternalKey("id")).toBe(true);
+    expect(isInternalKey("width")).toBe(false);
+    expect(humanizeKey("due_date")).toBe("Due date");
+    expect(humanizeKey("replyTo")).toBe("Reply to");
+    expect(fieldsOf({ thread_id: "t1", body: "Hi", priority_level: 2 }).map((field) => field.key)).toEqual(["body", "priority_level"]);
+  });
+});

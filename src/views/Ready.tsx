@@ -496,7 +496,7 @@ export function Ready() {
                 onChange={setFilter}
                 options={[
                   ["all", t("approvals.filterAll"), count()],
-                  ["decisions", t("ready.decisions"), count("decisions")],
+                  ["decisions", t("ready.tab.decisions"), count("decisions")],
                   ["drafts", t("ready.drafts"), count("drafts")],
                   ["suggestions", t("ready.suggestions"), count("suggestions")],
                 ]}
