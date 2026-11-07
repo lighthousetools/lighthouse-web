@@ -1,20 +1,20 @@
+import { ArrowUp, Sparkles, Square } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { askStream, type Schemas } from "../api/client";
 import { t, useLanguage } from "../i18n";
 import { go } from "../router";
-import { Markdown } from "../ui";
+import { Btn } from "../ui";
+import { Markdown } from "../ui/markdown";
 
-export function AskBox({ initial = "" }: { initial?: string }) {
-  useLanguage();
-  const [question, setQuestion] = useState(initial);
+/** Streams an answer from the Brain while it is written. */
+export function useAsk() {
   const [text, setText] = useState("");
   const [sources, setSources] = useState<Schemas["EntrySummary"][] | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [asked, setAsked] = useState("");
   const running = useRef<AbortController | null>(null);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const ask = async (question: string) => {
     if (busy) {
       running.current?.abort();
       return;
@@ -23,15 +23,12 @@ export function AskBox({ initial = "" }: { initial?: string }) {
     const control = new AbortController();
     running.current = control;
     setBusy(true);
+    setAsked(question.trim());
     setText("");
     setSources(null);
     setFailure(null);
     try {
-      const answer = await askStream(
-        question,
-        (piece) => setText((current) => current + piece),
-        control.signal,
-      );
+      const answer = await askStream(question, (piece) => setText((current) => current + piece), control.signal);
       setSources(answer.sources);
     } catch (error) {
       if (!control.signal.aborted) setFailure((error as Error).message);
@@ -39,44 +36,68 @@ export function AskBox({ initial = "" }: { initial?: string }) {
       setBusy(false);
     }
   };
+  const reset = () => {
+    running.current?.abort();
+    setText("");
+    setSources(null);
+    setFailure(null);
+    setAsked("");
+  };
+  return { text, sources, failure, busy, asked, ask, reset };
+}
 
+export function Answer({ state }: { state: ReturnType<typeof useAsk> }) {
+  const { text, sources, failure, busy, asked } = state;
+  if (!busy && !text && !failure) return null;
   return (
-    <div>
-      <form className="ask-box" onSubmit={(event) => void submit(event)}>
-        <input
-          aria-label={t("ask.label")}
-          placeholder={t("ask.placeholder")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-        />
-        <button className="btn primary" disabled={!busy && !question.trim()}>
-          {busy ? t("ask.stop") : t("ask.submit")}
-        </button>
-      </form>
-      {failure && (
-        <p className="error" role="alert">
-          {t("ask.failed", { reason: failure })}
-        </p>
-      )}
-      {(busy || text) && (
-        <div className="answer fade" aria-live="polite">
-          {text ? <Markdown text={text} /> : <span className="muted">{t("ask.thinking")}</span>}
-          {sources && sources.length > 0 && (
-            <div className="chips">
-              <span className="muted">{t("ask.sources")}</span>
-              {sources.map((source) => (
-                <a className="chip" key={source.id} href={`#brain/${source.id}`} onClick={(event) => {
-                  event.preventDefault();
-                  go("brain", source.id);
-                }}>
-                  {source.title}
-                </a>
-              ))}
-            </div>
-          )}
-          {sources?.length === 0 && <p className="muted" style={{ marginTop: 8 }}>{t("ask.noSources")}</p>}
+    <div className="bf-ans" aria-live="polite">
+      <div className="ah">
+        <Sparkles size={13} />
+        <span className="grow clip">{asked}</span>
+      </div>
+      {failure && <p className="fail" role="alert">{t("ask.failed", { reason: failure })}</p>}
+      {text ? <Markdown source={text} /> : busy && <p className="muted">{t("ask.thinking")}</p>}
+      {sources && sources.length > 0 && (
+        <div className="src">
+          <span>{t("ask.sources")}</span>
+          {sources.map((source) => (
+            <button type="button" className="chip plain" key={source.id} onClick={() => go("brain", source.id)}>
+              {source.title}
+            </button>
+          ))}
         </div>
       )}
+      {sources?.length === 0 && <p className="faint" style={{ marginTop: 8, fontSize: 12 }}>{t("ask.noSources")}</p>}
+    </div>
+  );
+}
+
+export function AskBox({ initial = "" }: { initial?: string }) {
+  useLanguage();
+  const [question, setQuestion] = useState(initial);
+  const state = useAsk();
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void state.ask(question);
+  };
+  return (
+    <div style={{ width: "100%" }}>
+      <form className="bf-ask" onSubmit={submit}>
+        <label className="field lg">
+          <Sparkles />
+          <input
+            aria-label={t("ask.label")}
+            placeholder={t("ask.placeholder")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+          />
+        </label>
+        <Btn type="submit" size="lg" variant="primary" disabled={!state.busy && !question.trim()} aria-label={state.busy ? t("ask.stop") : t("ask.submit")}>
+          {state.busy ? <Square /> : <ArrowUp />}
+          {state.busy ? t("ask.stop") : t("ask.submit")}
+        </Btn>
+      </form>
+      <Answer state={state} />
     </div>
   );
 }

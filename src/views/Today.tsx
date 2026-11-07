@@ -1,47 +1,43 @@
-import { useQuery } from "@tanstack/react-query";
-import { api, must, type Schemas } from "../api/client";
-import { useAgentNames, useAgents, useConnectors, useMe, useNeedsYou, useRuns } from "../data";
-import {
-  agentName, euro, greeting, isoWeek, longDate, time, toolName, weekday,
-} from "../format";
-import { t, tOr, useLanguage, type Key } from "../i18n";
+import { CalendarClock, Check, PlugZap, ShieldCheck } from "lucide-react";
+import { useAgentNames, useAgents, useConnectors, useCosts, useMe, useNeedsYou, useRuns } from "../data";
+import { agentName, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
+import { t, useLanguage } from "../i18n";
 import { go } from "../router";
-import { Dot, Markdown, Section, Skeleton } from "../ui";
+import { Btn, Dot, ServiceIcon, Skeleton, brandOf } from "../ui";
+import { useNow } from "../ui/live";
+import { Markdown } from "../ui/markdown";
 import { AskBox } from "./Ask";
-import { PermissionCard, ProposalCard } from "./Decisions";
+import { Gauge, Linked, Sec, Thesis } from "./briefing";
+import { RunDot, openRun, runSentence } from "./runs";
 
-export function runSentence(run: Schemas["RunRecord"], names: Record<string, string>) {
-  const agent = agentName(run.agent_id, names);
-  const when = time(run.finished_at ?? run.started_at);
-  return t(`run.${run.status}` as Key, { agent, time: when });
+const DAY = 86_400_000;
+const isoDay = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+
+/** Costs per day for the last `days` days, oldest first, with zero for quiet days. */
+export function costsByDay(costs: { day: string; cost_eur: number }[], days: number, today = new Date()) {
+  return Array.from({ length: days }, (_, index) => {
+    const day = isoDay(new Date(today.getTime() - (days - 1 - index) * DAY));
+    return { day, cost: costs.filter((cost) => cost.day === day).reduce((sum, cost) => sum + cost.cost_eur, 0) };
+  });
 }
 
-const RUN_TONES: Record<string, "ok" | "run" | "attn" | "err"> = {
-  succeeded: "ok", running: "run", waiting: "attn", failed: "err", rejected: "err", limit_exceeded: "err",
-};
-
-function Activity() {
-  const runs = useRuns(12);
-  const names = useAgentNames();
-  if (runs.isPending) return <Skeleton count={2} />;
-  // Questions and drafts were asked for a moment ago, so they are not news.
-  const list = (runs.data ?? []).filter((run) => !["agent-draft", "brain-ask"].includes(run.agent_id));
-  if (list.length === 0) return <p className="muted">{t("today.noActivity")}</p>;
+function CostGauge() {
+  const costs = useCosts(14);
+  const runs = useRuns(100);
+  const days = costsByDay(costs.data ?? [], 14);
+  const today = days[days.length - 1]?.cost ?? 0;
+  const ranToday = (runs.data ?? []).filter((run) => run.started_at.slice(0, 10) === isoDay(new Date())).length;
   return (
-    <ul className="feed">
-      {list.slice(0, 8).map((run) => (
-        <li key={run.id}>
-          <span className="t">{time(run.started_at)}</span>
-          <Dot tone={RUN_TONES[run.status]} />
-          <button onClick={() => go("log", run.id)}>
-            {tOr(`run.${run.status}`, "") ? runSentence(run, names) : t("run.other", { agent: agentName(run.agent_id, names), time: time(run.started_at) })}
-            {run.status === "running" && run.activity && (
-              <span className="muted"> · {t("run.activity", { step: toolName(run.activity) })}</span>
-            )}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <Gauge
+      title={t("today.costsOpen")}
+      big={euro(today)}
+      label={t("today.costsToday")}
+      bars={days.map((day) => day.cost)}
+      hot={days.length - 1}
+      tip={(index) => `${weekdayShort(days[index]!.day)} ${euro(days[index]!.cost)}`}
+      foot={ranToday === 1 ? t("today.runsTodayOne") : t("today.runsToday", { count: ranToday })}
+      onClick={() => go("log")}
+    />
   );
 }
 
@@ -50,81 +46,145 @@ function Briefing() {
   const brief = runs.data?.find((run) => run.agent_id.includes("brief") && run.report);
   if (!brief?.report) return null;
   return (
-    <section className="summary fade">
-      <div className="eyebrow">
-        {t("today.summary")} · {t("today.summaryFrom", { time: time(brief.finished_at) })}
-      </div>
-      <Markdown text={brief.report} />
-    </section>
+    <Linked
+      label={t("today.summaryFrom", { time: time(brief.finished_at) })}
+      onClick={() => openRun(brief.id)}
+      action={<Btn size="sm" onClick={() => openRun(brief.id)}>{t("today.openBriefing")}</Btn>}
+    >
+      <Markdown source={brief.report} />
+    </Linked>
   );
 }
 
-function Rail() {
-  const needs = useNeedsYou();
-  const connectors = useConnectors();
+function ComingUp() {
   const agents = useAgents();
-  const costs = useQuery({
-    queryKey: ["costs", 1],
-    queryFn: () => must(api.GET("/costs", { params: { query: { days: 1 } } })),
-  });
-  const today = new Date().toISOString().slice(0, 10);
-  const spent = (costs.data ?? []).filter((cost) => cost.day === today);
-  const total = spent.reduce((sum, cost) => sum + cost.cost_eur, 0);
-  const top = Math.max(...spent.map((cost) => cost.cost_eur), 0);
+  const now = useNow(60_000);
   const upcoming = (agents.data ?? [])
     .filter((agent) => agent.next_run)
     .sort((a, b) => a.next_run!.localeCompare(b.next_run!))
-    .slice(0, 5);
-  const broken = (connectors.data ?? []).filter((connector) => !connector.connected);
+    .slice(0, 6);
+  const next = upcoming[0];
   return (
-    <aside className="rail">
-      <section>
-        <h2>{t("today.open")}</h2>
-        <div className="qrow">
-          <Dot tone={needs.decisions ? "attn" : "ok"} />
-          <span className="l">{t("nav.approvals")}</span>
-          <span className="r">{needs.decisions}</span>
+    <Sec title={t("today.coming")} hint={next ? t("today.nextAt", { time: time(next.next_run) }) : undefined}>
+      {agents.isPending && <Skeleton count={3} height={40} />}
+      {!agents.isPending && upcoming.length === 0 && (
+        <div className="bf-ok"><CalendarClock size={16} className="faint" />{t("today.comingEmpty")}</div>
+      )}
+      {upcoming.length > 0 && <div className="bf-now tn">{time(new Date(now).toISOString())}</div>}
+      {upcoming.map((agent) => {
+        const when = new Date(agent.next_run!);
+        const sameDay = isoDay(when) === isoDay(new Date(now));
+        return (
+          <button type="button" key={agent.id} className="bf-ev" onClick={() => go("agents", agent.id)}>
+            <time>{time(agent.next_run)}</time>
+            <span className="grow">
+              <b>{agent.name}</b>
+              <small>{sameDay ? t("today.today") : weekdayShort(when)} · {agent.schedule}</small>
+            </span>
+          </button>
+        );
+      })}
+    </Sec>
+  );
+}
+
+function Connections() {
+  const connectors = useConnectors();
+  const broken = (connectors.data ?? []).filter((connector) => !connector.connected);
+  if (connectors.isPending || (connectors.data ?? []).length === 0) return null;
+  return (
+    <Sec title={t("nav.connections")} hint={broken.length || undefined}>
+      {broken.length === 0 ? (
+        <div className="bf-ok"><ShieldCheck size={16} className="up" />{t("today.allConnected")}</div>
+      ) : (
+        broken.map((connector) => (
+          <button type="button" key={connector.name} className="bf-r" onClick={() => go("connections")}>
+            <ServiceIcon name={connector.name} size={24} />
+            <span className="tx">
+              <b className="clip">{t("today.notConnected", { name: connector.name })}</b>
+              <small className="clip">{t("today.fixHint")}</small>
+            </span>
+            <PlugZap size={16} className="warnc" />
+          </button>
+        ))
+      )}
+    </Sec>
+  );
+}
+
+function NeedsYou() {
+  const needs = useNeedsYou();
+  const names = useAgentNames();
+  return (
+    <Sec title={t("today.needsYou")} hint={needs.total || undefined} label={t("today.needsYou")}>
+      {needs.loading && <Skeleton count={3} height={52} />}
+      {needs.permissions.map((request) => (
+        <button type="button" key={request.id} className="bf-r" onClick={() => go("approvals", `permission:${request.id}`)}>
+          <ServiceIcon name="claude" size={24} />
+          <span className="tx">
+            <b className="clip">{t("approvals.claudeWants", { tool: request.tool })}</b>
+            <small className="clip">{request.project}</small>
+          </span>
+        </button>
+      ))}
+      {needs.approvals.map((approval) => (
+        <button type="button" key={approval.id} className="bf-r" onClick={() => go("approvals", `approval:${approval.id}`)}>
+          <ServiceIcon name={brandOf(approval.tool.split(".")[0])} fallback={approval.tool} size={24} />
+          <span className="tx">
+            <b className="clip">{toolName(approval.tool)}</b>
+            <small className="clip">{t("approvals.proposes", { agent: agentName(approval.agent_id, names) })}</small>
+          </span>
+        </button>
+      ))}
+      {needs.waiting.map((session) => (
+        <button type="button" key={`${session.node_id}-${session.id}`} className="bf-r" onClick={() => go("sessions", `${session.node_id}:${session.id}`)}>
+          <ServiceIcon name="claude" size={24} />
+          <span className="tx">
+            <b className="clip">{session.project}</b>
+            <small className="clip">{session.summary ?? t("status.waiting")}</small>
+          </span>
+          <Dot tone="warn" />
+        </button>
+      ))}
+      {!needs.loading && needs.total === 0 && (
+        <div className="bf-ok"><Check size={16} className="up" />{t("today.nothing")}</div>
+      )}
+      {needs.decisions > 0 && (
+        <div className="bf-more">
+          <Btn variant="primary" onClick={() => go("approvals")}>
+            {needs.decisions === 1 ? t("today.goThroughOne") : t("today.goThrough", { count: needs.decisions })}
+          </Btn>
         </div>
-        <div className="qrow">
-          <Dot tone={needs.waiting.length ? "attn" : "ok"} />
-          <span className="l">{t("today.waitingSessions")}</span>
-          <span className="r">{needs.waiting.length}</span>
+      )}
+    </Sec>
+  );
+}
+
+function Activity() {
+  const runs = useRuns(12);
+  const names = useAgentNames();
+  // Questions and drafts were asked for a moment ago, so they are not news.
+  const list = (runs.data ?? []).filter((run) => !["agent-draft", "brain-ask"].includes(run.agent_id)).slice(0, 9);
+  return (
+    <Sec title={t("today.activity")} hint={list.length || undefined}>
+      {runs.isPending && <Skeleton count={4} height={40} />}
+      {!runs.isPending && list.length === 0 && <div className="bf-ok">{t("today.noActivity")}</div>}
+      {list.map((run) => (
+        <button type="button" key={run.id} className="bf-f" onClick={() => openRun(run.id)}>
+          <span className="ic" style={{ width: 20, display: "grid", placeItems: "center" }}><RunDot status={run.status} /></span>
+          <span className="grow">
+            {runSentence(run, names)}
+            {run.status === "running" && run.activity && <span className="faint"> · {t("run.activity", { step: toolName(run.activity) })}</span>}
+          </span>
+          <span className="faint tn" style={{ fontSize: 12 }}>{time(run.started_at)}</span>
+        </button>
+      ))}
+      {list.length > 0 && (
+        <div className="bf-more">
+          <Btn size="sm" onClick={() => go("log")}>{t("today.allRuns")}</Btn>
         </div>
-        {broken.map((connector) => (
-          <div className="qrow" key={connector.name}>
-            <Dot tone="err" />
-            <span className="l">{t("today.notConnected", { name: connector.name })}</span>
-            <button className="btn sm" onClick={() => go("settings")}>{t("today.fix")}</button>
-          </div>
-        ))}
-      </section>
-      <section>
-        <h2>{t("today.coming")}</h2>
-        {upcoming.length === 0 && <p className="muted">{t("today.comingEmpty")}</p>}
-        {upcoming.map((agent) => (
-          <div className="qrow" key={agent.id}>
-            <span className="mono" style={{ color: "var(--ink-3)" }}>{time(agent.next_run)}</span>
-            <span className="l">{agent.name}</span>
-            <span className="r">{weekday(agent.next_run!)}</span>
-          </div>
-        ))}
-      </section>
-      <section>
-        <h2 className="spread">
-          {t("today.costs")} <span className="mono">{euro(total)}</span>
-        </h2>
-        {spent.length === 0 && <p className="muted">{t("today.costsEmpty")}</p>}
-        {spent.map((cost) => (
-          <div className="bar-row" key={cost.provider}>
-            <span>{cost.provider}</span>
-            <div className="bar-track">
-              <div className="bar-fill" style={{ width: `${top ? (cost.cost_eur / top) * 100 : 0}%` }} />
-            </div>
-            <span className="v">{euro(cost.cost_eur)}</span>
-          </div>
-        ))}
-      </section>
-    </aside>
+      )}
+    </Sec>
   );
 }
 
@@ -132,56 +192,37 @@ export function Today() {
   useLanguage();
   const me = useMe();
   const needs = useNeedsYou();
-  const names = useAgentNames();
   const now = new Date();
   const first = me.data?.name.split(" ")[0];
   const hello = greeting(now.getHours());
   const lead =
-    needs.total === 0
-      ? t("today.nothing")
-      : needs.total === 1
-        ? t("today.needs.one")
-        : t("today.needs.other", { count: needs.total });
+    needs.total === 0 ? t("today.nothing")
+    : needs.total === 1 ? t("today.needs.one")
+    : t("today.needs.other", { count: needs.total });
   return (
-    <div className="content">
-      <header className="head">
-        <div>
-          <div className="eyebrow">
-            {longDate(now)} · {t("today.week", { week: isoWeek(now) })}
-          </div>
-          <h1>{first ? t("today.greeting", { greeting: hello, name: first }) : hello}</h1>
-          <p className="sub">{lead}</p>
-        </div>
-      </header>
-      <div className="today">
-        <div>
+    <div className="page">
+      <div className="bf">
+        <Thesis
+          kicker={`${longDate(now)} · ${t("today.week", { week: isoWeek(now) })}`}
+          title={first ? t("today.greeting", { greeting: hello, name: first }) : hello}
+          lead={lead}
+          side={<CostGauge />}
+        >
           <AskBox />
-          <Briefing />
-          {needs.total > 0 && (
-            <Section title={t("today.needsYou")} count={needs.total}>
-              {needs.permissions.map((request) => (
-                <PermissionCard key={request.id} request={request} />
-              ))}
-              {needs.approvals.map((approval) => (
-                <ProposalCard key={approval.id} approval={approval} names={names} />
-              ))}
-              {needs.waiting.map((session) => (
-                <article className="edge attn" key={`${session.node_id}-${session.id}`}>
-                  <div className="top">
-                    <span className="src">{session.node_name}</span>
-                    {session.branch}
-                  </div>
-                  <h3 className="ti">{session.project}</h3>
-                  {session.summary && <p className="de">{session.summary}</p>}
-                </article>
-              ))}
-            </Section>
-          )}
-          <Section title={t("today.activity")}>
+        </Thesis>
+        <Briefing />
+        <div className="bf-grid">
+          <div className="bf-col">
+            <NeedsYou />
+          </div>
+          <div className="bf-col">
+            <ComingUp />
+            <Connections />
+          </div>
+          <div className="bf-col">
             <Activity />
-          </Section>
+          </div>
         </div>
-        <Rail />
       </div>
     </div>
   );

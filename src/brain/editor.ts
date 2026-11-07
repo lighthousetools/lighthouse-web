@@ -9,20 +9,18 @@ import {
 import { tags } from "@lezer/highlight";
 import { t, type Key } from "../i18n";
 
-const display = "var(--f-display)";
-
 const highlight = HighlightStyle.define([
-  { tag: tags.heading1, fontFamily: display, fontSize: "1.6em", fontWeight: "800", lineHeight: "1.3" },
-  { tag: tags.heading2, fontFamily: display, fontSize: "1.3em", fontWeight: "700" },
-  { tag: tags.heading3, fontFamily: display, fontSize: "1.1em", fontWeight: "700" },
-  { tag: tags.strong, fontWeight: "600" },
+  { tag: tags.heading1, fontWeight: "500", color: "var(--strong)", fontSize: "1.15em" },
+  { tag: tags.heading2, fontWeight: "500", color: "var(--strong)", fontSize: "1.05em" },
+  { tag: tags.heading3, fontWeight: "500", color: "var(--ink2)" },
+  { tag: tags.strong, fontWeight: "500", color: "var(--strong)" },
   { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.link, color: "var(--lamp-ink)" },
-  { tag: tags.url, color: "var(--ink-3)" },
-  { tag: tags.quote, color: "var(--ink-2)" },
-  { tag: tags.monospace, fontFamily: "var(--f-mono)", fontSize: "0.88em" },
-  { tag: tags.processingInstruction, color: "var(--ink-3)" },
-  { tag: tags.contentSeparator, color: "var(--ink-3)" },
+  { tag: tags.link, color: "var(--accent)" },
+  { tag: tags.url, color: "var(--ink3)" },
+  { tag: tags.quote, color: "var(--ink2)" },
+  { tag: tags.monospace, color: "var(--ink2)" },
+  { tag: tags.processingInstruction, color: "var(--ink3)" },
+  { tag: tags.contentSeparator, color: "var(--ink3)" },
   { tag: tags.list, color: "var(--ink)" },
 ]);
 
