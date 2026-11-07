@@ -75,6 +75,26 @@ that instant. Slides move by dragging them in the grid or the slide editor, or w
 
 `posts.changed`, `decks.changed` and `branding.changed` reload the matching data.
 
+## Later, delegation and branches
+
+- **Later.** Every item in Ready has a Later menu (in an hour, this evening, tomorrow, Monday) through
+  `POST /ready/{kind}/{id}/snooze`; it leaves the feed until then. Post ideas that agents propose with `posts.propose`
+  show up there as suggestions: keep them as a draft, discard them or open them in Posts.
+- **Tasks** can be handed to an agent (`POST /tasks/{id}/delegate`). The task shows that the agent works on it, links
+  the run, and shows its report as the result. You still decide when the task is done.
+- **Mail** hides threads for later (`/connected/items/{id}/snooze`; the Later tab lists them with `snoozed=true`), saves
+  the current search and box as a split tab (`/connected/splits`), and archives or postpones several selected threads
+  at once (`POST /connected/actions/bulk`, each writing call waits for approval).
+- **Calendar** lists free slots from `/calendar/suggestions` for 30, 60 or 90 minutes. A slot starts a new event or
+  blocks focus time (`POST /calendar/focus`), and "Block focus" takes the next free slot. Creating events waits for
+  approval.
+- **Issues** have a new-issue form for trackers with `create` and code hosts with `create_issue`.
+- **Pull requests** show checks flagged `deployment` as their own Deployments section with a link to the preview.
+- **Automations** draw an `if` with branches as two lanes that join again. "Two ways" turns a stop condition into a
+  branch, and every lane has its own add button. The Try tab runs `POST /automations/dry-run` on the unsaved file with
+  a sample payload. The sentence above the list writes a draft through `POST /automations/draft` to review before saving.
+  An agent step that waits for an approval makes the automation wait too.
+
 ## Loading and motion
 
 Only the start page and the sign-in are in the first bundle; every other page, the presenter and the film load when
@@ -90,11 +110,9 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Assistant conversation | A chat endpoint with history |
 | Posts: variants, first comment, rewrite suggestions, blocked days; Branding: post-to-meeting funnel, target-account reactions, comment briefing; Presentations: generated drafts, style choice, PDF and PPTX export, publishing to a room | Not in the API yet |
 | Pipeline: suggested values, top deals as tasks; Numbers: export and comparison periods; Contracts: templates and composer; Rooms: publishing, next steps and milestones; Stocks: theses, own metrics and questions | Not in the API yet |
-| Mail: splits, snooze, bulk actions, context column | Labels, snooze and related records in the mail source |
-| Calendar: drag to move, focus blocks, scheduling assistant | Moving goes through an approval; drag and focus planning need more API |
-| Issues: board, bulk edit, new issue form | Board columns and bulk actions in the issue source |
-| Pull requests: deployments | A deployment feed |
+| Mail: context column | Related records next to a thread |
+| Calendar: drag to move | Moving an event goes through an approval; dragging needs a move action |
+| Issues: board and bulk edit | Board columns in the issue source |
 | Session detail: context usage, rules in effect | Token usage and the session's rules from the desktop agent |
 | Alert detail: metric chart and cause tree | Metrics and root-cause analysis for alerts |
-| Automation builder: branches, dry run over past days | Branching steps and a dry-run endpoint |
-| Tasks: hand a task to Lighthouse | Delegating a task to an agent |
+| Automation builder: dry run over past days | Dry runs replay a payload, not the events of past days |
