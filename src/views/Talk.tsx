@@ -107,7 +107,7 @@ function Composer({ onSend, busy, hero, placeholder }: { onSend: (text: string) 
         <div className="row">
           <span className="grow" />
           <span className="steer faint"><kbd>↵</kbd> {t("talk.send")} <kbd>⇧↵</kbd> {t("talk.newLine")}</span>
-          <button type="button" className={`as-send ${value.trim() ? "on" : ""}`} aria-label={t("talk.send")} title={t("talk.send")} disabled={busy} onClick={send}>
+          <button type="button" className={`as-send ${value.trim() ? "on" : ""}`} aria-label={t("talk.send")} title={t("talk.send")} disabled={busy || !value.trim()} onClick={send}>
             <ArrowUp size={15} />
           </button>
         </div>
@@ -315,7 +315,8 @@ export function Talk() {
     const question = [...messages.slice(0, index)].reverse().find((message) => message.role === "owner");
     if (question && id) send.mutate({ thread: id, text: question.text });
   };
-  const newThread = () => go("talk");
+  // A new chat is a thread of its own right away, so it shows in the list and can be named.
+  const newThread = () => void actions.create().then((created) => go("talk", created.id), (error: Error) => toast(error.message, "bad"));
   const thread = detail.data?.thread ?? threads.data?.find((item) => item.id === id);
   const empty = !id || (detail.data && messages.length === 0);
 
