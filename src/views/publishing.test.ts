@@ -10,7 +10,7 @@ import { inPool, stepOf, titleOf, type Post } from "./publishing";
 const post = (id: string, extra: Partial<Post> = {}): Post => ({
   id, body: `Body of ${id}`, channel: "linkedin", created_at: `2026-01-0${id.length}T00:00:00Z`, updated_at: "2026-01-01T00:00:00Z",
   images: [], metrics: {}, origin: "owner", status: "draft", title: null, pillar: null, topic: null, org: null, kind: null,
-  external_id: null, publish_run: null, published_at: null, scheduled_at: null, url: null, ...extra,
+  external_id: null, publish_run: null, published_at: null, scheduled_at: null, url: null, variants: [], first_comment: null, ...extra,
 });
 
 describe("posting calendar dates", () => {

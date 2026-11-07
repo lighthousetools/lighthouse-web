@@ -1066,6 +1066,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contracts/compose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Composes a draft from a template. With a `source`, the draft goes to that
+         *     source's `draft` action; a writing tool waits for approval, and nothing is
+         *     ever signed or sent by itself.
+         */
+        post: operations["compose_contract"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contracts/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the contract templates. */
+        get: operations["list_templates"];
+        put?: never;
+        /** Stores a template in the Brain. Change it with `PATCH /brain/entries/{id}`. */
+        post: operations["create_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/costs": {
         parameters: {
             query?: never;
@@ -1135,6 +1174,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/deals/top-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposes a task for each of the top open deals: the highest value times
+         *     probability, with cold deals first among equals. The owner accepts or
+         *     rejects each task; nothing is sent.
+         */
+        post: operations["top_deals_as_tasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deals/{id}/suggestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggests a value for a deal: the median of similar won deals of the same
+         *     source, and of the same pipeline or category if the deal has one.
+         */
+        get: operations["suggest_deal_value"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/decks": {
         parameters: {
             query?: never;
@@ -1147,6 +1227,46 @@ export interface paths {
         put?: never;
         /** Stores a new deck in the Brain. Change it with `PATCH /brain/entries/{id}`. */
         post: operations["create_deck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Writes a deck from a brief, in the owner's voice, and stores it in the Brain
+         *     as a draft to edit. Nothing is shared.
+         */
+        post: operations["generate_deck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/attach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attaches a deck to a deal room through the room source's `attach` action,
+         *     with `title`, `markdown` and `html` as input. A writing tool waits for approval.
+         */
+        post: operations["attach_deck"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1257,6 +1377,44 @@ export interface paths {
         get: operations["list_quotes"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holdings/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposes a task before each earnings date in the next 60 days, read from
+         *     the `next_earnings_at` field of holdings. The owner accepts or rejects them.
+         */
+        post: operations["earnings_reminders"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holdings/{id}/theses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the owner's theses on a holding, notes in the Brain linked to it. */
+        get: operations["list_theses"];
+        put?: never;
+        /** Writes a thesis on a holding, as a note in the Brain linked to it. */
+        post: operations["create_thesis"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1603,6 +1761,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/numbers/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Exports the key numbers as CSV: one row per currency, metric and period. */
+        get: operations["export_numbers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations": {
         parameters: {
             query?: never;
@@ -1824,6 +1999,26 @@ export interface paths {
         put?: never;
         /** Asks to publish a post. It goes out only after the owner approves the call. */
         post: operations["publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposes a rewrite of a post in the owner's voice. Nothing changes and
+         *     nothing is published, unless `save_as` keeps it as a variant.
+         */
+        post: operations["rewrite_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2755,6 +2950,32 @@ export interface components {
             /** @description The text of a post. */
             text: string;
         };
+        /** @description A draft to compose. */
+        ComposeRequest: {
+            /** @description Contract source whose `draft` action receives `title` and `body`. Without one, the text only comes back. */
+            source?: string | null;
+            /**
+             * Format: uuid
+             * @description The template.
+             */
+            template_id: string;
+            /** @description Title of the draft. Defaults to the template's title. */
+            title?: string | null;
+            /** @description Values for its placeholders. */
+            values?: {
+                [key: string]: string;
+            };
+        };
+        /** @description A composed draft. */
+        Composed: {
+            action?: components["schemas"]["ActionResult"] | null;
+            /** @description Placeholders without a value, left as `[TODO: field]`. */
+            missing: string[];
+            /** @description The text with the values filled in. */
+            text: string;
+            /** @description Title. */
+            title: string;
+        };
         /** @description Answer when an OAuth flow started. */
         ConnectStarted: {
             /** @description URL to open in a browser. */
@@ -2841,6 +3062,21 @@ export interface components {
             revenue: components["schemas"]["PeriodAmount"][];
             /**
              * Format: double
+             * @description Change against the months before, in percent, if there was revenue then.
+             */
+            revenue_change_percent?: number | null;
+            /**
+             * Format: double
+             * @description Revenue of the same number of months before them, for comparison.
+             */
+            revenue_previous_total: number;
+            /**
+             * Format: double
+             * @description Revenue of the months asked for.
+             */
+            revenue_total: number;
+            /**
+             * Format: double
              * @description Cash divided by the monthly burn, if there is a burn.
              */
             runway_months?: number | null;
@@ -2869,12 +3105,43 @@ export interface components {
             /** @description Provider name. */
             provider: string;
         };
+        /** @description A suggested value for a deal. */
+        DealSuggestion: {
+            /** @description Number of won deals it is based on. */
+            basis: number;
+            /** @description Currency of the deal. */
+            currency?: string | null;
+            /** @description Some of those deals. */
+            examples: components["schemas"]["SimilarDeal"][];
+            /** @description How it was worked out. */
+            explanation: string;
+            /**
+             * Format: double
+             * @description The median value of similar won deals, if there are any.
+             */
+            suggested?: number | null;
+        };
         /** @description A decision on one proposal. */
         Decision: {
             /** @description Whether the action may run. */
             approve: boolean;
             /** @description Replaces the proposed arguments. */
             input?: unknown;
+        };
+        /** @description Where to attach a deck. */
+        DeckAttachment: {
+            /**
+             * Format: uuid
+             * @description The room, as a connected item.
+             */
+            room_id: string;
+        };
+        /** @description A brief for a new deck. */
+        DeckBrief: {
+            /** @description What the deck is for, who sees it and what it should say. */
+            brief: string;
+            /** @description Title. */
+            title: string;
         };
         /** @description Who a task goes to. */
         Delegation: {
@@ -3276,6 +3543,8 @@ export interface components {
             body?: string;
             /** @description Channel. Defaults to `linkedin`. */
             channel?: string | null;
+            /** @description The comment to post first. */
+            first_comment?: string | null;
             /** @description Images as Brain entry IDs. */
             images?: string[];
             /** @description Free kind. */
@@ -3295,6 +3564,8 @@ export interface components {
             title?: string | null;
             /** @description Topic. */
             topic?: string | null;
+            /** @description Alternative texts. */
+            variants?: components["schemas"]["Variant"][];
         };
         /** @description A rule to create. */
         NewRule: {
@@ -3348,6 +3619,20 @@ export interface components {
             priority?: number;
             source?: components["schemas"]["SourceLink"] | null;
             /** @description What to do. */
+            title: string;
+        };
+        /** @description A new template. */
+        NewTemplate: {
+            /** @description Markdown with `{{field}}` placeholders, such as `{{customer}}`. */
+            body: string;
+            /** @description Title, such as "Service agreement". */
+            title: string;
+        };
+        /** @description A thesis of the owner. */
+        NewThesis: {
+            /** @description The owner's reasoning in Markdown. */
+            body: string;
+            /** @description Title, such as "Why I hold it". */
             title: string;
         };
         /** @description A new thread. */
@@ -3543,6 +3828,8 @@ export interface components {
             created_at: string;
             /** @description ID in the channel. */
             external_id?: string | null;
+            /** @description The comment to post first, for example with the link. */
+            first_comment?: string | null;
             /**
              * Format: uuid
              * @description Post ID.
@@ -3588,6 +3875,8 @@ export interface components {
             updated_at: string;
             /** @description Address of the published post. */
             url?: string | null;
+            /** @description Alternative texts, each with a `name` and a `text`. */
+            variants: unknown;
         };
         /** @description The result of the check. */
         PostCheck: {
@@ -3608,6 +3897,8 @@ export interface components {
         PostPatch: {
             /** @description New text. */
             body?: string | null;
+            /** @description New first comment. */
+            first_comment?: string | null;
             /** @description New images. */
             images?: string[] | null;
             /** @description New kind. */
@@ -3631,6 +3922,8 @@ export interface components {
             topic?: string | null;
             /** @description Address, once published elsewhere. */
             url?: string | null;
+            /** @description New alternative texts, replacing the old ones. */
+            variants?: components["schemas"]["Variant"][] | null;
         };
         /** @description A weekly slot of the posting plan. */
         PostSlot: {
@@ -3711,6 +4004,21 @@ export interface components {
             /** @description Source name. */
             source: string;
         };
+        /** @description When to remind before earnings. */
+        ReminderRequest: {
+            /**
+             * Format: int64
+             * @description Days before the earnings date, default 3.
+             */
+            days_before?: number | null;
+        };
+        /** @description Result of the reminders. */
+        ReminderResult: {
+            /** @description IDs of the proposed tasks. */
+            proposed: string[];
+            /** @description Holdings that already have a reminder for that date. */
+            skipped: number;
+        };
         /** @description The entry behind a link. */
         ResolvedEntry: {
             /**
@@ -3718,6 +4026,13 @@ export interface components {
              * @description Entry ID.
              */
             id: string;
+        };
+        /** @description How to rewrite a post. */
+        RewriteRequest: {
+            /** @description What to change, such as "shorter" or "start with the number". Defaults to a clearer, tighter version. */
+            instruction?: string | null;
+            /** @description Also keep the proposal as a variant of this name. */
+            save_as?: string | null;
         };
         /** @description A standing rule. */
         Rule: {
@@ -3826,14 +4141,14 @@ export interface components {
              */
             score: number;
         };
-        /** @description One day of an alert's chart. */
+        /** @description One day of an alert's chart, in the owner's time zone. */
         SeriesPoint: {
             /**
              * Format: double
              * @description Cost of the runs in EUR. Zero for refreshes.
              */
             cost_eur: number;
-            /** @description Day in UTC, as `YYYY-MM-DD`. */
+            /** @description Day as `YYYY-MM-DD` in the owner's time zone. */
             day: string;
             /**
              * Format: int64
@@ -4012,6 +4327,21 @@ export interface components {
          * @enum {string}
          */
         Severity: "info" | "warning" | "critical";
+        /** @description A won deal the suggestion is based on. */
+        SimilarDeal: {
+            /**
+             * Format: double
+             * @description Value.
+             */
+            amount: number;
+            /**
+             * Format: uuid
+             * @description Item ID.
+             */
+            id: string;
+            /** @description Title. */
+            title?: string | null;
+        };
         /** @description A skill. */
         SkillInfo: {
             /** @description What it is for. */
@@ -4504,6 +4834,37 @@ export interface components {
             run_id: string;
             /** @description Qualified tool name. */
             tool: string;
+        };
+        /** @description Which deals to turn into tasks. */
+        TopDealsRequest: {
+            /** @description How many, default 5. */
+            limit?: number | null;
+            /** @description Only this organization. */
+            org?: string | null;
+        };
+        /** @description Result of turning deals into tasks. */
+        TopDealsResult: {
+            /** @description IDs of the proposed tasks. */
+            proposed: string[];
+            /** @description Deals that already have an open or proposed task. */
+            skipped: number;
+        };
+        /** @description An alternative text of a post. */
+        Variant: {
+            /** @description Short name, such as `shorter` or `story`. */
+            name: string;
+            /** @description The text. */
+            text: string;
+        };
+        /** @description A text the writer proposes. */
+        Written: {
+            /**
+             * Format: uuid
+             * @description The run that wrote it, with its cost.
+             */
+            run_id: string;
+            /** @description The text. */
+            text: string;
         };
     };
     responses: never;
@@ -6585,6 +6946,92 @@ export interface operations {
             };
         };
     };
+    compose_contract: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComposeRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Composed"];
+                };
+            };
+            /** @description Unknown template */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source has no draft action */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_templates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrySummary"][];
+                };
+            };
+        };
+    };
+    create_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTemplate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description Invalid template */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     costs: {
         parameters: {
             query?: {
@@ -6726,6 +7173,58 @@ export interface operations {
             };
         };
     };
+    top_deals_as_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TopDealsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopDealsResult"];
+                };
+            };
+        };
+    };
+    suggest_deal_value: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Deal ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DealSuggestion"];
+                };
+            };
+            /** @description Unknown deal */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_decks: {
         parameters: {
             query?: never;
@@ -6768,6 +7267,76 @@ export interface operations {
             };
             /** @description Invalid deck */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    generate_deck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeckBrief"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description The model failed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    attach_deck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Deck ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeckAttachment"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            /** @description Unknown deck or room */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a room, or its source has no attach action */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6959,6 +7528,91 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ItemPage"];
                 };
+            };
+        };
+    };
+    earnings_reminders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderResult"];
+                };
+            };
+        };
+    };
+    list_theses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Holding ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrySummary"][];
+                };
+            };
+            /** @description Unknown holding */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_thesis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Holding ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewThesis"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description Unknown holding */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7623,6 +8277,31 @@ export interface operations {
             };
         };
     };
+    export_numbers: {
+        parameters: {
+            query?: {
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Months of revenue, default 12 */
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+        };
+    };
     list_organizations: {
         parameters: {
             query?: never;
@@ -8163,6 +8842,46 @@ export interface operations {
             };
             /** @description The check found errors, or publishing is not set up */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rewrite_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RewriteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Written"];
+                };
+            };
+            /** @description Unknown post */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The model failed */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

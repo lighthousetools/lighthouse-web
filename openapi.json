@@ -3278,6 +3278,111 @@
         ]
       }
     },
+    "/contracts/compose": {
+      "post": {
+        "tags": [
+          "contracts"
+        ],
+        "summary": "Composes a draft from a template. With a `source`, the draft goes to that\nsource's `draft` action; a writing tool waits for approval, and nothing is\never signed or sent by itself.",
+        "operationId": "compose_contract",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Composed"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown template"
+          },
+          "422": {
+            "description": "The source has no draft action"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/contracts/templates": {
+      "get": {
+        "tags": [
+          "contracts"
+        ],
+        "summary": "Lists the contract templates.",
+        "operationId": "list_templates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntrySummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "contracts"
+        ],
+        "summary": "Stores a template in the Brain. Change it with `PATCH /brain/entries/{id}`.",
+        "operationId": "create_template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTemplate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid template"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/costs": {
       "get": {
         "tags": [
@@ -3546,6 +3651,81 @@
         ]
       }
     },
+    "/deals/top-tasks": {
+      "post": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Proposes a task for each of the top open deals: the highest value times\nprobability, with cold deals first among equals. The owner accepts or\nrejects each task; nothing is sent.",
+        "operationId": "top_deals_as_tasks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopDealsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopDealsResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/deals/{id}/suggestion": {
+      "get": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Suggests a value for a deal: the median of similar won deals of the same\nsource, and of the same pipeline or category if the deal has one.",
+        "operationId": "suggest_deal_value",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Deal ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealSuggestion"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown deal"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/decks": {
       "get": {
         "tags": [
@@ -3601,6 +3781,97 @@
           },
           "400": {
             "description": "Invalid deck"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/decks/generate": {
+      "post": {
+        "tags": [
+          "decks"
+        ],
+        "summary": "Writes a deck from a brief, in the owner's voice, and stores it in the Brain\nas a draft to edit. Nothing is shared.",
+        "operationId": "generate_deck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckBrief"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The model failed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/attach": {
+      "post": {
+        "tags": [
+          "decks"
+        ],
+        "summary": "Attaches a deck to a deal room through the room source's `attach` action,\nwith `title`, `markdown` and `html` as input. A writing tool waits for approval.",
+        "operationId": "attach_deck",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Deck ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeckAttachment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown deck or room"
+          },
+          "422": {
+            "description": "Not a room, or its source has no attach action"
           }
         },
         "security": [
@@ -3999,6 +4270,132 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/holdings/reminders": {
+      "post": {
+        "tags": [
+          "holdings"
+        ],
+        "summary": "Proposes a task before each earnings date in the next 60 days, read from\nthe `next_earnings_at` field of holdings. The owner accepts or rejects them.",
+        "operationId": "earnings_reminders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderResult"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/holdings/{id}/theses": {
+      "get": {
+        "tags": [
+          "holdings"
+        ],
+        "summary": "Lists the owner's theses on a holding, notes in the Brain linked to it.",
+        "operationId": "list_theses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Holding ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntrySummary"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown holding"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "holdings"
+        ],
+        "summary": "Writes a thesis on a holding, as a note in the Brain linked to it.",
+        "operationId": "create_thesis",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Holding ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewThesis"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown holding"
           }
         },
         "security": [
@@ -5346,6 +5743,49 @@
         ]
       }
     },
+    "/numbers/export": {
+      "get": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Exports the key numbers as CSV: one row per currency, metric and period.",
+        "operationId": "export_numbers",
+        "parameters": [
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "description": "Months of revenue, default 12",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV",
+            "content": {
+              "text/csv": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/organizations": {
       "get": {
         "tags": [
@@ -6146,6 +6586,59 @@
           },
           "422": {
             "description": "The check found errors, or publishing is not set up"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/{id}/rewrite": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Proposes a rewrite of a post in the owner's voice. Nothing changes and\nnothing is published, unless `save_as` keeps it as a variant.",
+        "operationId": "rewrite_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Written"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown post"
+          },
+          "502": {
+            "description": "The model failed"
           }
         },
         "security": [
@@ -8812,6 +9305,81 @@
           }
         }
       },
+      "ComposeRequest": {
+        "type": "object",
+        "description": "A draft to compose.",
+        "required": [
+          "template_id"
+        ],
+        "properties": {
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Contract source whose `draft` action receives `title` and `body`. Without one, the text only comes back."
+          },
+          "template_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The template."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Title of the draft. Defaults to the template's title."
+          },
+          "values": {
+            "type": "object",
+            "description": "Values for its placeholders.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Composed": {
+        "type": "object",
+        "description": "A composed draft.",
+        "required": [
+          "title",
+          "text",
+          "missing"
+        ],
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActionResult",
+                "description": "The draft action, if a source was named."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Placeholders without a value, left as `[TODO: field]`."
+          },
+          "text": {
+            "type": "string",
+            "description": "The text with the values filled in."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title."
+          }
+        }
+      },
       "ConnectStarted": {
         "type": "object",
         "description": "Answer when an OAuth flow started.",
@@ -8894,6 +9462,8 @@
           "invoices_overdue",
           "payables_open",
           "revenue",
+          "revenue_total",
+          "revenue_previous_total",
           "holdings"
         ],
         "properties": {
@@ -8963,6 +9533,24 @@
             },
             "description": "Issued invoices per month, newest first."
           },
+          "revenue_change_percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Change against the months before, in percent, if there was revenue then."
+          },
+          "revenue_previous_total": {
+            "type": "number",
+            "format": "double",
+            "description": "Revenue of the same number of months before them, for comparison."
+          },
+          "revenue_total": {
+            "type": "number",
+            "format": "double",
+            "description": "Revenue of the months asked for."
+          },
           "runway_months": {
             "type": [
               "number",
@@ -9016,6 +9604,48 @@
           }
         }
       },
+      "DealSuggestion": {
+        "type": "object",
+        "description": "A suggested value for a deal.",
+        "required": [
+          "basis",
+          "explanation",
+          "examples"
+        ],
+        "properties": {
+          "basis": {
+            "type": "integer",
+            "description": "Number of won deals it is based on.",
+            "minimum": 0
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Currency of the deal."
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SimilarDeal"
+            },
+            "description": "Some of those deals."
+          },
+          "explanation": {
+            "type": "string",
+            "description": "How it was worked out."
+          },
+          "suggested": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The median value of similar won deals, if there are any."
+          }
+        }
+      },
       "Decision": {
         "type": "object",
         "description": "A decision on one proposal.",
@@ -9029,6 +9659,38 @@
           },
           "input": {
             "description": "Replaces the proposed arguments."
+          }
+        }
+      },
+      "DeckAttachment": {
+        "type": "object",
+        "description": "Where to attach a deck.",
+        "required": [
+          "room_id"
+        ],
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The room, as a connected item."
+          }
+        }
+      },
+      "DeckBrief": {
+        "type": "object",
+        "description": "A brief for a new deck.",
+        "required": [
+          "title",
+          "brief"
+        ],
+        "properties": {
+          "brief": {
+            "type": "string",
+            "description": "What the deck is for, who sees it and what it should say."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title."
           }
         }
       },
@@ -9994,6 +10656,13 @@
             ],
             "description": "Channel. Defaults to `linkedin`."
           },
+          "first_comment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The comment to post first."
+          },
           "images": {
             "type": "array",
             "items": {
@@ -10051,6 +10720,13 @@
               "null"
             ],
             "description": "Topic."
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Variant"
+            },
+            "description": "Alternative texts."
           }
         }
       },
@@ -10189,6 +10865,42 @@
           "title": {
             "type": "string",
             "description": "What to do."
+          }
+        }
+      },
+      "NewTemplate": {
+        "type": "object",
+        "description": "A new template.",
+        "required": [
+          "title",
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "Markdown with `{{field}}` placeholders, such as `{{customer}}`."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title, such as \"Service agreement\"."
+          }
+        }
+      },
+      "NewThesis": {
+        "type": "object",
+        "description": "A thesis of the owner.",
+        "required": [
+          "title",
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "The owner's reasoning in Markdown."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title, such as \"Why I hold it\"."
           }
         }
       },
@@ -10616,7 +11328,8 @@
           "metrics",
           "origin",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "variants"
         ],
         "properties": {
           "body": {
@@ -10638,6 +11351,13 @@
               "null"
             ],
             "description": "ID in the channel."
+          },
+          "first_comment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The comment to post first, for example with the link."
           },
           "id": {
             "type": "string",
@@ -10733,6 +11453,9 @@
               "null"
             ],
             "description": "Address of the published post."
+          },
+          "variants": {
+            "description": "Alternative texts, each with a `name` and a `text`."
           }
         }
       },
@@ -10792,6 +11515,13 @@
               "null"
             ],
             "description": "New text."
+          },
+          "first_comment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New first comment."
           },
           "images": {
             "type": [
@@ -10863,6 +11593,16 @@
               "null"
             ],
             "description": "Address, once published elsewhere."
+          },
+          "variants": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Variant"
+            },
+            "description": "New alternative texts, replacing the old ones."
           }
         }
       },
@@ -11056,6 +11796,43 @@
           }
         }
       },
+      "ReminderRequest": {
+        "type": "object",
+        "description": "When to remind before earnings.",
+        "properties": {
+          "days_before": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Days before the earnings date, default 3."
+          }
+        }
+      },
+      "ReminderResult": {
+        "type": "object",
+        "description": "Result of the reminders.",
+        "required": [
+          "proposed",
+          "skipped"
+        ],
+        "properties": {
+          "proposed": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "IDs of the proposed tasks."
+          },
+          "skipped": {
+            "type": "integer",
+            "description": "Holdings that already have a reminder for that date.",
+            "minimum": 0
+          }
+        }
+      },
       "ResolvedEntry": {
         "type": "object",
         "description": "The entry behind a link.",
@@ -11067,6 +11844,26 @@
             "type": "string",
             "format": "uuid",
             "description": "Entry ID."
+          }
+        }
+      },
+      "RewriteRequest": {
+        "type": "object",
+        "description": "How to rewrite a post.",
+        "properties": {
+          "instruction": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What to change, such as \"shorter\" or \"start with the number\". Defaults to a clearer, tighter version."
+          },
+          "save_as": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Also keep the proposal as a variant of this name."
           }
         }
       },
@@ -11292,7 +12089,7 @@
       },
       "SeriesPoint": {
         "type": "object",
-        "description": "One day of an alert's chart.",
+        "description": "One day of an alert's chart, in the owner's time zone.",
         "required": [
           "day",
           "total",
@@ -11307,7 +12104,7 @@
           },
           "day": {
             "type": "string",
-            "description": "Day in UTC, as `YYYY-MM-DD`."
+            "description": "Day as `YYYY-MM-DD` in the owner's time zone."
           },
           "failed": {
             "type": "integer",
@@ -11668,6 +12465,33 @@
           "warning",
           "critical"
         ]
+      },
+      "SimilarDeal": {
+        "type": "object",
+        "description": "A won deal the suggestion is based on.",
+        "required": [
+          "id",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "description": "Value."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Item ID."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Title."
+          }
+        }
       },
       "SkillInfo": {
         "type": "object",
@@ -12668,6 +13492,87 @@
           "tool": {
             "type": "string",
             "description": "Qualified tool name."
+          }
+        }
+      },
+      "TopDealsRequest": {
+        "type": "object",
+        "description": "Which deals to turn into tasks.",
+        "properties": {
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many, default 5.",
+            "minimum": 0
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only this organization."
+          }
+        }
+      },
+      "TopDealsResult": {
+        "type": "object",
+        "description": "Result of turning deals into tasks.",
+        "required": [
+          "proposed",
+          "skipped"
+        ],
+        "properties": {
+          "proposed": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "IDs of the proposed tasks."
+          },
+          "skipped": {
+            "type": "integer",
+            "description": "Deals that already have an open or proposed task.",
+            "minimum": 0
+          }
+        }
+      },
+      "Variant": {
+        "type": "object",
+        "description": "An alternative text of a post.",
+        "required": [
+          "name",
+          "text"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Short name, such as `shorter` or `story`."
+          },
+          "text": {
+            "type": "string",
+            "description": "The text."
+          }
+        }
+      },
+      "Written": {
+        "type": "object",
+        "description": "A text the writer proposes.",
+        "required": [
+          "run_id",
+          "text"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The run that wrote it, with its cost."
+          },
+          "text": {
+            "type": "string",
+            "description": "The text."
           }
         }
       }
