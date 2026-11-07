@@ -69,9 +69,8 @@ Posts, Personal branding and Presentations are the server's own data, so they sh
   layout follows from the content. The presenter has a timer with pause, the next slide, notes, a black screen and an
   audience view. Export downloads HTML or Markdown; print the HTML for a PDF.
 
-Slot times are in the server's time zone (`server.timezone`), which the API does not expose. The calendar therefore
-places its rows by the instants that `/posts/calendar` returns, shown in local time, and a post dropped on a slot gets
-that instant. Slides move by dragging them in the grid or the slide editor, or with Alt and the arrow keys.
+Slot times, the calendar's days and the editor's date are in the owner's time zone from `GET /me` (`timezone`, set by
+`server.timezone`), not the browser's. A post dropped on a slot gets the instant that `/posts/calendar` returns for it. Slides move by dragging them in the grid or the slide editor, or with Alt and the arrow keys.
 
 `posts.changed`, `decks.changed` and `branding.changed` reload the matching data.
 
@@ -108,6 +107,24 @@ that instant. Slides move by dragging them in the grid or the slide editor, or w
 - **Alerts** chart their runs or refreshes per day from `GET /alerts/{id}/series`, failed ones in red, over 7, 14 or 30
   days. Alerts without a history show no chart.
 
+## Writing and business tools
+
+- **Posts** keep up to ten variants next to the main text: keep the current text as a variant, or swap a variant in.
+  A first comment (for the link you would rather not put in the post) shows under the preview. Sharper, Shorter, Other
+  first line or your own instruction ask `POST /posts/{id}/rewrite` for a proposal in your voice; it changes nothing
+  until you use it or keep it as a variant, and its run is one click away.
+- **Presentations** start empty or from a brief (`POST /decks/generate`, gaps marked `[TODO]`), and can be attached to
+  a deal room (`POST /decks/{id}/attach`), which waits for approval.
+- **Rooms** show next steps and milestones, and add a next step through the room source's `add_step` action.
+- **Contracts** fill a template from the Brain (`/contracts/templates`, `POST /contracts/compose`) and can hand the text
+  to a source's `draft` action. Missing fields stay as `[TODO]`; nothing is sent or signed.
+- **Pipeline** suggests a value for a deal from won deals like it (`GET /deals/{id}/suggestion`), and proposes tasks for
+  the top open deals (`POST /deals/top-tasks`), which you accept in Ready.
+- **Numbers** compare the revenue of the chosen months with as many months before, and export everything as CSV
+  (`GET /numbers/export`).
+- **Stocks** keep your theses on a holding as notes in the Brain and propose a reminder before each earnings date
+  (`POST /holdings/reminders`). No advice, no trading.
+
 ## Loading and motion
 
 Only the start page and the sign-in are in the first bundle; every other page, the presenter and the film load when
@@ -120,8 +137,11 @@ The navigation shows only pages with real data behind them. These pages of the d
 
 | Design page | Missing in the API |
 |---|---|
-| Posts: variants, first comment, rewrite suggestions, blocked days; Branding: post-to-meeting funnel, target-account reactions, comment briefing; Presentations: generated drafts, style choice, PDF and PPTX export, publishing to a room | Not in the API yet |
-| Pipeline: suggested values, top deals as tasks; Numbers: export and comparison periods; Contracts: templates and composer; Rooms: publishing, next steps and milestones; Stocks: theses, own metrics and questions | Not in the API yet |
+| Posts: blocked days; Branding: post-to-meeting funnel, comment briefing; Presentations: style choice and PDF export | Not in the API yet |
+| Branding: reactions from target accounts | Network analytics export counts only, and Lighthouse reads no profiles; imports keep `icp_share` instead |
+| Presentations: PPTX export | No PPTX writer on the server; print the HTML for a PDF, or import HTML or Markdown |
+| Rooms: publishing to the customer | Lighthouse never publishes a room; that stays in the room tool |
+| Stocks: own metrics and questions | Not in the API yet |
 | Mail: context column | Related records next to a thread |
 | Calendar: drag to move | Moving an event goes through an approval; dragging needs a move action |
 | Issues: board and bulk edit | Board columns in the issue source |
