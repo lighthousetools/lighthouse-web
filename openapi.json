@@ -849,6 +849,85 @@
         ]
       }
     },
+    "/automations/draft": {
+      "post": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Writes an automation file from a sentence for the owner to review. It is not saved.",
+        "operationId": "draft_automation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomationDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSource"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The model wrote no valid automation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/automations/dry-run": {
+      "post": {
+        "tags": [
+          "automations"
+        ],
+        "summary": "Shows what an automation would do with a payload. Nothing runs and nothing is sent.",
+        "operationId": "dry_run_automation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DryRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDryRun"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown automation"
+          },
+          "422": {
+            "description": "Invalid file or neither ID nor file"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/automations/events": {
       "post": {
         "tags": [
@@ -5630,6 +5709,98 @@
         ]
       }
     },
+    "/ready/{kind}/{id}/snooze": {
+      "post": {
+        "tags": [
+          "ready"
+        ],
+        "summary": "Hides an item of the feed until a time, such as a draft for \"later\". Its\ndecision stays open; approvals still expire after 72 hours.",
+        "operationId": "snooze_ready_item",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "approval, permission, draft, task, fact or post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Item ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Snooze"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Hidden until then"
+          },
+          "400": {
+            "description": "Unknown kind"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "ready"
+        ],
+        "summary": "Shows a snoozed or cleared item again.",
+        "operationId": "unsnooze_ready_item",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "Item kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Item ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Shown again"
+          },
+          "404": {
+            "description": "Not hidden"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/recaps": {
       "get": {
         "tags": [
@@ -6646,6 +6817,59 @@
         ]
       }
     },
+    "/tasks/{id}/delegate": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Hands a task to an agent. Its run gets the task as context, and its report\nlands on the task as `result`. The task stays open until the owner closes it.",
+        "operationId": "delegate_task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Delegation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Task"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown task or agent"
+          },
+          "409": {
+            "description": "Done already"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/tasks/{id}/reopen": {
       "post": {
         "tags": [
@@ -7113,6 +7337,47 @@
           "setup_required": {
             "type": "boolean",
             "description": "Whether the owner still has to set a password."
+          }
+        }
+      },
+      "AutomationDraftRequest": {
+        "type": "object",
+        "description": "A sentence that describes an automation.",
+        "required": [
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What the automation should do."
+          }
+        }
+      },
+      "AutomationDryRun": {
+        "type": "object",
+        "description": "What a dry run would do.",
+        "required": [
+          "id",
+          "steps"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Automation ID."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedStep"
+            },
+            "description": "Every step, branches included, with filled placeholders."
+          },
+          "trigger_matches": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether an event or webhook payload matches the trigger. `None` for other triggers."
           }
         }
       },
@@ -7804,6 +8069,19 @@
           }
         }
       },
+      "Delegation": {
+        "type": "object",
+        "description": "Who a task goes to.",
+        "required": [
+          "agent_id"
+        ],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "The agent that works on it."
+          }
+        }
+      },
       "Device": {
         "type": "object",
         "description": "A device that can sign in.",
@@ -7915,6 +8193,29 @@
           "title": {
             "type": "string",
             "description": "Heading."
+          }
+        }
+      },
+      "DryRunRequest": {
+        "type": "object",
+        "description": "What to try in a dry run.",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A saved automation."
+          },
+          "payload": {
+            "description": "The event or webhook payload to try."
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Or an automation file that is not saved yet."
           }
         }
       },
@@ -9204,6 +9505,44 @@
           }
         }
       },
+      "PlannedStep": {
+        "type": "object",
+        "description": "A step of a dry run. Nothing runs and nothing is sent.",
+        "required": [
+          "path",
+          "kind",
+          "summary",
+          "needs_approval"
+        ],
+        "properties": {
+          "input": {
+            "description": "Tool arguments with the payload filled in."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`agent`, `tool`, `notify`, `if` or `branch`."
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Message with the payload filled in."
+          },
+          "needs_approval": {
+            "type": "boolean",
+            "description": "Whether it would wait for the owner's approval."
+          },
+          "path": {
+            "type": "string",
+            "description": "Position, such as `2` or `2.then.1`."
+          },
+          "summary": {
+            "type": "string",
+            "description": "What it would do."
+          }
+        }
+      },
       "Post": {
         "type": "object",
         "description": "A post.",
@@ -10199,6 +10538,20 @@
           }
         }
       },
+      "Snooze": {
+        "type": "object",
+        "description": "When to show an item again.",
+        "required": [
+          "until"
+        ],
+        "properties": {
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Hide it until this time."
+          }
+        }
+      },
       "Source": {
         "type": "object",
         "description": "Where an entry comes from. Every entry needs at least one source.",
@@ -10615,6 +10968,21 @@
             "format": "date-time",
             "description": "Creation time."
           },
+          "delegated_agent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The agent the task was handed to."
+          },
+          "delegated_run": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The run that works on it."
+          },
           "done_at": {
             "type": [
               "string",
@@ -10656,6 +11024,20 @@
             "type": "integer",
             "format": "int32",
             "description": "0 for none up to 3 for high."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The report of that run, once it ended."
+          },
+          "result_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How that run ended, such as `succeeded` or `failed`."
           },
           "run_id": {
             "type": [

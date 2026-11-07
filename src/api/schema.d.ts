@@ -364,6 +364,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/automations/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Writes an automation file from a sentence for the owner to review. It is not saved. */
+        post: operations["draft_automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automations/dry-run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Shows what an automation would do with a payload. Nothing runs and nothing is sent. */
+        post: operations["dry_run_automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/automations/events": {
         parameters: {
             query?: never;
@@ -1681,6 +1715,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ready/{kind}/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hides an item of the feed until a time, such as a draft for "later". Its
+         *     decision stays open; approvals still expire after 72 hours.
+         */
+        post: operations["snooze_ready_item"];
+        /** Shows a snoozed or cleared item again. */
+        delete: operations["unsnooze_ready_item"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recaps": {
         parameters: {
             query?: never;
@@ -1979,6 +2034,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks/{id}/delegate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hands a task to an agent. Its run gets the task as context, and its report
+         *     lands on the task as `result`. The task stays open until the owner closes it.
+         */
+        post: operations["delegate_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks/{id}/reopen": {
         parameters: {
             query?: never;
@@ -2199,6 +2274,20 @@ export interface components {
         AuthStatus: {
             /** @description Whether the owner still has to set a password. */
             setup_required: boolean;
+        };
+        /** @description A sentence that describes an automation. */
+        AutomationDraftRequest: {
+            /** @description What the automation should do. */
+            description: string;
+        };
+        /** @description What a dry run would do. */
+        AutomationDryRun: {
+            /** @description Automation ID. */
+            id: string;
+            /** @description Every step, branches included, with filled placeholders. */
+            steps: components["schemas"]["PlannedStep"][];
+            /** @description Whether an event or webhook payload matches the trigger. `None` for other triggers. */
+            trigger_matches?: boolean | null;
         };
         /** @description An automation. */
         AutomationInfo: {
@@ -2527,6 +2616,11 @@ export interface components {
             /** @description Replaces the proposed arguments. */
             input?: unknown;
         };
+        /** @description Who a task goes to. */
+        Delegation: {
+            /** @description The agent that works on it. */
+            agent_id: string;
+        };
         /** @description A device that can sign in. */
         Device: {
             /**
@@ -2572,6 +2666,15 @@ export interface components {
             key?: string | null;
             /** @description Heading. */
             title: string;
+        };
+        /** @description What to try in a dry run. */
+        DryRunRequest: {
+            /** @description A saved automation. */
+            id?: string | null;
+            /** @description The event or webhook payload to try. */
+            payload?: unknown;
+            /** @description Or an automation file that is not saved yet. */
+            source?: string | null;
         };
         /** @description An entry of the Brain. */
         Entry: {
@@ -3105,6 +3208,21 @@ export interface components {
             /** @description Topics. */
             topics?: string[];
         };
+        /** @description A step of a dry run. Nothing runs and nothing is sent. */
+        PlannedStep: {
+            /** @description Tool arguments with the payload filled in. */
+            input?: unknown;
+            /** @description `agent`, `tool`, `notify`, `if` or `branch`. */
+            kind: string;
+            /** @description Message with the payload filled in. */
+            message?: string | null;
+            /** @description Whether it would wait for the owner's approval. */
+            needs_approval: boolean;
+            /** @description Position, such as `2` or `2.then.1`. */
+            path: string;
+            /** @description What it would do. */
+            summary: string;
+        };
         /** @description A post. */
         Post: {
             /** @description The text. */
@@ -3540,6 +3658,14 @@ export interface components {
             /** @description Skill name. */
             name: string;
         };
+        /** @description When to show an item again. */
+        Snooze: {
+            /**
+             * Format: date-time
+             * @description Hide it until this time.
+             */
+            until: string;
+        };
         /** @description Where an entry comes from. Every entry needs at least one source. */
         Source: {
             /** @description Kind of source, for example `app`, `meeting` or `agent`. */
@@ -3735,6 +3861,13 @@ export interface components {
              * @description Creation time.
              */
             created_at: string;
+            /** @description The agent the task was handed to. */
+            delegated_agent?: string | null;
+            /**
+             * Format: uuid
+             * @description The run that works on it.
+             */
+            delegated_run?: string | null;
             /**
              * Format: date-time
              * @description When it was done.
@@ -3764,6 +3897,10 @@ export interface components {
              * @description 0 for none up to 3 for high.
              */
             priority: number;
+            /** @description The report of that run, once it ended. */
+            result?: string | null;
+            /** @description How that run ended, such as `succeeded` or `failed`. */
+            result_status?: string | null;
             /**
              * Format: uuid
              * @description The proposing run.
@@ -4485,6 +4622,73 @@ export interface operations {
                 };
             };
             /** @description Invalid file or read-only automation */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    draft_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationDraftRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSource"];
+                };
+            };
+            /** @description The model wrote no valid automation */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    dry_run_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DryRunRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationDryRun"];
+                };
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid file or neither ID nor file */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -7183,6 +7387,70 @@ export interface operations {
             };
         };
     };
+    snooze_ready_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description approval, permission, draft, task, fact or post */
+                kind: string;
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Snooze"];
+            };
+        };
+        responses: {
+            /** @description Hidden until then */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown kind */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unsnooze_ready_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Item kind */
+                kind: string;
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shown again */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not hidden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_recaps: {
         parameters: {
             query?: {
@@ -7841,6 +8109,46 @@ export interface operations {
                 };
             };
             /** @description Already done or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delegate_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Delegation"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unknown task or agent */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Done already */
             409: {
                 headers: {
                     [name: string]: unknown;
