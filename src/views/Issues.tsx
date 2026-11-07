@@ -1,10 +1,11 @@
-import { ArrowLeft, ChevronRight, CircleDashed, CircleDot, CheckCircle2, ExternalLink, Layers, Search, Send, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, CircleDashed, CircleDot, CheckCircle2, ExternalLink, Layers, Plus, Search, Send, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { shortDate, dayTime } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { createStore } from "../store";
-import { Avatar, Btn, Empty, Failure, Kbd, Progress, Skeleton } from "../ui";
+import { Avatar, Btn, Empty, Failure, Field, Kbd, Modal, Progress, Skeleton } from "../ui";
+import { Select } from "../ui/select";
 import { Markdown } from "../ui/markdown";
 import { Freshness, NoSource, canDo, field, has, openItem, useAction, useDomains, useItem, useItems, useSources, type Item } from "./connected";
 import "./linear.css";
@@ -180,6 +181,59 @@ function Projects({ kind }: { kind: "projects" | "cycles" }) {
   );
 }
 
+/** Where a new issue can go: issue trackers with `create`, code hosts with `create_issue`. */
+export type IssueTarget = { source: string; action: string; kind: "tracker" | "repo" };
+export function issueTargets(sources: { name: string; domain: string; actions: string[] }[]): IssueTarget[] {
+  return sources.flatMap((source): IssueTarget[] =>
+    source.domain === "issues" && source.actions.includes("create") ? [{ source: source.name, action: "create", kind: "tracker" }]
+    : source.domain === "code" && source.actions.includes("create_issue") ? [{ source: source.name, action: "create_issue", kind: "repo" }]
+    : [],
+  );
+}
+
+/** A new issue. Creating it is a writing call, so it waits for approval in Ready. */
+function NewIssue({ onClose }: { onClose: () => void }) {
+  const sources = useSources();
+  const pulls = useItems("/pulls", { limit: 100 });
+  const action = useAction();
+  const targets = issueTargets(sources.data ?? []);
+  const [target, setTarget] = useState(targets[0]?.source ?? "");
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [team, setTeam] = useState("");
+  const repos = [...new Set((pulls.data?.items ?? []).map((item) => (field(item, "owner") && field(item, "repo") ? `${field(item, "owner")}/${field(item, "repo")}` : "")).filter(Boolean))];
+  const [repo, setRepo] = useState("");
+  const chosen = targets.find((item) => item.source === target);
+  const [owner, name] = (repo || repos[0] || "").split("/");
+  const create = () => {
+    if (!chosen || !title.trim()) return;
+    const input = chosen.kind === "repo" ? { owner, repo: name, title: title.trim(), body } : { title: title.trim(), description: body, team };
+    action.mutate({ source: chosen.source, action: chosen.action, input }, { onSuccess: onClose });
+  };
+  return (
+    <Modal
+      title={t("issues.new")}
+      sub={t("issues.newSub")}
+      onClose={onClose}
+      actions={<><Btn onClick={onClose}>{t("common.cancel")}</Btn><Btn variant="primary" disabled={!chosen || !title.trim() || (chosen.kind === "repo" && !(owner && name)) || action.isPending} onClick={create}>{t("issues.create")}</Btn></>}
+    >
+      {targets.length > 1 && (
+        <div style={{ marginBottom: 8 }}>
+          <Select label={t("issues.where")} value={target} onChange={setTarget} options={targets.map((item) => [item.source, item.source] as const)} />
+        </div>
+      )}
+      <Field autoFocus label={t("issues.titleLabel")} value={title} onChange={setTitle} placeholder={t("issues.titlePlaceholder")} />
+      {chosen?.kind === "repo" ? (
+        <div style={{ marginTop: 8 }}><Field label={t("issues.repo")} value={repo || repos[0] || ""} onChange={setRepo} placeholder="owner/repo" /></div>
+      ) : (
+        <div style={{ marginTop: 8 }}><Field label={t("issues.team")} value={team} onChange={setTeam} placeholder={t("issues.teamPlaceholder")} /></div>
+      )}
+      <textarea className="ta" style={{ width: "100%", marginTop: 8, minHeight: 120 }} aria-label={t("issues.description")} placeholder={t("issues.description")} value={body} onChange={(event) => setBody(event.target.value)} />
+      <p className="faint" style={{ fontSize: "var(--t-12)", marginTop: 6 }}>{t("connected.approvalNote")}</p>
+    </Modal>
+  );
+}
+
 export function Issues() {
   useLanguage();
   const route = useRoute();
@@ -187,6 +241,7 @@ export function Issues() {
   const sources = useSources();
   const collapsed = collapsedStore.use();
   const [tab, setTab] = useState<Tab>("open");
+  const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");
   useEffect(() => {
@@ -237,7 +292,9 @@ export function Issues() {
           <input aria-label={t("issues.search")} placeholder={t("issues.search")} value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === "Escape" && setQuery("")} />
           {query ? <button type="button" aria-label={t("common.clear")} onClick={() => setQuery("")}><X size={12} /></button> : <Kbd>/</Kbd>}
         </label>
+        {issueTargets(sources.data ?? []).length > 0 && <Btn size="sm" variant="primary" onClick={() => setCreating(true)}><Plus />{t("issues.new")}</Btn>}
       </div>
+      {creating && <NewIssue onClose={() => setCreating(false)} />}
       <div className="ln-bar">
         <div className="ln-vt" role="tablist">
           {(["open", "mine", "all", "projects", "cycles"] as Tab[]).map((value) => (
