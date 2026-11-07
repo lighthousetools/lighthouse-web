@@ -42,14 +42,19 @@ const preview = process.env.CRAWL_URL ? null : spawn("pnpm", ["exec", "vite", "p
 const stop = () => preview?.kill();
 process.on("exit", stop);
 for (let tries = 0; ; tries++) {
+  let status = 0;
   try {
-    if ((await fetch(BASE)).ok) break;
+    status = (await fetch(BASE)).status;
   } catch {
-    if (tries > 50) throw new Error("vite preview did not start; run pnpm build first");
+    // Not up yet.
   }
+  if (status >= 200 && status < 400) break;
+  if (tries > 50) throw new Error(status ? `${BASE} answers ${status}; is the app built and served there?` : "vite preview did not start; run pnpm build first");
   await new Promise((done) => setTimeout(done, 200));
 }
 
+const log = (text) => process.env.CRAWL_LOG && console.log(text);
+log("server is up");
 const browser = await chromium.launch({ channel: process.env.CRAWL_CHANNEL ?? "chrome", headless: true });
 const report = { operations: operationCount, pages: 0, clicks: 0, errors: [], dead: [], unnamed: [], overflow: [] };
 const seen = { errors: new Set(), dead: new Set(), unnamed: new Set(), overflow: new Set() };
@@ -150,6 +155,7 @@ async function crawl(page, view) {
   for (const label of unique.slice(0, MAX_CLICKS)) {
     const target = page.locator(`[data-crawl="${label.id}"]`);
     if (!(await target.count()) || !(await target.isVisible().catch(() => false))) continue;
+    log(`${view}: ${label.name}`);
     const before = { ...(await state(page)), events: page.events };
     try {
       await target.click({ timeout: 1500 });
@@ -166,7 +172,7 @@ async function crawl(page, view) {
     await page.waitForTimeout(80);
     if ((await page.evaluate(() => location.hash)) !== `#${view}` || !(await page.evaluate(() => localStorage.getItem("lighthouse.token")))) {
       await page.evaluate((token) => localStorage.setItem("lighthouse.token", token), TOKEN);
-      await page.goto(`${BASE}?page=${view}#${view}`);
+      await page.goto(`${BASE}?page=${view}#${view}`, { timeout: 20_000 }).catch(() => undefined);
       await page.waitForTimeout(600);
       await page.evaluate((labels) => {
         // Mark the controls again after a reload so later clicks still find them.
@@ -183,9 +189,10 @@ for (const look of ["glass", "light"]) {
     for (const view of views) {
       page.view = view;
       // A fresh load per page, so that one broken page cannot hide the next.
-      await page.goto(`${BASE}?page=${view}#${view}`);
+      await page.goto(`${BASE}?page=${view}#${view}`, { timeout: 20_000 }).catch(() => undefined);
       await page.waitForTimeout(700);
       report.pages++;
+      log(`loaded ${view} (${look}, ${width})`);
       await measure(page, view, look, width);
       if (process.env.CRAWL_SHOTS) await page.screenshot({ path: `${process.env.CRAWL_SHOTS}/${view}-${look}-${width}.png` });
       if (look === "glass" && width === 1500 && MAX_CLICKS > 0) await crawl(page, view);

@@ -36,6 +36,10 @@ Chrome, so it is not part of CI.
 - `CRAWL_CLICKS=0 pnpm crawl` only loads and measures.
 - `CRAWL_URL=http://localhost:5173/ pnpm crawl` uses a running dev server, for readable stack traces.
 - `CRAWL_SHOTS=<dir>` saves a screenshot of every page.
+- `CRAWL_URL=http://localhost:8088/ CRAWL_PASSWORD=lighthouse-demo pnpm crawl` crawls the server's demo
+  (`docker compose -f demo/compose.yml up --build` in the lighthouse repository) with its real answers instead of the
+  stub. Against a real server the crawl does not delete, remove or discard anything. `pnpm build` replaces `dist`, so
+  restart the demo server afterwards (`docker compose -f demo/compose.yml restart demo-server`) to serve the new build.
 
 ## Languages
 
