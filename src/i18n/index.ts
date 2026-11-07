@@ -61,6 +61,18 @@ export function tOr(key: string, fallback: string): string {
   return table[key] ?? fallback;
 }
 
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+/** The choice itself, which can change while the language stays the same (system German to German). */
+export function useLanguageChoice(): Choice {
+  return useSyncExternalStore(subscribe, languageChoice, languageChoice);
+}
+
 /** Rerenders a component when the language changes. */
 export function useLanguage(): Language {
   return useSyncExternalStore(
