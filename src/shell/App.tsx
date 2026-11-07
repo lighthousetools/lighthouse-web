@@ -340,12 +340,16 @@ function TodayCard() {
   const doneToday = (done.data ?? []).filter((task) => task.done_at && new Date(task.done_at).toDateString() === today).length;
   const finished = doneToday + decided.length;
   const total = finished + (ready.data?.total ?? 0) + (open.data?.length ?? 0);
-  return (
-    <button type="button" className="sp" onClick={() => go("ready")}>
+  const body = (
+    <>
       <span className="grow"><b>{t("today.today")}</b><small className="tn">{t("sidebar.doneOf", { done: finished, total })}</small></span>
       <Progress value={total ? (finished / total) * 100 : 0} />
-    </button>
+    </>
   );
+  // On Ready itself the card is only a status; elsewhere it leads there.
+  return useRoute().view === "ready"
+    ? <div className="sp" role="status">{body}</div>
+    : <button type="button" className="sp" onClick={() => go("ready")}>{body}</button>;
 }
 
 /** In the Mac app the menu bar and its island are gone, so waiting sessions show here. */
