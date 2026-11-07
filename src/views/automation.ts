@@ -1,0 +1,149 @@
+import { parseDocument, stringify } from "yaml";
+
+// The automation file format: Markdown with YAML frontmatter, as described in the server's docs/automations.md.
+
+export type Trigger =
+  | { kind: "cron"; cron: string }
+  | { kind: "event"; event: string; match: Record<string, string> }
+  | { kind: "webhook"; match: Record<string, string> }
+  | { kind: "manual" };
+
+export type Step =
+  | { kind: "agent"; agent: string }
+  | { kind: "tool"; name: string; input: Record<string, unknown> }
+  | { kind: "notify"; to: string; subject: string; message: string }
+  | { kind: "if"; test: "contains" | "not_contains" | "status"; value: string };
+
+export type Automation = { name: string; id?: string; enabled?: boolean; trigger: Trigger; steps: Step[]; description: string };
+
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+
+function strings(value: unknown): Record<string, string> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, String(entry)]));
+}
+
+function readTrigger(value: unknown): Trigger {
+  const trigger = (value ?? {}) as Record<string, unknown>;
+  if (typeof trigger.cron === "string") return { kind: "cron", cron: trigger.cron };
+  if (typeof trigger.event === "string") return { kind: "event", event: trigger.event, match: strings(trigger.match) };
+  if (trigger.webhook) return { kind: "webhook", match: strings(trigger.match) };
+  return { kind: "manual" };
+}
+
+function readStep(value: unknown): Step {
+  const step = (value ?? {}) as Record<string, unknown>;
+  if (typeof step.agent === "string") return { kind: "agent", agent: step.agent };
+  if (step.tool && typeof step.tool === "object") {
+    const tool = step.tool as Record<string, unknown>;
+    return { kind: "tool", name: String(tool.name ?? ""), input: (tool.input as Record<string, unknown>) ?? {} };
+  }
+  if (step.notify && typeof step.notify === "object") {
+    const notify = step.notify as Record<string, unknown>;
+    return { kind: "notify", to: String(notify.to ?? "owner"), subject: String(notify.subject ?? ""), message: String(notify.message ?? "") };
+  }
+  const condition = (step.if ?? {}) as Record<string, unknown>;
+  if ("not_contains" in condition) return { kind: "if", test: "not_contains", value: String(condition.not_contains) };
+  if ("status" in condition) return { kind: "if", test: "status", value: String(condition.status) };
+  return { kind: "if", test: "contains", value: String(condition.contains ?? "") };
+}
+
+/** Reads an automation file. Throws when the frontmatter is missing or not YAML. */
+export function parseAutomation(source: string): Automation {
+  const match = FRONTMATTER.exec(source.replace(/^﻿/, ""));
+  if (!match) throw new Error("missing frontmatter");
+  const document = parseDocument(match[1]!);
+  if (document.errors.length) throw new Error(document.errors[0]!.message);
+  const data = (document.toJS() ?? {}) as Record<string, unknown>;
+  return {
+    name: String(data.name ?? ""),
+    id: typeof data.id === "string" ? data.id : undefined,
+    enabled: typeof data.enabled === "boolean" ? data.enabled : undefined,
+    trigger: readTrigger(data.trigger),
+    steps: Array.isArray(data.steps) ? data.steps.map(readStep) : [],
+    description: (match[2] ?? "").trim(),
+  };
+}
+
+function writeTrigger(trigger: Trigger) {
+  switch (trigger.kind) {
+    case "cron":
+      return { cron: trigger.cron };
+    case "event":
+      return Object.keys(trigger.match).length ? { event: trigger.event, match: trigger.match } : { event: trigger.event };
+    case "webhook":
+      return Object.keys(trigger.match).length ? { webhook: true, match: trigger.match } : { webhook: true };
+    default:
+      return { manual: true };
+  }
+}
+
+function writeStep(step: Step) {
+  switch (step.kind) {
+    case "agent":
+      return { agent: step.agent };
+    case "tool":
+      return Object.keys(step.input).length ? { tool: { name: step.name, input: step.input } } : { tool: { name: step.name } };
+    case "notify":
+      return { notify: { to: step.to, subject: step.subject, message: step.message } };
+    default:
+      return { if: { [step.test]: step.value } };
+  }
+}
+
+/** Writes an automation file with only the fields the server knows. */
+export function serializeAutomation(automation: Automation): string {
+  const data: Record<string, unknown> = { name: automation.name };
+  if (automation.id) data.id = automation.id;
+  if (automation.enabled !== undefined) data.enabled = automation.enabled;
+  data.trigger = writeTrigger(automation.trigger);
+  data.steps = automation.steps.map(writeStep);
+  const front = stringify(data, { lineWidth: 0 }).trimEnd();
+  return `---\n${front}\n---\n${automation.description ? `${automation.description.trim()}\n` : ""}`;
+}
+
+/** A new automation from a sentence: started by hand, with one agent step to fill in. */
+export function draftAutomation(sentence: string, agent = ""): Automation {
+  const name = sentence.trim().replace(/\s+/g, " ").slice(0, 80) || "New automation";
+  return { name, trigger: { kind: "manual" }, steps: [{ kind: "agent", agent }], description: sentence.trim() };
+}
+
+export function emptyStep(kind: Step["kind"]): Step {
+  switch (kind) {
+    case "agent":
+      return { kind: "agent", agent: "" };
+    case "tool":
+      return { kind: "tool", name: "", input: {} };
+    case "notify":
+      return { kind: "notify", to: "owner", subject: "", message: "{{output}}" };
+    default:
+      return { kind: "if", test: "contains", value: "" };
+  }
+}
+
+export function emptyTrigger(kind: Trigger["kind"]): Trigger {
+  switch (kind) {
+    case "cron":
+      return { kind: "cron", cron: "0 7 * * MON-FRI" };
+    case "event":
+      return { kind: "event", event: "run.failed", match: {} };
+    case "webhook":
+      return { kind: "webhook", match: {} };
+    default:
+      return { kind: "manual" };
+  }
+}
+
+/** Hours of the day at which a simple cron expression fires, for the day line. */
+export function cronHours(cron: string): number[] {
+  const [minute = "", hour = ""] = cron.trim().split(/\s+/);
+  const m = /^\d+$/.test(minute) ? Number(minute) / 60 : 0;
+  if (hour === "*") return Array.from({ length: 24 }, (_, index) => index + m);
+  const step = /^\*\/(\d+)$/.exec(hour);
+  if (step) return Array.from({ length: 24 }, (_, index) => index).filter((index) => index % Number(step[1]) === 0).map((index) => index + m);
+  return hour.split(",").flatMap((part) => {
+    const range = /^(\d+)-(\d+)$/.exec(part);
+    if (range) return Array.from({ length: Number(range[2]) - Number(range[1]) + 1 }, (_, index) => Number(range[1]) + index + m);
+    return /^\d+$/.test(part) ? [Number(part) + m] : [];
+  });
+}
