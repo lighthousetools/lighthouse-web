@@ -2063,6 +2063,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ready/approval/{id}/text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replaces the text of an open approval with the owner's version, so the
+         *     approved call sends that. The other arguments stay as proposed.
+         */
+        put: operations["edit_ready_approval_text"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ready/drafts/{id}/dismiss": {
         parameters: {
             query?: never;
@@ -2078,6 +2098,26 @@ export interface paths {
          *     decisions.
          */
         post: operations["dismiss_draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready/{kind}/{id}/rewrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Writes a variant of a draft's text in the owner's voice, such as a shorter
+         *     or warmer one. Works for approvals, drafts and proposed posts.
+         */
+        post: operations["rewrite_ready_item"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2524,6 +2564,17 @@ export interface components {
             run_id: string;
             /** @description `proposed` when it waits for approval, `done` or `failed` when it ran at once. */
             status: string;
+            /** @description Qualified tool name. */
+            tool: string;
+        };
+        /** @description The tool behind an action of a source. */
+        ActionTool: {
+            /** @description Action name, such as `reply`. */
+            action: string;
+            /** @description The argument template, with `{{item.<field>}}` and `{{input.<field>}}` placeholders. */
+            input?: unknown;
+            /** @description Kind of item it acts on, if any. */
+            kind?: string | null;
             /** @description Qualified tool name. */
             tool: string;
         };
@@ -2993,6 +3044,15 @@ export interface components {
             name: string;
             /** @description Tools that run directly because they only read. */
             read_tools: string[];
+        };
+        /** @description The person something is for. */
+        Counterpart: {
+            /** @description Mail address or handle, if known. */
+            address?: string | null;
+            /** @description Display name. */
+            name: string;
+            /** @description Their organization, if known. */
+            org?: string | null;
         };
         /** @description A credential to store. */
         CredentialValue: {
@@ -3553,6 +3613,8 @@ export interface components {
             org?: string | null;
             /** @description Pillar. */
             pillar?: string | null;
+            /** @description Why an agent proposes it. */
+            reason?: string | null;
             /**
              * Format: date-time
              * @description Planned time. Makes the post `scheduled`.
@@ -3722,7 +3784,7 @@ export interface components {
          * @description Who created something.
          * @enum {string}
          */
-        Origin: "owner" | "agent";
+        Origin: "owner" | "agent" | "pipeline" | "holdings";
         /** @description Revenue of one month. */
         PeriodAmount: {
             /**
@@ -3857,6 +3919,8 @@ export interface components {
              * @description When it went out.
              */
             published_at?: string | null;
+            /** @description Why an agent proposed it. */
+            reason?: string | null;
             /**
              * Format: date-time
              * @description Planned time.
@@ -3944,6 +4008,40 @@ export interface components {
              */
             weekday: number;
         };
+        /** @description The arguments of a call, readable. */
+        Preview: {
+            /** @description The arguments apart from the text and internal references. */
+            fields: components["schemas"]["PreviewField"][];
+            /** @description The text to review, such as the body of a mail. */
+            text?: string | null;
+            /** @description The argument that holds the text, for edits. */
+            text_key?: string | null;
+        };
+        /** @description One argument, readable. */
+        PreviewField: {
+            /** @description Argument name. */
+            key: string;
+            /** @description Readable label, such as `To` or `Subject`. */
+            label: string;
+            /** @description The value as text. */
+            value: string;
+        };
+        /** @description The item a call answers, to quote it. */
+        Quote: {
+            /** @description Who wrote it. */
+            author?: string | null;
+            /**
+             * Format: date-time
+             * @description When it happened.
+             */
+            occurred_at?: string | null;
+            /** @description Its text or snippet. */
+            text?: string | null;
+            /** @description Its title, such as the subject. */
+            title?: string | null;
+            /** @description Link to it. */
+            url?: string | null;
+        };
         /** @description Everything that waits for the owner. */
         ReadyFeed: {
             /** @description Unresolved alerts per severity, shown beside the feed. */
@@ -3962,7 +4060,12 @@ export interface components {
             total: number;
         };
         /** @description One thing that waits for the owner. */
-        ReadyItem: {
+        ReadyItem: components["schemas"]["Review"] & {
+            /**
+             * @description What the owner can do: `approve`, `edit`, `rewrite`, `snooze`, `deny`,
+             *     `dismiss`, `accept`, `confirm` and `context`.
+             */
+            actions: string[];
             /** @description The agent behind it. */
             agent_id?: string | null;
             /**
@@ -3988,8 +4091,6 @@ export interface components {
              * @description The run behind it.
              */
             run_id?: string | null;
-            /** @description What the agent said about it, if anything. */
-            summary?: string | null;
             /** @description One line for the list. */
             title: string;
         };
@@ -4027,12 +4128,41 @@ export interface components {
              */
             id: string;
         };
+        /** @description What the owner sees of a proposed call. */
+        Review: {
+            /**
+             * Format: uuid
+             * @description The connected item it answers.
+             */
+            context_item_id?: string | null;
+            counterpart?: components["schemas"]["Counterpart"] | null;
+            preview?: components["schemas"]["Preview"] | null;
+            quote?: components["schemas"]["Quote"] | null;
+            /** @description Why the agent proposes it. */
+            reason?: string | null;
+            /** @description The service it goes to, such as `gmail`, `linear` or `linkedin`. */
+            service?: string | null;
+            /** @description One line for the list. */
+            summary?: string | null;
+        };
         /** @description How to rewrite a post. */
         RewriteRequest: {
             /** @description What to change, such as "shorter" or "start with the number". Defaults to a clearer, tighter version. */
             instruction?: string | null;
             /** @description Also keep the proposal as a variant of this name. */
             save_as?: string | null;
+        };
+        /** @description A rewritten draft. Nothing is saved; edit the item to keep it. */
+        Rewritten: {
+            /**
+             * Format: uuid
+             * @description The run that wrote it.
+             */
+            run_id: string;
+            /** @description The new text. */
+            text: string;
+            /** @description The tone asked for. */
+            tone: string;
         };
         /** @description A standing rule. */
         Rule: {
@@ -4366,6 +4496,8 @@ export interface components {
         };
         /** @description A configured source with its freshness. */
         SourceInfo: {
+            /** @description The tools behind the actions and how their arguments are filled. */
+            action_tools?: components["schemas"]["ActionTool"][];
             /** @description Actions the owner can ask for. */
             actions: string[];
             /** @description Connector it calls. */
@@ -4379,6 +4511,8 @@ export interface components {
             interval_seconds: number;
             /** @description Source name. */
             name: string;
+            /** @description The service behind it, such as `gmail` or `github`, for its logo. */
+            service: string;
             /** @description Whether the last success is older than two intervals, or missing. */
             stale: boolean;
             status?: components["schemas"]["SyncStatus"] | null;
@@ -4780,6 +4914,11 @@ export interface components {
          * @enum {string}
          */
         TaskView: "all" | "today" | "upcoming" | "done" | "proposed";
+        /** @description The owner's version of a draft text. */
+        TextEdit: {
+            /** @description The new text. */
+            text: string;
+        };
         /** @description A thread with its messages. */
         ThreadDetail: {
             /** @description Its messages, oldest first. */
@@ -4810,6 +4949,11 @@ export interface components {
             kind: components["schemas"]["DeviceKind"];
             /** @description Name of the token. */
             name: string;
+        };
+        /** @description How to rewrite a draft. */
+        ToneRequest: {
+            /** @description `shorter`, `warmer`, `formal`, or an instruction of your own. */
+            tone: string;
         };
         /** @description A successful tool call, as listed for review. */
         ToolCall: {
@@ -8950,6 +9094,46 @@ export interface operations {
             };
         };
     };
+    edit_ready_approval_text: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Approval ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TextEdit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            /** @description Unknown or decided approval */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The call has no text */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     dismiss_draft: {
         parameters: {
             query?: never;
@@ -8964,6 +9148,62 @@ export interface operations {
         responses: {
             /** @description Cleared */
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rewrite_ready_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description approval, draft or post */
+                kind: string;
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToneRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rewritten"];
+                };
+            };
+            /** @description A kind without text */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown or decided item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The item has no text */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The writer failed */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
