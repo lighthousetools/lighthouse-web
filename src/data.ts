@@ -181,6 +181,8 @@ export function queriesFor(event: string): string[][] | "all" {
       return [["decks"], ["brain"]];
     case "branding.changed":
       return [["branding"]];
+    case "talk.changed":
+      return [["talk"]];
     default:
       return "all";
   }

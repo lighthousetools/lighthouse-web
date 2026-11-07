@@ -21,6 +21,7 @@ import { closeInspector, inspector, palette, toasts } from "./state";
 
 // Every page but the start page loads when it is first opened, so the first load stays small.
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
+const Talk = lazy(() => import("../views/Talk").then((module) => ({ default: module.Talk })));
 const Agents = lazy(() => import("../views/Agents").then((module) => ({ default: module.Agents })));
 const Alerts = lazy(() => import("../views/Alerts").then((module) => ({ default: module.Alerts })));
 const Automations = lazy(() => import("../views/Automations").then((module) => ({ default: module.Automations })));
@@ -51,7 +52,7 @@ const Sessions = lazy(() => import("../views/Sessions").then((module) => ({ defa
 const Settings = lazy(() => import("../views/Settings").then((module) => ({ default: module.Settings })));
 
 const VIEW_COMPONENTS: Record<View, ComponentType> = {
-  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, pipeline: Pipeline, numbers: Numbers, rooms: Rooms, contracts: Contracts,
+  ready: Ready, talk: Talk, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, pipeline: Pipeline, numbers: Numbers, rooms: Rooms, contracts: Contracts,
   invoices: Invoices, finance: Finance, stocks: Stocks, posts: Posts, branding: Branding, decks: Decks, center: Center, alerts: Alerts, brain: Brain,
   automations: Automations, rules: Rules, me: Me,
   agents: Agents, log: Log, connections: Connections, settings: Settings,

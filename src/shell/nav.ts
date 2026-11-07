@@ -1,7 +1,7 @@
 import {
   Bell, Bot, Brain, Layers, ListTodo, Newspaper, Plug, ScrollText, Settings2, Sun, Sunrise, Terminal, UserRound,
   Briefcase, Workflow, Zap, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, Building2, Handshake, BarChart3, MessageSquare, FileSignature,
-  Receipt, Coins, TrendingUp, Radar, Megaphone, Send, LineChart, Presentation, type LucideIcon,
+  Receipt, Coins, TrendingUp, Radar, Sparkles, Megaphone, Send, LineChart, Presentation, type LucideIcon,
 } from "lucide-react";
 import type { Key } from "../i18n";
 import type { View } from "../router";
@@ -12,6 +12,7 @@ export type NavGroup = { id: string; label: Key; icon: LucideIcon; items: NavIte
 
 // Only pages with real data behind them appear here. A group with one item opens it directly.
 export const NAV: NavGroup[] = [
+  { id: "talk", label: "nav.talk", icon: Sparkles, items: [{ view: "talk", label: "nav.talk", icon: Sparkles }] },
   {
     id: "today", label: "nav.group.today", icon: Sun, items: [
       { view: "ready", label: "nav.ready", icon: Layers },
