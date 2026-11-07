@@ -69,7 +69,17 @@ Posts, Personal branding and Presentations are the server's own data, so they sh
   layout follows from the content. The presenter has a timer with pause, the next slide, notes, a black screen and an
   audience view. Export downloads HTML or Markdown; print the HTML for a PDF.
 
+Slot times are in the server's time zone (`server.timezone`), which the API does not expose. The calendar therefore
+places its rows by the instants that `/posts/calendar` returns, shown in local time, and a post dropped on a slot gets
+that instant. Slides move by dragging them in the grid or the slide editor, or with Alt and the arrow keys.
+
 `posts.changed`, `decks.changed` and `branding.changed` reload the matching data.
+
+## Loading and motion
+
+Only the start page and the sign-in are in the first bundle; every other page, the presenter and the film load when
+first opened. Focus shows as a ring on every control and field. With reduced motion, transitions, the film, the light
+and smooth scrolling stand still.
 
 ## Pages not ported yet
 
