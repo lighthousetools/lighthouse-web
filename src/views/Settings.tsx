@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Globe, KeyRound, Laptop, LogOut, Monitor, Smartphone, Terminal, Trash2, UserRound, type LucideIcon } from "lucide-react";
+import { Check, Copy, Cpu, Globe, KeyRound, Wallet, Laptop, LogOut, Monitor, Smartphone, Terminal, Trash2, UserRound, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api, must, storeToken } from "../api/client";
 import { useMe } from "../data";
@@ -8,12 +8,14 @@ import { t, tOr, useLanguage, type Key } from "../i18n";
 import { go, useRoute } from "../router";
 import { lookChoice, setLook, type LookChoice } from "../shell/look";
 import { toast } from "../shell/state";
-import { Avatar, Btn, Confirm, Failure, Field, Seg, Skeleton } from "../ui";
+import { Avatar, Btn, Confirm, Failure, Field, Progress, Seg, Skeleton } from "../ui";
 import { LanguagePicker } from "./LanguagePicker";
 import "./settings.css";
 
 const SECTIONS: { id: string; label: Key; lead: Key; icon: LucideIcon }[] = [
   { id: "general", label: "settings.general", lead: "settings.generalLead", icon: Globe },
+  { id: "models", label: "settings.models", lead: "settings.modelsLead", icon: Cpu },
+  { id: "budget", label: "settings.budget", lead: "settings.budgetLead", icon: Wallet },
   { id: "devices", label: "settings.devices", lead: "settings.devicesLead", icon: Laptop },
   { id: "credentials", label: "settings.credentials", lead: "settings.credentialsLead", icon: KeyRound },
   { id: "account", label: "settings.account", lead: "settings.accountLead", icon: UserRound },
@@ -230,7 +232,78 @@ function Account() {
   );
 }
 
-const CONTENT: Record<string, () => ReactNode> = { general: General, devices: Devices, credentials: Credentials, account: Account };
+/** Which provider and model serve each task, with the fallback. Read-only: routing lives in the configuration. */
+function Models() {
+  const models = useQuery({ queryKey: ["settings", "models"], queryFn: () => must(api.GET("/settings/models")) });
+  if (models.isPending) return <Skeleton count={3} height={52} />;
+  return (
+    <Group title={t("settings.modelsTitle")} hint={t("settings.modelsHint")}>
+      {(models.data ?? []).map((route) => (
+        <SettingRow key={route.task} title={tOr(`settings.task.${route.task}`, route.task)} sub={route.fallback ? t("settings.fallback", { fallback: [route.fallback, route.fallback_model].filter(Boolean).join(" · ") }) : undefined}>
+          <span className="st-model"><b>{route.model ?? "–"}</b><small>{route.provider}</small></span>
+        </SettingRow>
+      ))}
+      {models.data?.length === 0 && <SettingRow title={t("settings.noModels")} />}
+    </Group>
+  );
+}
+
+/** A monthly budget: an alert when it is nearly used up. It never stops runs; the limit per run does that. */
+function Budget() {
+  const client = useQueryClient();
+  const budget = useQuery({ queryKey: ["settings", "budget"], queryFn: () => must(api.GET("/settings/budget")) });
+  const [monthly, setMonthly] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (body: { monthly_eur: number | null; alert_at_percent: number }) => must(api.PUT("/settings/budget", { body })),
+    onSuccess: () => {
+      setMonthly(null);
+      toast(t("settings.budgetSaved"));
+      void client.invalidateQueries({ queryKey: ["settings", "budget"] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const raw = budget.data;
+  if (!raw) return budget.isPending ? <Skeleton count={3} height={52} /> : <Failure error={budget.error} />;
+  const data = { ...raw, alert_at_percent: raw.alert_at_percent ?? 80 };
+  const euro = (value: number) => value.toLocaleString(undefined, { style: "currency", currency: "EUR" });
+  const share = data.monthly_eur ? Math.min(100, (data.spent_this_month_eur / data.monthly_eur) * 100) : 0;
+  const value = monthly ?? (data.monthly_eur != null ? String(data.monthly_eur) : "");
+  const commit = () => {
+    const parsed = value.trim() ? Number(value.replace(",", ".")) : null;
+    if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) return toast(t("settings.budgetInvalid"), "bad");
+    save.mutate({ monthly_eur: parsed, alert_at_percent: data.alert_at_percent });
+  };
+  return (
+    <>
+      <Group title={t("settings.thisMonth")}>
+        <SettingRow title={euro(data.spent_this_month_eur)} sub={data.monthly_eur ? t("settings.ofBudget", { budget: euro(data.monthly_eur), remaining: euro(data.remaining_eur ?? 0) }) : t("settings.noBudget")}>
+          {data.monthly_eur ? <span style={{ width: 180 }}><Progress value={share} color={share >= data.alert_at_percent ? "var(--warn)" : undefined} /></span> : null}
+        </SettingRow>
+      </Group>
+      <Group title={t("settings.budget")} hint={t("settings.budgetHint")}>
+        <SettingRow title={t("settings.monthly")} sub={t("settings.monthlyHint")}>
+          <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input className="field" style={{ width: 110, height: "var(--h-sm)" }} inputMode="decimal" aria-label={t("settings.monthly")} placeholder="–" value={value} onChange={(event) => setMonthly(event.target.value)} onKeyDown={(event) => event.key === "Enter" && commit()} />
+            <span className="faint">€</span>
+            {monthly !== null && <Btn size="sm" variant="primary" disabled={save.isPending} onClick={commit}>{t("common.save")}</Btn>}
+          </span>
+        </SettingRow>
+        <SettingRow title={t("settings.alertAt")} sub={t("settings.alertAtHint")}>
+          <Seg<string> label={t("settings.alertAt")} value={String(data.alert_at_percent)} onChange={(percent) => save.mutate({ monthly_eur: data.monthly_eur ?? null, alert_at_percent: Number(percent) })} options={[["50", "50 %"], ["80", "80 %"], ["90", "90 %"]]} />
+        </SettingRow>
+      </Group>
+      {data.run_limits.length > 0 && (
+        <Group title={t("settings.runLimits")} hint={t("settings.runLimitsHint")}>
+          {data.run_limits.map((limit) => (
+            <SettingRow key={limit.agent_id} title={limit.agent_id}><b className="tn">{euro(limit.max_cost_eur)}</b></SettingRow>
+          ))}
+        </Group>
+      )}
+    </>
+  );
+}
+
+const CONTENT: Record<string, () => ReactNode> = { models: Models, budget: Budget, general: General, devices: Devices, credentials: Credentials, account: Account };
 
 export function Settings() {
   useLanguage();
