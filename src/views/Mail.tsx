@@ -1,17 +1,22 @@
-import { Archive, ArrowDown, ArrowUp, ExternalLink, Paperclip, PenSquare, Reply, Search, Send, X } from "lucide-react";
+import { AlarmClockOff, Archive, ArrowDown, ArrowUp, ExternalLink, Paperclip, PenSquare, Plus, Reply, Search, Send, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { dayTime } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
-import { Avatar, Badge, Btn, Empty, Failure, Kbd, Skeleton } from "../ui";
+import { Avatar, Badge, Btn, CheckBox, Empty, Failure, Field, Kbd, Modal, Skeleton } from "../ui";
 import { Markdown } from "../ui/markdown";
-import { Freshness, NoSource, canDo, field, has, openItem, useAction, useDomains, useItem, useItems, useSources, type Item } from "./connected";
+import { toast } from "../shell/state";
+import {
+  Freshness, NoSource, canDo, field, has, isSnoozed, openItem, useAction, useBulk, useDomains, useItem, useItems, useSnooze, useSources,
+  useSplitActions, useSplitItems, useSplits, type Item,
+} from "./connected";
+import { LaterMenu } from "./later";
 import "./mail.css";
 
-type Box = "important" | "unread" | "all" | "mine";
-const BOXES: Box[] = ["important", "unread", "all", "mine"];
+type Box = "important" | "unread" | "all" | "mine" | "snoozed" | `split:${string}`;
+const BOXES = ["important", "unread", "all", "mine"] as const;
 
-export function boxOf(item: Pick<Item, "flags">, box: Box) {
+export function boxOf(item: Pick<Item, "flags">, box: (typeof BOXES)[number]) {
   if (box === "important") return has(item, "important");
   if (box === "unread") return has(item, "unread");
   if (box === "mine") return has(item, "from_me");
@@ -25,16 +30,21 @@ export function displayName(author: string | null | undefined) {
   return (match ? match[1]! : author).trim();
 }
 
-function Row({ item, on, onOpen }: { item: Item; on: boolean; onOpen: () => void }) {
+function Row({ item, on, picked, onPick, onOpen }: { item: Item; on: boolean; picked: boolean; onPick: () => void; onOpen: () => void }) {
   const unread = has(item, "unread");
   const name = displayName(item.author) || item.source;
   return (
     <div className={`ml-row ${on ? "on" : ""} ${unread ? "un" : ""}`} role="option" aria-selected={on} onClick={onOpen}>
-      <span className="ml-ld"><span className="ml-who"><Avatar name={name} size={28} /></span></span>
+      <span className="ml-ld" onClick={(event) => event.stopPropagation()}>
+        {picked ? <CheckBox on label={t("mail.select")} onChange={onPick} /> : (
+          <span className="ml-who ml-pickable"><Avatar name={name} size={28} /><span className="ml-pk"><CheckBox on={false} label={t("mail.select")} onChange={onPick} /></span></span>
+        )}
+      </span>
       <span className="ml-mn">
         <span className="ml-l1">
           <b className="clip">{name}</b>
           {has(item, "important") && <Badge tone="warn">{t("mail.important")}</Badge>}
+          {isSnoozed(item) && <Badge>{t("mail.later")}</Badge>}
           <span className="grow" />
           <time className="tn">{item.occurred_at ? dayTime(item.occurred_at) : ""}</time>
         </span>
@@ -100,6 +110,7 @@ function Composer({ thread, mode, onClose }: { thread: Item; mode: "reply" | "dr
 
 function Reading({ id, position, count, onStep }: { id: string; position: number; count: number; onStep: (step: number) => void }) {
   const detail = useItem(id);
+  const later = useSnooze();
   const sources = useSources();
   const action = useAction();
   const [compose, setCompose] = useState<"reply" | "draft" | null>(null);
@@ -126,6 +137,11 @@ function Reading({ id, position, count, onStep }: { id: string; position: number
       <div className="ml-rt">
         <Btn size="sm" variant="ghost" disabled={!canWrite} onClick={() => setCompose("reply")}><Reply />{t("mail.reply")}<kbd>R</kbd></Btn>
         {canArchive && <Btn size="sm" variant="ghost" disabled={action.isPending} onClick={() => action.mutate({ item: thread.id, action: "archive" })}><Archive />{t("mail.archive")}</Btn>}
+        {isSnoozed(thread) ? (
+          <Btn size="sm" variant="ghost" onClick={() => void later.unsnooze(thread.id)}><AlarmClockOff />{t("mail.showAgain")}</Btn>
+        ) : (
+          <LaterMenu size="sm" onPick={(until) => { void later.snooze([thread.id], until); onStep(1); }} />
+        )}
         {thread.url && <Btn size="sm" variant="ghost" onClick={() => openItem(thread)}><ExternalLink />{t("connected.openIn")}</Btn>}
         <span className="grow" />
         <span className="ml-pos tn">{position + 1}/{count}</span>
@@ -184,26 +200,64 @@ function Reading({ id, position, count, onStep }: { id: string; position: number
   );
 }
 
+/** Saves the current search and box as a split, a tab of its own. */
+function SplitDialog({ query, box, onClose, onSaved }: { query: string; box: Box; onClose: () => void; onSaved: (id: string) => void }) {
+  const [name, setName] = useState(query || "");
+  const actions = useSplitActions();
+  const splits = useSplits("mail");
+  const flags = box === "important" ? ["important"] : box === "unread" ? ["unread"] : box === "mine" ? ["from_me"] : [];
+  const save = () => {
+    const id = `${name.trim().toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "split"}-${Date.now().toString(36)}`;
+    void actions
+      .save(id, { name: name.trim(), domain: "mail", position: (splits.data?.length ?? 0) + 1, filter: { q: query || null, flags, any_flags: [], kinds: ["thread"], open: false, org: null, source: null, state: null } })
+      .then((split) => { onSaved(split.id); onClose(); }, (error: Error) => toast(error.message, "bad"));
+  };
+  return (
+    <Modal title={t("mail.newSplit")} sub={t("mail.newSplitSub")} onClose={onClose} actions={<><Btn onClick={onClose}>{t("common.cancel")}</Btn><Btn variant="primary" disabled={!name.trim()} onClick={save}>{t("common.save")}</Btn></>}>
+      <Field autoFocus label={t("mail.splitName")} value={name} onChange={setName} onEnter={save} placeholder={t("mail.splitNamePlaceholder")} />
+      <p className="faint" style={{ marginTop: 8, fontSize: "var(--t-12)" }}>{[query && `"${query}"`, ...flags.map((flag) => t(`mail.flag.${flag as "important"}`))].filter(Boolean).join(" · ") || t("mail.splitAll")}</p>
+    </Modal>
+  );
+}
+
 export function Mail() {
   useLanguage();
   const route = useRoute();
   const domains = useDomains();
   const sources = useSources();
+  const splits = useSplits("mail");
+  const splitActions = useSplitActions();
+  const bulk = useBulk();
+  const later = useSnooze();
   const [box, setBox] = useState<Box>("important");
   const [query, setQuery] = useState("");
   const [term, setTerm] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [savingSplit, setSavingSplit] = useState(false);
   useEffect(() => {
     const pause = setTimeout(() => setTerm(query.trim()), 250);
     return () => clearTimeout(pause);
   }, [query]);
-  const threads = useItems("/mail/threads", { limit: 300, ...(term ? { q: term } : {}) }, domains.has("mail"));
-  const all = useMemo(() => (threads.data?.items ?? []).filter((item) => item.kind === "thread"), [threads.data]);
-  const counts = Object.fromEntries(BOXES.map((value) => [value, all.filter((item) => boxOf(item, value)).length])) as Record<Box, number>;
+  const splitId = box.startsWith("split:") ? box.slice(6) : undefined;
+  const threads = useItems("/mail/threads", { limit: 300, ...(box === "snoozed" ? { snoozed: true } : {}), ...(term ? { q: term } : {}) }, domains.has("mail") && !splitId);
+  const splitItems = useSplitItems(splitId);
+  const source = splitId ? splitItems : threads;
+  const all = useMemo(() => (source.data?.items ?? []).filter((item) => item.kind === "thread"), [source.data]);
+  const counts = Object.fromEntries(BOXES.map((value) => [value, all.filter((item) => boxOf(item, value)).length])) as Record<(typeof BOXES)[number], number>;
   const effective: Box = box === "important" && counts.important === 0 && !term ? "all" : box;
-  const list = all.filter((item) => boxOf(item, effective));
+  const list = effective === "snoozed" ? all.filter((item) => isSnoozed(item)) : splitId ? all : all.filter((item) => boxOf(item, effective as (typeof BOXES)[number]));
   const index = Math.max(0, list.findIndex((item) => item.id === route.param));
   const current = list[index];
   const select = (id: string) => go("mail", id);
+  const pick = (id: string) => setPicked((set) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+  useEffect(() => setPicked(new Set()), [box, term]);
+  const ids = [...picked];
+  const canArchive = canDo(sources.data, "mail", "archive");
   const step = (delta: number) => {
     const next = list[Math.max(0, Math.min(list.length - 1, index + delta))];
     if (next) select(next.id);
@@ -219,6 +273,7 @@ export function Mail() {
         event.preventDefault();
         step(-1);
       }
+      if (event.key === "x" && current) pick(current.id);
       if (event.key === "/") {
         event.preventDefault();
         document.querySelector<HTMLInputElement>(".ml-q input")?.focus();
@@ -234,9 +289,16 @@ export function Mail() {
         <div className="ml-tabsx" role="tablist" aria-label={t("mail.boxes")}>
           {BOXES.map((value) => (
             <button type="button" key={value} role="tab" aria-selected={effective === value} className={effective === value ? "on" : ""} onClick={() => setBox(value)}>
-              {t(`mail.box.${value}`)}<em className="tn">{counts[value]}</em>
+              {t(`mail.box.${value}`)}<em className="tn">{splitId ? "" : counts[value]}</em>
             </button>
           ))}
+          {(splits.data ?? []).map((split) => (
+            <button type="button" key={split.id} role="tab" aria-selected={box === `split:${split.id}`} className={box === `split:${split.id}` ? "on" : ""} onClick={() => setBox(`split:${split.id}`)}>
+              {split.name}
+            </button>
+          ))}
+          <button type="button" role="tab" aria-selected={effective === "snoozed"} className={effective === "snoozed" ? "on" : ""} onClick={() => setBox("snoozed")}>{t("mail.box.snoozed")}</button>
+          <button type="button" className="ml-more" aria-label={t("mail.newSplit")} title={t("mail.newSplit")} onClick={() => setSavingSplit(true)}><Plus size={14} /></button>
         </div>
         <span className="grow" />
         <Freshness domain="mail" />
@@ -249,18 +311,32 @@ export function Mail() {
       <div className="ml-body">
         <div className="ml-list">
           <div className="ml-lh">
-            <span className="tn">{term ? t("mail.hits", { count: list.length }) : t("mail.listCount", { count: list.length, unread: counts.unread })}</span>
-            <span className="grow" />
+            {ids.length ? (
+              <>
+                <CheckBox on={ids.length === list.length && list.length > 0} label={t("mail.selectAll")} onChange={() => setPicked(ids.length === list.length ? new Set() : new Set(list.map((item) => item.id)))} />
+                <span className="tn">{t("mail.picked", { count: ids.length })}</span>
+                <span className="grow" />
+                {canArchive && <Btn size="xs" disabled={bulk.isPending} onClick={() => bulk.mutate({ ids, action: "archive" }, { onSuccess: () => setPicked(new Set()) })}><Archive />{t("mail.archive")}</Btn>}
+                <LaterMenu size="xs" onPick={(until) => void later.snooze(ids, until).then(() => setPicked(new Set()))} />
+                <Btn icon size="xs" variant="ghost" aria-label={t("common.clear")} onClick={() => setPicked(new Set())}><X /></Btn>
+              </>
+            ) : (
+              <>
+                <span className="tn">{term ? t("mail.hits", { count: list.length }) : t("mail.listCount", { count: list.length, unread: counts.unread })}</span>
+                <span className="grow" />
+                {splitId && <Btn icon size="xs" variant="ghost" aria-label={t("mail.deleteSplit")} title={t("mail.deleteSplit")} onClick={() => void splitActions.remove(splitId).then(() => setBox("important"))}><Trash2 /></Btn>}
+              </>
+            )}
           </div>
-          <Failure error={threads.error} />
-          {threads.isPending ? (
+          <Failure error={source.error} />
+          {source.isPending ? (
             <div style={{ padding: 12 }}><Skeleton count={6} height={44} /></div>
           ) : list.length ? (
-            <div className="ml-rows" role="listbox" style={{ overflowY: "auto", flex: 1 }}>
-              {list.map((item) => <Row key={item.id} item={item} on={item.id === current?.id} onOpen={() => select(item.id)} />)}
+            <div className="ml-rows" role="listbox" aria-multiselectable style={{ overflowY: "auto", flex: 1 }}>
+              {list.map((item) => <Row key={item.id} item={item} on={item.id === current?.id} picked={picked.has(item.id)} onPick={() => pick(item.id)} onOpen={() => select(item.id)} />)}
             </div>
           ) : (
-            <Empty icon={<Search size={20} className="faint" />} title={term ? t("mail.noHits") : t("mail.empty")} sub={term ? undefined : t("mail.emptyHint")} />
+            <Empty icon={<Search size={20} className="faint" />} title={term ? t("mail.noHits") : effective === "snoozed" ? t("mail.noneSnoozed") : t("mail.empty")} sub={term || effective === "snoozed" ? undefined : t("mail.emptyHint")} />
           )}
         </div>
         {current ? (
@@ -269,7 +345,7 @@ export function Mail() {
           <div className="ml-read none"><Empty title={t("mail.pick")} /></div>
         )}
       </div>
+      {savingSplit && <SplitDialog query={term} box={effective} onClose={() => setSavingSplit(false)} onSaved={(id) => setBox(`split:${id}`)} />}
     </div>
   );
 }
-

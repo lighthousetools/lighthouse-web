@@ -47,3 +47,7 @@
 
 @container (max-width: 660px) { .mailv .ml-rt kbd { display: none; } }
 .ml-row .ml-ck .check { pointer-events: none; }
+.ml-pickable { position: relative; display: inline-grid; }
+.ml-pickable .ml-pk { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transition: opacity var(--fast); }
+.ml-row:hover .ml-pickable .ml-pk, .ml-pickable:focus-within .ml-pk { opacity: 1; }
+.ml-row:hover .ml-pickable > :first-child { opacity: 0; }

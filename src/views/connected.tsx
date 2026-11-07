@@ -13,7 +13,7 @@ import { age } from "./Ready";
 export type Item = Schemas["SyncedItem"];
 export type Source = Schemas["SourceInfo"];
 export type Domain = "mail" | "calendar" | "issues" | "code" | "deals" | "bank" | "invoices" | "documents" | "rooms" | "holdings";
-type ListQuery = { q?: string; source?: string; state?: string; flags?: string; open?: boolean; from?: string; to?: string; limit?: number; offset?: number };
+type ListQuery = { q?: string; source?: string; state?: string; flags?: string; open?: boolean; from?: string; to?: string; snoozed?: boolean; limit?: number; offset?: number };
 type ListPath =
   | "/inbox" | "/mail/threads" | "/calendar/events" | "/issues" | "/issues/projects" | "/issues/cycles" | "/pulls"
   | "/connected/search" | "/deals" | "/bank/accounts" | "/bank/transactions" | "/invoices" | "/contracts" | "/rooms"
@@ -123,6 +123,67 @@ export function useAction() {
       void client.invalidateQueries({ queryKey: ["connected"] });
       void client.invalidateQueries({ queryKey: ["ready"] });
       void client.invalidateQueries({ queryKey: ["approvals"] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+}
+
+/** Hides an item until a time ("later"), or shows it again. Nothing changes in the service. */
+export function useSnooze() {
+  const client = useQueryClient();
+  const done = (text: string) => {
+    toast(text);
+    void client.invalidateQueries({ queryKey: ["connected"] });
+  };
+  const fail = (error: Error) => toast(error.message, "bad");
+  return {
+    snooze: (ids: string[], until: Date) =>
+      Promise.all(ids.map((id) => must(api.POST("/connected/items/{id}/snooze", { params: { path: { id } }, body: { until: until.toISOString() } }))))
+        .then(() => done(t("connected.snoozed", { count: ids.length, time: dayTime(until.toISOString()) })), fail),
+    unsnooze: (id: string) => must(api.DELETE("/connected/items/{id}/snooze", { params: { path: { id } } })).then(() => done(t("connected.unsnoozed")), fail),
+  };
+}
+
+export const isSnoozed = (item: Pick<Item, "snoozed_until">, now = Date.now()) => !!item.snoozed_until && Date.parse(item.snoozed_until) > now;
+
+export type Split = Schemas["Split"];
+
+/** Saved filters of a domain, shown as tabs. */
+export function useSplits(domain: Domain) {
+  return useQuery({
+    queryKey: ["connected", "splits"],
+    queryFn: () => must(api.GET("/connected/splits")),
+    select: (splits) => splits.filter((split) => !split.domain || split.domain === domain).sort((a, b) => a.position - b.position),
+  });
+}
+
+export function useSplitItems(id: string | undefined) {
+  return useQuery({
+    queryKey: ["connected", "splits", id, "items"],
+    enabled: !!id,
+    queryFn: () => must(api.GET("/connected/splits/{id}/items", { params: { path: { id: id! }, query: { limit: 300 } } })),
+  });
+}
+
+export function useSplitActions() {
+  const client = useQueryClient();
+  const refresh = () => void client.invalidateQueries({ queryKey: ["connected", "splits"] });
+  return {
+    save: (id: string, body: Schemas["SplitInput"]) => must(api.PUT("/connected/splits/{id}", { params: { path: { id } }, body })).then((split) => (refresh(), split)),
+    remove: (id: string) => must(api.DELETE("/connected/splits/{id}", { params: { path: { id } } })).then(refresh, (error: Error) => toast(error.message, "bad")),
+  };
+}
+
+/** The same action on many items. Each writing call gets its own approval, decided together in Ready. */
+export function useBulk() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { ids: string[]; action: string; input?: Record<string, unknown> }) => must(api.POST("/connected/actions/bulk", { body: { ...body, input: body.input ?? {} } })),
+    onSuccess: (outcomes) => {
+      const failed = outcomes.filter((outcome) => outcome.error).length;
+      const waiting = outcomes.filter((outcome) => outcome.result?.status === "proposed").length;
+      toast(failed ? t("connected.bulkFailed", { failed, count: outcomes.length }) : waiting ? t("connected.bulkWaits", { count: waiting }) : t("connected.bulkDone", { count: outcomes.length }), failed ? "bad" : undefined);
+      for (const key of ["connected", "ready", "approvals"]) void client.invalidateQueries({ queryKey: [key] });
     },
     onError: (error) => toast(error.message, "bad"),
   });
