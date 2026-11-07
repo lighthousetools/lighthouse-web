@@ -1,6 +1,7 @@
 /* Shell: time-of-day light, menu bar, window with rail, sidebar and content, inspector, palette, toasts. */
 .os { position: fixed; inset: 0; color: var(--ink); }
 .light { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: linear-gradient(135deg,#0b2a66,#2f7fd6 55%,#f2c48f); }
+.light.painted { image-rendering: auto; filter: blur(6px); transform: scale(1.04); }
 .light[data-phase="2"] { background: linear-gradient(160deg,#01030a,#071733 60%,#16305e); } .light[data-phase="1"] { background: linear-gradient(135deg,#0533b8,#1a85f0 55%,#a6dcf7); }
 /* Menu bar */
 .menubar { position: fixed; z-index: 60; top: 0; left: 0; right: 0; height: 28px; display: flex; align-items: center; gap: 2px; padding: 0 var(--s2); font-size: var(--t-13); color: #fff; background: rgba(0,0,0,.2); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
@@ -44,3 +45,22 @@
 .rail b.red { background: #f0584c; color: #fff; }
 .menubar .firm { margin-left: var(--s2); } .firm .seg { padding: 2px; background: rgba(0,0,0,.26); } .firm .seg button { height: 20px; padding: 0 9px; color: rgba(255,255,255,.8); } .firm .seg button.on { background: rgba(255,255,255,.92); color: #0d1526; }
 .firm-o { display: inline-flex; align-items: center; gap: 5px; } .firm-o i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+
+/* The sidebar's day card, as in the vision: "Today · 2 of 7 done" over a progress bar. */
+.sidebar button.sp { height: auto; text-align: left; cursor: pointer; }
+.sidebar .sp .grow { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+.sidebar .sp b { font-weight: 500; color: var(--ink); font-size: var(--t-125); }
+.sidebar .sp small { font-size: var(--t-12); color: var(--ink3); }
+.mstat { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); }
+
+/* In the Mac app: the company choice and waiting sessions live in the sidebar, since the menu bar is gone. */
+.sidebar .firm { margin: 2px 0 6px; } .sidebar .firm .seg { display: flex; width: 100%; } .sidebar .firm .seg button { flex: 1; min-width: 0; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
+.sb-pill { display: flex; align-items: center; gap: 8px; height: 30px; margin: 0 0 6px; padding: 0 10px; border-radius: var(--r-full); background: #0b0b10; color: #fff; font-size: var(--t-12); }
+.sb-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
+
+/* Native vibrancy: the Mac app sets data-native-vibrancy="1" and draws its own material behind the web view.
+   Everything around the content panel turns transparent so it shows through; the panel stays as it is. */
+[data-native-vibrancy="1"], [data-native-vibrancy="1"] body, [data-native-vibrancy="1"] #root { background: transparent; }
+[data-native-vibrancy="1"] .light { display: none; }
+[data-native-vibrancy="1"] .window { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+[data-native-vibrancy="1"] .rail, [data-native-vibrancy="1"] .sidebar { background: transparent; }

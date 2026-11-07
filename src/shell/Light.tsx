@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { dayPhase } from "./look";
+import { paintSky } from "./sky";
 
 const VERTEX = "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
 
@@ -105,9 +106,20 @@ export function Light() {
       cancelAnimationFrame(frame);
       if (!calm && !document.hidden && !stopped) frame = requestAnimationFrame(loop);
     };
+    // A lost context (the GPU was reset, or the app was hidden for long) falls back to the painted sky.
+    const lost = (event: Event) => {
+      event.preventDefault();
+      stopped = true;
+      cancelAnimationFrame(frame);
+      setFailed(true);
+    };
+    canvas.addEventListener("webglcontextlost", lost);
     addEventListener("resize", size);
     document.addEventListener("visibilitychange", visibility);
     size();
+    // Draw one frame now: animation frames may not come while the window is hidden or occluded, and an empty
+    // canvas would show the flat gradient behind it.
+    draw(performance.now());
     redraw.current = () => calm && draw(0);
     if (!calm) frame = requestAnimationFrame(loop);
     return () => {
@@ -115,10 +127,40 @@ export function Light() {
       cancelAnimationFrame(frame);
       removeEventListener("resize", size);
       document.removeEventListener("visibilitychange", visibility);
+      canvas.removeEventListener("webglcontextlost", lost);
       redraw.current = () => {};
     };
   }, []);
 
   const rounded = String(Math.round(phase));
-  return <canvas ref={ref} className="light" data-phase={rounded} data-fallback={failed || undefined} aria-hidden="true" />;
+  return (
+    <>
+      <canvas ref={ref} className="light" data-phase={rounded} data-fallback={failed || undefined} aria-hidden="true" style={failed ? { visibility: "hidden" } : undefined} />
+      {failed && <PaintedSky phase={phase} />}
+    </>
+  );
+}
+
+/** Without WebGL: the same sky painted once on the CPU, small, and repainted when the phase or the window changes. */
+function PaintedSky({ phase }: { phase: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [size, setSize] = useState(() => [innerWidth, innerHeight]);
+  useEffect(() => {
+    let pause = 0;
+    const resize = () => {
+      clearTimeout(pause);
+      pause = window.setTimeout(() => setSize([innerWidth, innerHeight]), 200);
+    };
+    addEventListener("resize", resize);
+    return () => {
+      clearTimeout(pause);
+      removeEventListener("resize", resize);
+    };
+  }, []);
+  useEffect(() => {
+    const width = 192;
+    const height = Math.max(1, Math.round((width * size[1]!) / size[0]!));
+    if (ref.current) paintSky(ref.current, width, height, 40, phase);
+  }, [phase, size]);
+  return <canvas ref={ref} className="light painted" data-phase={String(Math.round(phase))} aria-hidden="true" />;
 }
