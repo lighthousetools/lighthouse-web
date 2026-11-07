@@ -109,7 +109,7 @@ describe("helpers", () => {
   });
 
   it("groups rules by category with the rest last", () => {
-    const rule = (id: string, category: string | null) => ({ id, text: id, enabled: true, category, created_at: "", updated_at: "" });
+    const rule = (id: string, category: string | null) => ({ id, text: id, enabled: true, category, applied_count: 0, created_at: "", updated_at: "" });
     expect(byCategory([rule("a", null), rule("b", "Work"), rule("c", "Code")]).map(([key]) => key)).toEqual(["Code", "Work", ""]);
   });
 

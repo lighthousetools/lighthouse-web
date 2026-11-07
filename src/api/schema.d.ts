@@ -530,6 +530,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bank/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Forecasts cash per month: today's balances, plus open issued invoices by due
+         *     date and the weighted pipeline, minus open received invoices and the usual burn.
+         */
+        get: operations["cash_forecast"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bank/transactions": {
         parameters: {
             query?: never;
@@ -1403,6 +1423,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/holdings/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists watched symbols: quotes and `watch` items without a position. */
+        get: operations["watchlist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holdings/{id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the owner's theses, metrics and questions on a holding, from the Brain. */
+        get: operations["holding_notes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/holdings/{id}/theses": {
         parameters: {
             query?: never;
@@ -1865,6 +1919,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/posts/blocked-days": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the days without posts, such as holidays. */
+        get: operations["list_blocked_days"];
+        /** Replaces the days without posts. The calendar marks their slots as blocked. */
+        put: operations["set_blocked_days"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/posts/calendar": {
         parameters: {
             query?: never;
@@ -2267,6 +2339,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{id}/basis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a run read, readable, such as `Mail · 3 threads`. */
+        get: operations["run_basis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{id}/document": {
         parameters: {
             query?: never;
@@ -2332,6 +2421,47 @@ export interface paths {
          *     instruction when the session stops, see `docs/desktop-agent.md`.
          */
         post: operations["send_session_message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the monthly budget, this month's spending and the cost limits per run. */
+        get: operations["get_budget"];
+        /**
+         * Sets the monthly budget. An alert warns at `alert_at_percent` and again
+         *     when the budget is used up; runs are not stopped by it.
+         */
+        put: operations["set_budget"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lists which provider and model serve each task. Read-only: routing lives in
+         *     the configuration.
+         */
+        get: operations["model_routes"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2585,14 +2715,30 @@ export interface components {
         };
         /** @description An agent. */
         AgentInfo: {
+            /**
+             * @description How far it acts on its own: `observe` (reads only), `prepare` (also saves
+             *     drafts) or `propose` (also proposes actions that wait for approval).
+             */
+            autonomy: string;
             /** @description Tools that keep it from starting, with the reason. */
             blocked: string[];
+            /**
+             * Format: int64
+             * @description Proposals of it the owner denied or changed before approving.
+             */
+            corrections?: number;
             /** @description Delivery targets. */
             deliver: string[];
             /** @description Whether the apps can change it. */
             editable: boolean;
             /** @description Agent ID. */
             id: string;
+            /**
+             * Format: double
+             * @description The cost limit of one run, in EUR.
+             */
+            max_cost_eur: number;
+            model?: components["schemas"]["ModelRoute"] | null;
             /** @description Display name. */
             name: string;
             /**
@@ -2635,6 +2781,8 @@ export interface components {
             count: number;
             /** @description The latest error text. */
             detail?: string | null;
+            /** @description What happened, oldest first: `raised`, `seen`, `escalated`, `acknowledged`, `resolved`. */
+            events: components["schemas"]["AlertEvent"][];
             /**
              * Format: date-time
              * @description First occurrence.
@@ -2666,6 +2814,13 @@ export interface components {
             status: string;
             /** @description Short description. */
             title: string;
+            /** @description The unit of `value`, such as `failures`, `EUR` or `ms`. */
+            unit?: string | null;
+            /**
+             * Format: double
+             * @description The current value of the metric behind it, such as failed runs or a cost.
+             */
+            value?: number | null;
         };
         /** @description Number of unresolved alerts per severity. */
         AlertCounts: {
@@ -2684,6 +2839,23 @@ export interface components {
              * @description Warnings.
              */
             warning: number;
+        };
+        /** @description One step in the timeline of an alert. */
+        AlertEvent: {
+            /**
+             * Format: date-time
+             * @description When.
+             */
+            at: string;
+            /** @description What happened. */
+            kind: string;
+            /** @description The error text or note of that moment. */
+            text?: string | null;
+            /**
+             * Format: double
+             * @description The value of the metric then.
+             */
+            value?: number | null;
         };
         /** @description The chart of an alert. */
         AlertSeries: {
@@ -2734,7 +2906,10 @@ export interface components {
              * @description The paused run.
              */
             run_id: string;
-            /** @description `pending`, `approved`, `denied` or `expired`. */
+            /**
+             * @description `pending`, `approved`, `denied`, `expired`, or `superseded` by a newer
+             *     proposal for the same target.
+             */
             status: string;
             /** @description Qualified tool name. */
             tool: string;
@@ -2831,6 +3006,20 @@ export interface components {
             /** @description `cron`, `event`, `webhook` or `manual`. */
             kind: string;
         };
+        /** @description Something a run read or used, readable, such as `Mail · 3 threads`. */
+        Basis: {
+            /**
+             * Format: int64
+             * @description The items of that collection in the cache, if the tool fills one.
+             */
+            count?: number | null;
+            /** @description What it was, for a chip: the source and what it holds. */
+            label: string;
+            /** @description The service, for the logo. */
+            service?: string | null;
+            /** @description Qualified tool name. */
+            tool: string;
+        };
         /** @description One decision on many proposals, for example a batch of similar ones. */
         BatchDecision: {
             /** @description Whether the actions may run. */
@@ -2844,6 +3033,16 @@ export interface components {
             decided: string[];
             /** @description Proposals already decided or expired. */
             skipped: string[];
+        };
+        /** @description A day without posts, such as a holiday. */
+        BlockedDay: {
+            /**
+             * Format: date
+             * @description The day.
+             */
+            date: string;
+            /** @description Why, such as "Holiday". */
+            reason?: string | null;
         };
         /** @description The owner's profile for writing posts and decks. */
         BrandProfile: {
@@ -2886,8 +3085,15 @@ export interface components {
         };
         /** @description The structured result of a briefing run. */
         BriefingContent: {
+            /**
+             * @description How things connect: short stories that link items across services, such
+             *     as a mail, the deal it is about and the meeting where it is decided.
+             */
+            connections?: components["schemas"]["Connection"][];
             /** @description `morning_brief`, `weekly_recap` or another lowercase kind. */
             kind: string;
+            /** @description Work grouped by project, for a recap. */
+            projects?: components["schemas"]["ProjectWork"][];
             /** @description The sections in order. */
             sections: components["schemas"]["DocumentSection"][];
             /** @description A few sentences on the whole. */
@@ -2896,6 +3102,9 @@ export interface components {
             title: string;
             /** @description Sources that could not be read. */
             unavailable?: string[];
+            weather?: components["schemas"]["Weather"] | null;
+            /** @description The days ahead, for a brief: what each day holds. */
+            week?: components["schemas"]["WeekDay"][];
         };
         /** @description A stored document. */
         BriefingDocument: {
@@ -2924,6 +3133,34 @@ export interface components {
             run_id: string;
             /** @description Title, as in the content. */
             title: string;
+        };
+        /** @description The owner's monthly budget for model costs. */
+        Budget: {
+            /**
+             * Format: int32
+             * @description At which share of the budget an alert warns, in percent.
+             */
+            alert_at_percent?: number;
+            /**
+             * Format: double
+             * @description Budget per calendar month in EUR. `None` means no budget.
+             */
+            monthly_eur?: number | null;
+        };
+        /** @description The budget with this month's spending. */
+        BudgetView: components["schemas"]["Budget"] & {
+            /**
+             * Format: double
+             * @description What is left of the budget, if there is one.
+             */
+            remaining_eur?: number | null;
+            /** @description The cost limits per run. */
+            run_limits: components["schemas"]["RunLimit"][];
+            /**
+             * Format: double
+             * @description Model costs since the start of this month, in the owner's time zone.
+             */
+            spent_this_month_eur: number;
         };
         /** @description The same action on many items. */
         BulkAction: {
@@ -2965,6 +3202,8 @@ export interface components {
              * @description When it is.
              */
             at: string;
+            /** @description Why nothing should go out that day, if the owner blocked it. */
+            blocked?: string | null;
             /** @description Posts scheduled within an hour of it. */
             posts: string[];
             /** @description The slot. */
@@ -3001,6 +3240,15 @@ export interface components {
             /** @description The text of a post. */
             text: string;
         };
+        /** @description The tool behind a collection of a source. */
+        CollectionTool: {
+            /** @description Collection name, such as `inbox`. */
+            collection: string;
+            /** @description Kind of the items, such as `thread`. */
+            kind: string;
+            /** @description Qualified tool name. */
+            tool: string;
+        };
         /** @description A draft to compose. */
         ComposeRequest: {
             /** @description Contract source whose `draft` action receives `title` and `body`. Without one, the text only comes back. */
@@ -3032,6 +3280,15 @@ export interface components {
             /** @description URL to open in a browser. */
             authorize_url: string;
         };
+        /** @description A story that links items across services. */
+        Connection: {
+            /** @description The items it links, in the order of the story. */
+            items?: components["schemas"]["ItemSource"][];
+            /** @description Two or three sentences on how the items connect. */
+            text: string;
+            /** @description One line, such as "The Globex renewal hangs on one answer". */
+            title: string;
+        };
         /** @description A connector. */
         ConnectorInfo: {
             /** @description `none`, `bearer`, `oauth` or `process`. */
@@ -3058,6 +3315,13 @@ export interface components {
         CredentialValue: {
             /** @description The secret value. */
             value: string;
+        };
+        /** @description The cash forecast of one currency. */
+        CurrencyForecast: {
+            /** @description Currency code. */
+            currency: string;
+            /** @description The months ahead, this month first. */
+            months: components["schemas"]["ForecastMonth"][];
         };
         /** @description The numbers of one currency. */
         CurrencyNumbers: {
@@ -3242,8 +3506,12 @@ export interface components {
             /** @description Numbers that belong to it. */
             numbers?: components["schemas"]["ItemNumber"][];
             source?: components["schemas"]["ItemSource"] | null;
+            /** @description A line under the title, such as "Mail from John Roe · yesterday". */
+            subtitle?: string | null;
             /** @description The statement, one sentence. */
             text: string;
+            /** @description A short title for a card, such as "Globex offer". */
+            title?: string | null;
         };
         /** @description A section, such as "Needs you". */
         DocumentSection: {
@@ -3430,12 +3698,57 @@ export interface components {
             /** @description Title. Defaults to "Focus". */
             title?: string | null;
         };
+        /** @description One month of the cash forecast. */
+        ForecastMonth: {
+            /**
+             * Format: double
+             * @description The usual monthly net outflow, from the last 90 days.
+             */
+            burn: number;
+            /**
+             * Format: double
+             * @description Cash at the end of the month.
+             */
+            closing: number;
+            /**
+             * Format: double
+             * @description Open issued invoices due this month; overdue ones count in the first month.
+             */
+            invoices_in: number;
+            /**
+             * Format: double
+             * @description Cash at the start of the month.
+             */
+            opening: number;
+            /**
+             * Format: double
+             * @description Open received invoices due this month; overdue ones count in the first month.
+             */
+            payables_out: number;
+            /** @description `YYYY-MM`. */
+            period: string;
+            /**
+             * Format: double
+             * @description Open deals expected to close this month, times their probability. Deals
+             *     without a close date (`ends_at`) are spread evenly over the months.
+             */
+            pipeline_weighted: number;
+        };
         /** @description Answer of the health check. */
         Health: {
             /** @description Always `ok`. */
             status: string;
             /** @description Server version. */
             version: string;
+        };
+        /** @description The owner's notes on a holding, by kind. */
+        HoldingNotes: {
+            /** @description Numbers the owner watches. */
+            metrics: components["schemas"]["EntrySummary"][];
+            /** @description Open questions. */
+            questions: components["schemas"]["EntrySummary"][];
+            /** @description Why the owner holds it. */
+            theses: components["schemas"]["EntrySummary"][];
         };
         /** @description Published posts to add to the archive, as a list or as CSV with a header row. */
         ImportRequest: {
@@ -3551,6 +3864,19 @@ export interface components {
              *     "today" and the days of charts follow it.
              */
             timezone?: string;
+        };
+        /** @description Which provider and model serve a task, from the configuration. */
+        ModelRoute: {
+            /** @description The fallback provider, if any. */
+            fallback?: string | null;
+            /** @description The fallback's model for the task. */
+            fallback_model?: string | null;
+            /** @description Its model for the task, if it names one. */
+            model?: string | null;
+            /** @description The provider. */
+            provider: string;
+            /** @description The task, such as `text`. */
+            task: string;
         };
         /** @description A new deck. */
         NewDeck: {
@@ -3694,6 +4020,11 @@ export interface components {
         NewThesis: {
             /** @description The owner's reasoning in Markdown. */
             body: string;
+            /**
+             * @description `thesis` (the default), `metric` for a number the owner watches, such as
+             *     "Gross margin above 40%", or `question` for one to answer.
+             */
+            kind?: string | null;
             /** @description Title, such as "Why I hold it". */
             title: string;
         };
@@ -3941,6 +4272,12 @@ export interface components {
             url?: string | null;
             /** @description Alternative texts, each with a `name` and a `text`. */
             variants: unknown;
+            /**
+             * Format: double
+             * @description For a published post with `impressions`: how it did against the median
+             *     of published posts on the same channel, such as `2.0` for twice as many.
+             */
+            x_factor?: number | null;
         };
         /** @description The result of the check. */
         PostCheck: {
@@ -4025,6 +4362,17 @@ export interface components {
             label: string;
             /** @description The value as text. */
             value: string;
+        };
+        /** @description The work of one project in a recap. */
+        ProjectWork: {
+            /** @description What got done. */
+            done?: components["schemas"]["DocumentItem"][];
+            /** @description Project name. */
+            name: string;
+            /** @description Its numbers, such as issues closed. */
+            numbers?: components["schemas"]["ItemNumber"][];
+            /** @description What is still open or at risk. */
+            open?: components["schemas"]["DocumentItem"][];
         };
         /** @description The item a call answers, to quote it. */
         Quote: {
@@ -4130,6 +4478,8 @@ export interface components {
         };
         /** @description What the owner sees of a proposed call. */
         Review: {
+            /** @description What the run read before, readable: `tool`, `label`, `service` and `count`. */
+            consulted?: components["schemas"]["Basis"][];
             /**
              * Format: uuid
              * @description The connected item it answers.
@@ -4168,6 +4518,11 @@ export interface components {
         Rule: {
             /** @description The agent it applies to. `None` means every agent. */
             agent_id?: string | null;
+            /**
+             * Format: int32
+             * @description How many runs it reached.
+             */
+            applied_count: number;
             /** @description Optional grouping for the apps, such as `work` or `tech`. */
             category?: string | null;
             /**
@@ -4182,6 +4537,11 @@ export interface components {
              * @description Rule ID.
              */
             id: string;
+            /**
+             * Format: date-time
+             * @description When a run last got it.
+             */
+            last_applied_at?: string | null;
             /** @description The rule in the owner's words. */
             text: string;
             /**
@@ -4207,6 +4567,16 @@ export interface components {
             run: components["schemas"]["RunRecord"];
             /** @description Its steps in order. */
             steps: components["schemas"]["StepRecord"][];
+        };
+        /** @description The cost limit of one run of an agent. */
+        RunLimit: {
+            /** @description Agent ID. */
+            agent_id: string;
+            /**
+             * Format: double
+             * @description Limit per run in EUR, from the agent file.
+             */
+            max_cost_eur: number;
         };
         /** @description A run as stored. */
         RunRecord: {
@@ -4500,6 +4870,8 @@ export interface components {
             action_tools?: components["schemas"]["ActionTool"][];
             /** @description Actions the owner can ask for. */
             actions: string[];
+            /** @description The tools that fill the collections, and the kind of item each brings. */
+            collection_tools?: components["schemas"]["CollectionTool"][];
             /** @description Connector it calls. */
             connector: string;
             /** @description `mail`, `calendar`, `issues` or `code`. */
@@ -4999,6 +5371,39 @@ export interface components {
             name: string;
             /** @description The text. */
             text: string;
+        };
+        /** @description The weather of a day. */
+        Weather: {
+            /**
+             * Format: double
+             * @description The highest of the day, in °C.
+             */
+            high_c?: number | null;
+            /** @description The place, such as "Berlin". */
+            location?: string | null;
+            /**
+             * Format: double
+             * @description The lowest of the day, in °C.
+             */
+            low_c?: number | null;
+            /** @description Where it comes from, such as "Open-Meteo". */
+            source?: string | null;
+            /** @description Such as "Light rain". */
+            summary: string;
+            /**
+             * Format: double
+             * @description The temperature now, in °C.
+             */
+            temperature_c?: number | null;
+        };
+        /** @description One day ahead. */
+        WeekDay: {
+            /** @description The date, `YYYY-MM-DD`. */
+            date: string;
+            /** @description What it holds. */
+            items?: components["schemas"]["DocumentItem"][];
+            /** @description A word on the day, such as "Busy" or "Focus day". */
+            label?: string | null;
         };
         /** @description A text the writer proposes. */
         Written: {
@@ -6002,6 +6407,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    cash_forecast: {
+        parameters: {
+            query?: {
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Months ahead, this month first, default 3, at most 24 */
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyForecast"][];
                 };
             };
         };
@@ -7698,6 +8127,54 @@ export interface operations {
             };
         };
     };
+    watchlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncedItem"][];
+                };
+            };
+        };
+    };
+    holding_notes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Holding ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldingNotes"];
+                };
+            };
+            /** @description Unknown holding */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_theses: {
         parameters: {
             query?: never;
@@ -8647,6 +9124,55 @@ export interface operations {
             };
         };
     };
+    list_blocked_days: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockedDay"][];
+                };
+            };
+        };
+    };
+    set_blocked_days: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockedDay"][];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockedDay"][];
+                };
+            };
+            /** @description Too many days */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     post_calendar: {
         parameters: {
             query?: {
@@ -9568,6 +10094,28 @@ export interface operations {
             };
         };
     };
+    run_basis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Run ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Basis"][];
+                };
+            };
+        };
+    };
     run_document: {
         parameters: {
             query?: never;
@@ -9689,6 +10237,74 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_budget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetView"];
+                };
+            };
+        };
+    };
+    set_budget: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Budget"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetView"];
+                };
+            };
+            /** @description Invalid budget */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    model_routes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRoute"][];
+                };
             };
         };
     };
