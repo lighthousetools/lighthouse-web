@@ -1,11 +1,12 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Download, Maximize2, Pencil, Plus, Printer, StickyNote } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Download, Maximize2, Paperclip, Pencil, Plus, Printer, StickyNote } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { api, must } from "../api/client";
 import { language, t } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
-import { Btn, cx, Empty, Failure, Field, Modal, Page, SearchField, Skeleton } from "../ui";
+import { Btn, cx, Empty, Failure, Field, Menu, Modal, Page, SearchField, Seg, Skeleton } from "../ui";
+import { canDo, useItems, useSources } from "./connected";
 import { joinSlides, minutesFor, moveSlide, slidesOf, splitSlides } from "./deck";
 import { Slide } from "./Slide";
 
@@ -113,21 +114,62 @@ function SlideEditor({ parts, name, index, onIndex, onChange, onClose }: { parts
 
 function NewDeck({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
   const [title, setTitle] = useState("");
+  const [mode, setMode] = useState<"empty" | "brief">("empty");
+  const [brief, setBrief] = useState("");
   const client = useQueryClient();
-  const create = () => {
-    const clean = title.trim();
-    if (!clean) return;
-    void must(api.POST("/decks", { body: { title: clean, markdown: `# ${clean}\n\n---\n\n# ${t("decks.firstSlide")}\n\n- \n`, links: [] } }))
-      .then((entry) => {
-        void client.invalidateQueries({ queryKey: ["decks"] });
-        onCreated(entry.id);
-        onClose();
-      }, (error: Error) => toast(error.message, "bad"));
-  };
+  const create = useMutation({
+    mutationFn: () => {
+      const clean = title.trim();
+      // A brief goes to the writer, which drafts the slides in your voice and marks gaps with [TODO].
+      return mode === "brief"
+        ? must(api.POST("/decks/generate", { body: { title: clean, brief: brief.trim() } }))
+        : must(api.POST("/decks", { body: { title: clean, markdown: `# ${clean}\n\n---\n\n# ${t("decks.firstSlide")}\n\n- \n`, links: [] } }));
+    },
+    onSuccess: (entry) => {
+      void client.invalidateQueries({ queryKey: ["decks"] });
+      onCreated(entry.id);
+      onClose();
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const ready = title.trim() && (mode === "empty" || brief.trim());
   return (
-    <Modal title={t("decks.new")} sub={t("decks.newSub")} onClose={onClose} actions={<><Btn onClick={onClose}>{t("common.cancel")}</Btn><Btn variant="primary" disabled={!title.trim()} onClick={create}>{t("decks.create")}</Btn></>}>
-      <Field autoFocus value={title} onChange={setTitle} onEnter={create} placeholder={t("decks.titlePlaceholder")} label={t("decks.title")} />
+    <Modal
+      title={t("decks.new")}
+      sub={mode === "brief" ? t("decks.briefSub") : t("decks.newSub")}
+      onClose={onClose}
+      actions={<><Btn onClick={onClose}>{t("common.cancel")}</Btn><Btn variant="primary" disabled={!ready || create.isPending} onClick={() => create.mutate()}>{create.isPending ? t("decks.writing") : mode === "brief" ? t("decks.draft") : t("decks.create")}</Btn></>}
+    >
+      <div style={{ marginBottom: 10 }}><Seg label={t("decks.start")} value={mode} onChange={setMode} options={[["empty", t("decks.startEmpty")], ["brief", t("decks.startBrief")]]} /></div>
+      <Field autoFocus value={title} onChange={setTitle} onEnter={() => ready && create.mutate()} placeholder={t("decks.titlePlaceholder")} label={t("decks.title")} />
+      {mode === "brief" && (
+        <textarea className="ta" style={{ width: "100%", minHeight: 140, marginTop: 8 }} aria-label={t("decks.brief")} placeholder={t("decks.briefPlaceholder")} value={brief} onChange={(event) => setBrief(event.target.value)} />
+      )}
     </Modal>
+  );
+}
+
+/** Attaches the deck to a deal room. Uploading is a writing call, so it waits for approval; nothing gets published. */
+function AttachMenu({ id }: { id: string }) {
+  const sources = useSources();
+  const rooms = useItems("/rooms", { limit: 100 }, canDo(sources.data, "rooms", "attach"));
+  const attach = useMutation({
+    mutationFn: async (roomId: string) => {
+      const { data, error, response } = await api.POST("/decks/{id}/attach", { params: { path: { id } }, body: { room_id: roomId } });
+      if (error !== undefined || !data) throw new Error((error as unknown as { error?: string } | undefined)?.error ?? t("error.server", { status: response.status }));
+      return data;
+    },
+    onSuccess: (result) => toast(result.status === "proposed" ? t("decks.attachWaits") : t("decks.attached")),
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const list = (rooms.data?.items ?? []).filter((item) => item.kind === "room");
+  if (!canDo(sources.data, "rooms", "attach") || !list.length) return null;
+  return (
+    <Menu
+      label={t("decks.attach")}
+      items={list.map((room) => ({ label: room.title ?? room.external_id, run: () => attach.mutate(room.id) }))}
+      trigger={(open, isOpen) => <Btn size="sm" disabled={attach.isPending} onClick={open} aria-expanded={isOpen}><Paperclip />{t("decks.attach")}</Btn>}
+    />
   );
 }
 
@@ -256,6 +298,9 @@ export default function Decks() {
                   <Btn size="sm" onClick={() => void exportDeck(id, "html", name).catch((error: Error) => toast(error.message, "bad"))}><Download />HTML</Btn>
                   <Btn size="sm" onClick={() => void exportDeck(id, "markdown", name).catch((error: Error) => toast(error.message, "bad"))}><Download />Markdown</Btn>
                   <Btn size="sm" onClick={() => void exportDeck(id, "html", name, true).catch((error: Error) => toast(error.message, "bad"))}><Printer />{t("decks.print")}</Btn>
+                </div>
+                <div className="drow">
+                  <AttachMenu id={id} />
                 </div>
               </div>
             </>
