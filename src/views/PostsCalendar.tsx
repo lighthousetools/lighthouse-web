@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, PanelLeft, RefreshCw, Sparkles, Wand2, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Lock, PanelLeft, RefreshCw, Sparkles, Unlock, Wand2, X } from "lucide-react";
 import { useMemo, useState, type DragEvent } from "react";
-import { api, must } from "../api/client";
+import { api, must, type Schemas } from "../api/client";
 import { useMe } from "../data";
 import { language, t } from "../i18n";
 import { toast } from "../shell/state";
-import { Avatar, Badge, Btn, cx, Empty, SearchField, Seg } from "../ui";
+import { Avatar, Badge, Btn, cx, Empty, Menu, SearchField, Seg } from "../ui";
 import { Select } from "../ui/select";
 import { useOrganizations } from "./connected";
 import { addDays, dayIso, isoWeek, monthDays, nearestTime, openGaps, sameDay, suggestFor, weekStart, weekdayOf } from "./postdates";
@@ -17,7 +17,7 @@ const dm = (date: Date) => date.toLocaleDateString(locale(), { day: "numeric", m
 const dow = (date: Date) => date.toLocaleDateString(locale(), { weekday: "short" }).replace(".", "");
 const DRAG = "application/x-lighthouse-post";
 
-type CalendarSlot = { at: string; posts: string[]; slot: { id: string; org?: string | null; pillar?: string | null; time: string; weekday: number } };
+type CalendarSlot = { at: string; posts: string[]; blocked?: string | null; slot: { id: string; org?: string | null; pillar?: string | null; time: string; weekday: number } };
 type Lane = { org: string; times: string[]; days: number[] };
 
 function useCalendar(from: Date, days: number) {
@@ -128,6 +128,25 @@ function Pool({ posts, pillars, onOpen, onClose }: { posts: Post[]; pillars: Pil
   );
 }
 
+const REASONS = ["holiday", "travel", "onsite"] as const;
+
+/** Days without posts, such as holidays: kept on the server, so the calendar and its gaps skip them. */
+function useBlockedDays() {
+  const client = useQueryClient();
+  const days = useQuery({ queryKey: ["posts", "blocked"], queryFn: () => must(api.GET("/posts/blocked-days")) });
+  const save = useMutation({
+    mutationFn: (next: Schemas["BlockedDay"][]) => must(api.PUT("/posts/blocked-days", { body: next })),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ["posts"] }),
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const list = days.data ?? [];
+  return {
+    reasonOf: (day: string) => list.find((entry) => entry.date === day)?.reason ?? (list.some((entry) => entry.date === day) ? "" : undefined),
+    block: (day: string, reason: string) => save.mutate([...list.filter((entry) => entry.date !== day), { date: day, reason }]),
+    unblock: (day: string) => save.mutate(list.filter((entry) => entry.date !== day)),
+  };
+}
+
 export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void }) {
   const posts = usePosts();
   const slots = useSlots();
@@ -135,6 +154,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const orgs = useOrganizations();
   const me = useMe();
   const actions = usePostActions();
+  const blocked = useBlockedDays();
   const [mode, setMode] = useState<"week" | "month">("week");
   const [offset, setOffset] = useState(0);
   const [showPool, setShowPool] = useState(true);
@@ -152,7 +172,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const pool = all.filter(inPool);
   const byId = new Map(all.map((post) => [post.id, post]));
   const colorOf = (name?: string | null) => pillars.data?.find((item) => item.id === name)?.color;
-  const gaps = openGaps(calendar.data ?? [], new Date());
+  const gaps = openGaps((calendar.data ?? []).filter((slot) => !slot.blocked), new Date());
 
   // Slot times are in the server's time zone, which is the owner's zone the calendar shows.
   const localTime = (slot: { time: string }) => slot.time;
@@ -242,7 +262,20 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
             <div className="pwkh">
               <span />
               {days.map((day) => (
-                <span key={dayIso(day)}><span className={cx("pdh", sameDay(day, today) && "td")}><b>{dow(day)}</b><span className="tn">{dm(day)}</span></span></span>
+                <span key={dayIso(day)}>
+                  <Menu
+                    label={t("posts.blockDay")}
+                    items={blocked.reasonOf(dayIso(day)) !== undefined
+                      ? [{ label: t("posts.unblock"), icon: <Unlock size={14} />, run: () => blocked.unblock(dayIso(day)) }]
+                      : REASONS.map((reason) => ({ label: t("posts.blockFor", { reason: t(`posts.reason.${reason}`) }), icon: <Lock size={14} />, run: () => blocked.block(dayIso(day), t(`posts.reason.${reason}`)) }))}
+                    trigger={(open) => (
+                      <button type="button" className={cx("pdh", sameDay(day, today) && "td", blocked.reasonOf(dayIso(day)) !== undefined && "blk")} onClick={open} title={t("posts.blockHint")}>
+                        <b>{dow(day)}</b><span className="tn">{dm(day)}</span>
+                        {blocked.reasonOf(dayIso(day)) && <em className="clip">{blocked.reasonOf(dayIso(day))}</em>}
+                      </button>
+                    )}
+                  />
+                </span>
               ))}
             </div>
             {lanes.map((lane) => {
@@ -262,8 +295,8 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
                         const key = `${lane.org}|${dayIso(day)}|${time}`;
                         const here = postsOn(day, lane).filter((post) => nearestTime(lane.times, timeOf(whenOf(post)!)) === time);
                         const gap = (calendar.data ?? []).find((slot) => (slot.slot.org ?? "") === lane.org && localTime(slot.slot) === time && dayOf(slot.at) === dayIso(day));
-                        const isGap = gap && !gap.posts.length && new Date(gap.at) > new Date();
-                        const weekend = weekdayOf(day) > 5 && !lane.days.includes(weekdayOf(day));
+                        const isGap = gap && !gap.posts.length && !gap.blocked && new Date(gap.at) > new Date();
+                        const weekend = (weekdayOf(day) > 5 && !lane.days.includes(weekdayOf(day))) || blocked.reasonOf(dayIso(day)) !== undefined;
                         const dragged = over === key;
                         return (
                           <div key={key} className={cx("pcell", weekend && "blk", day < today && "past", sameDay(day, today) && "td", dragged && "over")} {...dropProps(key, day, time, lane.org)}>

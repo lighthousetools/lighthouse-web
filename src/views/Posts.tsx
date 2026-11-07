@@ -27,6 +27,12 @@ export function analytics(posts: Pick<Post, "status" | "metrics" | "title" | "bo
   return { count: out.length, impressions, reactions, perPost: out.length ? Math.round(reactions / out.length) : 0, best };
 }
 
+/** How a post's reach compares with your usual: 2.0× is twice the median. */
+export function XFactor({ value }: { value: number }) {
+  const tone = value >= 1.5 ? "ok" : value < 0.7 ? "bad" : "";
+  return <Badge tone={tone}>{value.toLocaleString(language() === "de" ? "de-DE" : "en-GB", { maximumFractionDigits: 1, minimumFractionDigits: 1 })}×</Badge>;
+}
+
 function ImportModal({ onClose }: { onClose: () => void }) {
   const [raw, setRaw] = useState("");
   const importer = useImport();
@@ -51,7 +57,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-type SortKey = "title" | "pillar" | "topic" | "status" | "date" | "impressions" | "reactions";
+type SortKey = "title" | "pillar" | "topic" | "status" | "date" | "impressions" | "x";
 
 function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[]; onOpen: (id: string) => void }) {
   const [query, setQuery] = useState("");
@@ -69,6 +75,7 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
       if (column === "topic") return post.topic ?? "￿";
       if (column === "status") return STATUSES.indexOf(post.status as (typeof STATUSES)[number]);
       if (column === "date") return whenOf(post) ?? post.created_at;
+      if (column === "x") return post.x_factor ?? -1;
       return metricsOf(post)[column] ?? -1;
     };
     return posts
@@ -79,7 +86,7 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
       });
   }, [posts, status, pillar, needle, sort]);
   const recent = posts.filter((post) => post.status === "published" && post.published_at).sort((a, b) => a.published_at!.localeCompare(b.published_at!)).slice(-16);
-  const columns: [SortKey, string, string?][] = [["title", t("posts.col.post")], ["pillar", t("posts.pillar")], ["topic", t("posts.topic")], ["status", t("posts.col.status")], ["date", t("posts.col.date")], ["impressions", t("posts.metric.impressions"), "r"], ["reactions", t("posts.metric.reactions"), "r"]];
+  const columns: [SortKey, string, string?][] = [["title", t("posts.col.post")], ["pillar", t("posts.pillar")], ["topic", t("posts.topic")], ["status", t("posts.col.status")], ["date", t("posts.col.date")], ["impressions", t("posts.metric.impressions"), "r"], ["x", t("posts.xFactor"), "r"]];
   return (
     <div className="ptb">
       <div className="parch" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr)) minmax(0,1.4fr)", gap: "var(--s2)", padding: "var(--s3) var(--s3) 0" }}>
@@ -121,7 +128,7 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
               <span><Badge tone={statusTone(post.status)}>{statusLabel(post.status)}</Badge></span>
               <span className="tn muted">{when ? new Date(when).toLocaleDateString(locale(), { day: "numeric", month: "numeric", year: "2-digit" }) : <span className="faint">–</span>}</span>
               <span className="r tn muted">{metrics.impressions != null ? number(metrics.impressions) : "–"}</span>
-              <span className="r tn muted">{metrics.reactions != null ? number(metrics.reactions) : "–"}</span>
+              <span className="r tn">{post.x_factor != null ? <XFactor value={post.x_factor} /> : <span className="faint">–</span>}</span>
             </div>
           );
         }} />
