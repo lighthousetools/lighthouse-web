@@ -1692,4 +1692,6 @@ export const de: Record<Key, string> = {
   "connected.from": "Von",
   "connected.when": "Wann",
   "connected.state": "Stand",
+  "ready.tabs.approvals": "Freigaben",
+  "ready.tabs.suggestions": "Vorschläge",
 };

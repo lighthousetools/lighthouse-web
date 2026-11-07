@@ -1690,6 +1690,8 @@ export const en = {
   "connected.from": "From",
   "connected.when": "When",
   "connected.state": "State",
+  "ready.tabs.approvals": "Approvals",
+  "ready.tabs.suggestions": "Suggestions",
 } as const;
 
 export type Key = keyof typeof en;

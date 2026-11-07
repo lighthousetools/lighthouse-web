@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowRight, Brain, Check, ChevronDown, ListTodo, Mail, PencilLine, Scissors, Send, ShieldCheck, Sparkles, TerminalSquare, X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { api, authHeader, must, type Schemas } from "../api/client";
+import { api, must, type Schemas } from "../api/client";
 import { useAgentNames, useMe, useReady } from "../data";
 import { agentName, dateTime, dayTime, greeting, toolName } from "../format";
 import { t, useLanguage } from "../i18n";
@@ -12,7 +12,8 @@ import { inspect, toast } from "../shell/state";
 import { createStore } from "../store";
 import { Badge, Btn, Card, Empty, Failure, Menu, Progress, Seg, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { plainFields } from "./Decisions";
-import { ItemInspector, field, personName as displayName, useItem } from "./connected";
+import { ItemInspector, personName as displayName } from "./connected";
+import { openExternal } from "../shell/bridge";
 import { LaterMenu } from "./later";
 import { openRun } from "./runs";
 import { pillarName, usePillars } from "./publishing";
@@ -20,7 +21,8 @@ import "./ready.css";
 
 type ReadyItem = Schemas["ReadyItem"];
 type Kind = "approval" | "permission" | "draft" | "task" | "fact" | "post";
-type Filter = "all" | Category;
+type Filter = "all" | Tab;
+type Tab = "mail" | "approvals" | "suggestions";
 type Decided = { key: string; title: string; stamp: string };
 type Action = { label: string; icon: ReactNode; kbd: string; run: () => Promise<unknown>; stamp: string; primary?: boolean };
 
@@ -105,10 +107,11 @@ function Details({ input }: { input: unknown }) {
   );
 }
 
-type Extra = { service?: string | null; counterpart?: string | null; org?: string | null; reason?: string | null; context_item_id?: string | null };
 type Category = "mail" | "approval" | "task" | "fact" | "post" | "draft" | "permission";
 const DRAFT_KEYS = ["body", "text", "message", "content", "comment"];
-const CATEGORIES: Category[] = ["mail", "approval", "permission", "draft", "task", "post", "fact"];
+/** Three tabs, as in the vision: mails, other approvals, and suggestions to accept or confirm. */
+const TABS: Tab[] = ["mail", "approvals", "suggestions"];
+export const tabOf = (category: Category): Tab => (category === "mail" ? "mail" : category === "task" || category === "post" || category === "fact" ? "suggestions" : "approvals");
 
 /** What kind of thing an item is for a person: a mail to send, an approval, a task, something learned. */
 export function categoryOf(item: Pick<ReadyItem, "kind" | "detail">): Category {
@@ -128,30 +131,40 @@ function inputOf(item: ReadyItem): Record<string, unknown> {
   return input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 }
 
-/** Everything the card shows, from the API's fields where they exist and derived from the item before that. */
+/** Everything the card shows: the API's review fields (service, counterpart, reason, preview, quote), derived from the
+ * raw item only where an older server leaves them out. */
 export function viewOf(item: ReadyItem, names: Record<string, string> = {}) {
-  const extra = item as ReadyItem & Extra;
   const detail = (item.detail ?? {}) as Record<string, unknown>;
   const input = inputOf(item);
   const category = categoryOf(item);
   const tool = String(detail.tool ?? "");
-  const draftKey = DRAFT_KEYS.find((key) => typeof input[key] === "string" && (input[key] as string).trim());
+  const preview = item.preview ?? null;
+  const draftKey = preview?.text_key ?? DRAFT_KEYS.find((key) => typeof input[key] === "string" && (input[key] as string).trim());
+  const draft = preview?.text ?? (draftKey && typeof input[draftKey] === "string" ? (input[draftKey] as string) : null);
   const to = typeof input.to === "string" ? input.to : Array.isArray(input.to) ? String(input.to[0] ?? "") : "";
   const source = item.kind === "task" ? (detail.source as Schemas["SourceLink"] | null) : null;
-  const counterpart = extra.counterpart ?? (to ? displayName(to) : null) ?? source?.label ?? null;
-  const service = extra.service ?? (category === "mail" ? "mail" : item.kind === "permission" ? "claude" : tool ? tool.split(".")[0]! : source?.kind ?? null);
+  const counterpart = item.counterpart?.name ?? (to ? displayName(to) : null) ?? source?.label ?? null;
+  const service = item.service ?? (category === "mail" ? "mail" : item.kind === "permission" ? "claude" : tool ? tool.split(".")[0]! : source?.kind ?? null);
   const subject = typeof input.subject === "string" ? input.subject : null;
+  // Arguments under readable labels: the server's, or ours, never the text, the subject or internal ids.
+  const fields = preview
+    ? preview.fields.filter((entry) => entry.key !== "subject" && !(entry.key === "to" && counterpart))
+    : plainFields(item.kind === "permission" ? detail.input : item.kind === "approval" || item.kind === "draft" ? input : null)
+        .filter((entry) => entry.key !== draftKey && entry.key !== "subject" && !(entry.key === "to" && counterpart));
   return {
     category,
     service,
     counterpart,
-    org: extra.org ?? null,
+    org: item.counterpart?.org ?? null,
     agent: item.agent_id ? agentName(item.agent_id, names) : null,
     title: subject ?? titleOf(item, names),
-    why: extra.reason ?? (item.kind === "task" || item.kind === "fact" ? null : item.summary) ?? null,
-    draftKey,
-    draft: draftKey ? String(input[draftKey]) : null,
-    contextId: extra.context_item_id ?? null,
+    why: item.reason ?? (item.kind === "task" || item.kind === "fact" ? null : item.summary && item.summary !== item.title && item.summary !== subject ? item.summary : null) ?? null,
+    draftKey: draft != null ? draftKey ?? null : null,
+    draft,
+    fields,
+    quote: item.quote ?? null,
+    contextId: item.context_item_id ?? null,
+    actions: new Set(item.actions ?? []),
     external: item.kind === "approval" && Boolean(detail.quotes_external),
   };
 }
@@ -166,36 +179,17 @@ export function ItemIcon({ service, category, size = 20 }: { service: string | n
   return <span className="rd-ic" style={{ width: size, height: size }}><Icon size={Math.round(size * 0.62)} strokeWidth={1.8} /></span>;
 }
 
-/** Whether the server can rewrite a ready item yet (`POST /ready/{kind}/{id}/rewrite`). Read once from its spec. */
-function useCanRewrite() {
-  const spec = useQuery({
-    queryKey: ["openapi", "paths"],
-    staleTime: Infinity,
-    queryFn: async () => {
-      const response = await fetch(new URL("/openapi.json", location.origin));
-      if (!response.ok) return [] as string[];
-      return Object.keys(((await response.json()) as { paths?: Record<string, unknown> }).paths ?? {});
-    },
-  });
-  return (spec.data ?? []).includes("/ready/{kind}/{id}/rewrite");
-}
-
 function openContext(id: string) {
   inspect(`item:${id}`, <ItemInspector id={id} />);
 }
 
-/** The message the draft answers, when the item names it. */
-function Quote({ id }: { id: string }) {
-  const item = useItem(id);
-  const data = item.data?.item;
-  if (!data) return null;
-  const message = [...(item.data?.children ?? [])].reverse().find((child) => child.kind === "message" && !child.flags.includes("from_me")) ?? data;
-  const text = field(message, "body") ?? field(message, "text") ?? message.summary ?? "";
-  const who = displayName(message.author) || message.source;
+/** The message the draft answers, quoted under it; it opens the item in the inspector. */
+function Quote({ quote, contextId }: { quote: NonNullable<ReadyItem["quote"]>; contextId: string | null }) {
+  const who = displayName(quote.author) || quote.title || "";
   return (
-    <button type="button" className="qt" onClick={() => openContext(id)}>
-      <span className="qh">{message.occurred_at ? t("ready.wrote", { who, when: dayTime(message.occurred_at) }) : who}</span>
-      <span className="clip2">{text}</span>
+    <button type="button" className="qt" disabled={!contextId && !quote.url} onClick={() => (contextId ? openContext(contextId) : quote.url && openExternal(quote.url))}>
+      <span className="qh">{quote.occurred_at ? t("ready.wrote", { who, when: dayTime(quote.occurred_at) }) : who}</span>
+      {quote.text ? <span className="clip2">{quote.text}</span> : quote.title && <span className="clip2">{quote.title}</span>}
     </button>
   );
 }
@@ -205,7 +199,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
   const kind = item.kind as Kind;
   const detail = (item.detail ?? {}) as Record<string, unknown>;
   const view = viewOf(item, names);
-  const canRewrite = useCanRewrite();
+  const canRewrite = view.actions.has("rewrite");
   const pillars = usePillars();
   const [draft, setDraft] = useState(view.draft ?? "");
   const [tone, setTone] = useState<"prepared" | "shorter" | "warmer" | "edited">("prepared");
@@ -232,18 +226,10 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
     return post(api.POST("/approvals/{id}/decision", { params: { path: { id: item.id } }, body: { approve: true, input } }));
   };
   const rewrite = useMutation({
-    mutationFn: async (instruction: "shorter" | "warmer") => {
-      const response = await fetch(new URL(`/ready/${item.kind}/${encodeURIComponent(item.id)}/rewrite`, location.origin), {
-        method: "POST",
-        headers: { "content-type": "application/json", ...authHeader() },
-        body: JSON.stringify({ instruction, text: draft }),
-      });
-      if (!response.ok) throw new Error(t("error.server", { status: response.status }));
-      return ((await response.json()) as { text?: string }).text ?? draft;
-    },
-    onSuccess: (text, instruction) => {
-      setDraft(text);
-      setTone(instruction);
+    mutationFn: (tone: "shorter" | "warmer") => must(api.POST("/ready/{kind}/{id}/rewrite", { params: { path: { kind, id: item.id } }, body: { tone } })),
+    onSuccess: (result, tone) => {
+      setDraft(result.text);
+      setTone(tone);
     },
     onError: (error) => toast(error.message, "bad"),
   });
@@ -332,7 +318,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
         event.preventDefault();
         edit();
       }
-      if (press === "k" && canRewrite && view.draftKey && kind === "approval") pickTone("shorter");
+      if (press === "k" && canRewrite && view.draftKey) pickTone("shorter");
       if (press === "i") context();
     };
     addEventListener("keydown", key);
@@ -341,8 +327,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
 
   const consulted = kind === "approval" ? ((detail.consulted as string[]) ?? []) : [];
   const shownInput = kind === "permission" ? detail.input : kind === "approval" || kind === "draft" ? inputOf(item) : null;
-  // The draft, subject and recipient are shown above; the rest are details under plain labels.
-  const fields = plainFields(shownInput).filter((entry) => entry.key !== view.draftKey && entry.key !== "subject" && !(entry.key === "to" && view.counterpart));
+  const fields = view.fields;
   const taskSource = kind === "task" ? (detail.source as Schemas["SourceLink"] | null) : null;
   const factSource = kind === "fact" ? (detail.source as Schemas["FactSource"] | null) : null;
   const draftLabel = view.category === "mail" ? t("ready.yourDraft") : kind === "post" ? t("ready.yourPost") : t("ready.yourAnswer");
@@ -362,7 +347,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
               <span>{draftLabel}</span>
               {tone === "edited" && <Badge>{t("approvals.changed")}</Badge>}
               <span className="grow" />
-              {canRewrite && kind === "approval" && (
+              {canRewrite && (
                 <Seg label={t("ready.tone")} value={tone === "edited" ? "prepared" : tone} onChange={pickTone} options={[["prepared", t("ready.tone.prepared")], ["shorter", t("ready.tone.shorter")], ["warmer", t("ready.tone.warmer")]]} />
               )}
             </div>
@@ -377,7 +362,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
             />
           </>
         )}
-        {view.contextId && <Quote id={view.contextId} />}
+        {view.quote && (view.quote.text || view.quote.title) && <Quote quote={view.quote} contextId={view.contextId} />}
         {kind === "approval" && editingJson && (
           <label>
             <span className="lbl" style={{ marginTop: 0 }}>{t("approvals.arguments")}</span>
@@ -422,7 +407,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
       <div className="rd-ft">
         {primary && <Btn variant="primary" kbd="↵" disabled={decide.isPending} onClick={() => decide.mutate(primary)}>{primary.icon}{primary.label}</Btn>}
         {((view.draftKey && kind !== "draft") || kind === "approval") && <Btn kbd="E" onClick={edit}><PencilLine />{editingJson ? t("approvals.stopEdit") : t("approvals.edit")}</Btn>}
-        {canRewrite && view.draftKey && kind === "approval" && <Btn kbd="K" disabled={rewrite.isPending} onClick={() => pickTone("shorter")}><Scissors />{t("ready.tone.shorter")}</Btn>}
+        {canRewrite && view.draftKey && <Btn kbd="K" disabled={rewrite.isPending} onClick={() => pickTone("shorter")}><Scissors />{t("ready.tone.shorter")}</Btn>}
         <LaterMenu kbd="S" onPick={(until) => later.mutate(until)} />
         {reject && <Btn kbd="R" disabled={decide.isPending} onClick={() => decide.mutate(reject)}>{reject.icon}{reject.label}</Btn>}
         <span className="grow" />
@@ -468,7 +453,7 @@ export function Ready() {
   const decided = decidedStore.use();
   const [filter, setFilter] = useState<Filter>("all");
   const items = useMemo(() => ready.data?.items ?? [], [ready.data]);
-  const shown = items.filter((item) => filter === "all" || categoryOf(item) === filter);
+  const shown = items.filter((item) => filter === "all" || tabOf(categoryOf(item)) === filter);
   // Links may name an item with its kind (`approval:<id>`) or by its bare id, as notifications do.
   const current = shown.find((item) => keyOf(item) === route.param || item.id === route.param) ?? shown[0];
   const select = (key: string) => go("ready", key);
@@ -588,7 +573,7 @@ export function Ready() {
                 onChange={setFilter}
                 options={[
                   ["all", t("approvals.filterAll"), items.length] as [Filter, string, number],
-                  ...CATEGORIES.map((category) => [category, t(`ready.tabs.${category}`), items.filter((item) => categoryOf(item) === category).length] as [Filter, string, number]).filter(([, , count]) => count > 0),
+                  ...TABS.map((tab) => [tab, t(`ready.tabs.${tab}`), items.filter((item) => tabOf(categoryOf(item)) === tab).length] as [Filter, string, number]).filter(([, , count]) => count > 0),
                 ]}
               />
             </div>
