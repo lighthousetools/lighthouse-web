@@ -175,6 +175,12 @@ export function queriesFor(event: string): string[][] | "all" {
       return [["connected"]];
     case "sessions.changed":
       return [["sessions"]];
+    case "posts.changed":
+      return [["posts"], ["ready"]];
+    case "decks.changed":
+      return [["decks"], ["brain"]];
+    case "branding.changed":
+      return [["branding"]];
     default:
       return "all";
   }

@@ -1,7 +1,7 @@
 import {
   Bell, Bot, Brain, Layers, ListTodo, Newspaper, Plug, ScrollText, Settings2, Sun, Sunrise, Terminal, UserRound,
   Briefcase, Workflow, Zap, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, Building2, Handshake, BarChart3, MessageSquare, FileSignature,
-  Receipt, Coins, TrendingUp, Radar, type LucideIcon,
+  Receipt, Coins, TrendingUp, Radar, Megaphone, Send, LineChart, Presentation, type LucideIcon,
 } from "lucide-react";
 import type { Key } from "../i18n";
 import type { View } from "../router";
@@ -40,6 +40,13 @@ export const NAV: NavGroup[] = [
       { view: "invoices", label: "nav.invoices", icon: Receipt, domain: "invoices" },
       { view: "finance", label: "nav.finance", icon: Coins, domain: "bank" },
       { view: "stocks", label: "nav.stocks", icon: TrendingUp, domain: "holdings" },
+    ],
+  },
+  {
+    id: "brand", label: "nav.group.brand", icon: Megaphone, items: [
+      { view: "posts", label: "nav.posts", icon: Send },
+      { view: "branding", label: "nav.branding", icon: LineChart },
+      { view: "decks", label: "nav.decks", icon: Presentation },
     ],
   },
   { id: "brain", label: "nav.brain", icon: Brain, items: [{ view: "brain", label: "nav.brain", icon: Brain }] },

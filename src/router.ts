@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /** Views in the order of their number shortcuts. */
 export const VIEWS = [
   "ready", "tasks", "brief", "recap", "inbox", "mail", "calendar", "issues", "code", "sessions", "alerts", "pipeline", "numbers", "rooms", "contracts", "invoices", "finance", "stocks",
-  "brain", "center",
+  "posts", "branding", "decks", "brain", "center",
   "automations", "agents", "log", "connections", "rules", "me", "settings",
 ] as const;
 

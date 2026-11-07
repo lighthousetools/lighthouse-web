@@ -19,6 +19,9 @@ import { Numbers } from "../views/Numbers";
 import { Pipeline } from "../views/Pipeline";
 import { Rooms } from "../views/Rooms";
 import { Stocks } from "../views/Stocks";
+import Posts from "../views/Posts";
+import Branding from "../views/Branding";
+import Decks from "../views/Decks";
 import { Calendar } from "../views/Calendar";
 import { Code } from "../views/Code";
 import { Inbox } from "../views/Inbox";
@@ -49,7 +52,7 @@ const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: m
 
 const VIEW_COMPONENTS: Record<View, (() => JSX.Element) | typeof Brain> = {
   ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, pipeline: Pipeline, numbers: Numbers, rooms: Rooms, contracts: Contracts,
-  invoices: Invoices, finance: Finance, stocks: Stocks, center: Center, alerts: Alerts, brain: Brain,
+  invoices: Invoices, finance: Finance, stocks: Stocks, posts: Posts, branding: Branding, decks: Decks, center: Center, alerts: Alerts, brain: Brain,
   automations: Automations, rules: Rules, me: Me,
   agents: Agents, log: Log, connections: Connections, settings: Settings,
 };
