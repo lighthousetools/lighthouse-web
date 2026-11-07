@@ -215,8 +215,8 @@ function Rhythm({ slots, pillars }: { slots: Slot[]; pillars: Pillar[] }) {
     <Card title={t("posts.rhythm")} hint={t("posts.rhythmHint")} actions={rows && <Btn size="xs" variant="primary" onClick={() => void save()}>{t("common.save")}</Btn>}>
       <div className="tlist">
         {list.map((slot, index) => (
-          <div className="trow" key={slot.id}>
-            <Select size="sm" width={76} label={t("posts.weekday")} value={String(slot.weekday)} onChange={(value) => change(index, { weekday: Number(value) })} options={days} />
+          <div className="trow" key={slot.id} style={{ height: "auto", minHeight: 40, flexWrap: "wrap", rowGap: 4, padding: "4px var(--s2)" }}>
+            <Select size="sm" width={68} label={t("posts.weekday")} value={String(slot.weekday)} onChange={(value) => change(index, { weekday: Number(value) })} options={days} />
             <input className="field" type="time" style={{ width: 84, height: "var(--h-sm)", flex: "none" }} aria-label={t("posts.time")} value={slot.time} onChange={(event) => change(index, { time: event.target.value })} />
             <Select size="sm" width={112} label={t("posts.pillar")} value={slot.pillar ?? ""} onChange={(value) => change(index, { pillar: value || null })} options={[["", t("posts.anyPillar")], ...pillars.map((item) => [item.name, item.name] as const)]} />
             {(orgs.data ?? []).length > 0 && <Select size="sm" width={112} label={t("posts.account")} value={slot.org ?? ""} onChange={(value) => change(index, { org: value || null })} options={[["", t("posts.personal")], ...(orgs.data ?? []).map((item) => [item.id, item.name] as const)]} />}
