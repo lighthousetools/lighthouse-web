@@ -4,7 +4,7 @@ import { cronText } from "../cron";
 import { useAgentNames, useAgents, useBrief, useConnectors, useCosts, useMe, useReady, useRuns } from "../data";
 import { dayTime, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
 import { t, useLanguage, type Key } from "../i18n";
-import { go } from "../router";
+import { go, type View } from "../router";
 import { openExternal } from "../shell/bridge";
 import { Btn, Empty, Failure, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { useNow } from "../ui/live";
@@ -58,6 +58,7 @@ function WeekAhead({ days }: { days: Schemas["WeekDay"][] }) {
 }
 
 const SERVICE_NAMES: Record<string, Key> = { mail: "nav.mail", calendar: "nav.calendar", issues: "nav.issues", code: "nav.code", deals: "nav.pipeline", crm: "nav.pipeline", invoices: "nav.invoices", bank: "nav.finance", rooms: "nav.rooms", contracts: "nav.contracts", holdings: "nav.stocks" };
+const SERVICE_VIEWS: Record<string, View> = { mail: "mail", calendar: "calendar", issues: "issues", linear: "issues", code: "code", github: "code", deals: "pipeline", crm: "pipeline", invoices: "invoices", bank: "finance", rooms: "rooms", contracts: "contracts", holdings: "stocks" };
 /** A service as people say it: "Mail", "Pipeline", or the brand. */
 export const serviceLabel = (service: string) => (SERVICE_NAMES[service] ? t(SERVICE_NAMES[service]!) : service.charAt(0).toUpperCase() + service.slice(1));
 
@@ -72,7 +73,7 @@ function Connected({ connection, count }: { connection: Schemas["Connection"]; c
           // A bare id such as "t1" says nothing; then the service names the source.
           label: source.reference && !/^[a-z]{0,3}\d+$/i.test(source.reference) ? source.reference : serviceLabel(source.service),
           fallback: source.service,
-          run: () => (source.url ? openExternal(source.url) : undefined),
+          run: () => (source.url ? openExternal(source.url) : go(SERVICE_VIEWS[source.service] ?? "inbox")),
         }))}
         action={count > 0 ? <Btn size="sm" onClick={() => go("ready")}>{t("brief.goThrough")}</Btn> : undefined}
       >
