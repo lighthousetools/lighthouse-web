@@ -720,6 +720,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calendar/focus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Blocks focus time through the source's `create` action. The input has
+         *     `title`, `start`, `end` and `focus: true`; a writing tool waits for approval.
+         */
+        post: operations["block_focus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/calendar/freebusy": {
         parameters: {
             query?: never;
@@ -731,6 +751,44 @@ export interface paths {
         get: operations["free_busy"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suggests free slots from the calendar, within working hours in the owner's time zone. */
+        get: operations["suggest_times"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/actions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asks for the same action on many items, such as archiving a batch of mail.
+         *     Every item gets its own approval when the tool writes; decide them together
+         *     with `POST /approvals/decisions`.
+         */
+        post: operations["bulk_action"];
         delete?: never;
         options?: never;
         head?: never;
@@ -773,6 +831,27 @@ export interface paths {
          */
         post: operations["act_on_item"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/items/{id}/snooze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hides an item from lists and the inbox until a time ("later"). Nothing
+         *     changes in the service.
+         */
+        post: operations["snooze_item"];
+        /** Shows a snoozed item again. */
+        delete: operations["unsnooze_item"];
         options?: never;
         head?: never;
         patch?: never;
@@ -857,6 +936,58 @@ export interface paths {
         put?: never;
         /** Refreshes one source now. */
         post: operations["refresh_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/splits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the splits, the saved filters of the lists. */
+        get: operations["list_splits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/splits/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Creates or replaces a split. */
+        put: operations["save_split"];
+        post?: never;
+        /** Deletes a split. */
+        delete: operations["delete_split"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/splits/{id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the items of a split. */
+        get: operations["split_items"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2439,6 +2570,26 @@ export interface components {
             /** @description Title, as in the content. */
             title: string;
         };
+        /** @description The same action on many items. */
+        BulkAction: {
+            /** @description Action name, such as `archive`. */
+            action: string;
+            /** @description Item IDs. */
+            ids: string[];
+            /** @description Values for `{{input.<field>}}`. */
+            input?: unknown;
+        };
+        /** @description What became of one item of a bulk action. */
+        BulkOutcome: {
+            /** @description Why not. */
+            error?: string | null;
+            /**
+             * Format: uuid
+             * @description Item ID.
+             */
+            id: string;
+            result?: components["schemas"]["ActionResult"] | null;
+        };
         /** @description A busy block in the calendar. */
         BusyBlock: {
             /**
@@ -2819,6 +2970,23 @@ export interface components {
             /** @description ID within that kind, such as the run ID. */
             reference?: string | null;
         };
+        /** @description A focus block to put into the calendar. */
+        FocusBlock: {
+            /**
+             * Format: int64
+             * @description Length in minutes, default 90.
+             */
+            minutes?: number | null;
+            /** @description Calendar source with a `create` action. */
+            source: string;
+            /**
+             * Format: date-time
+             * @description Start. Without it, the first free slot is taken.
+             */
+            starts_at?: string | null;
+            /** @description Title. Defaults to "Focus". */
+            title?: string | null;
+        };
         /** @description Answer of the health check. */
         Health: {
             /** @description Always `ok`. */
@@ -2904,6 +3072,14 @@ export interface components {
              * @description Matching items in total.
              */
             total: number;
+        };
+        /** @description When to show an item again. */
+        ItemSnooze: {
+            /**
+             * Format: date-time
+             * @description Hide it until this time.
+             */
+            until: string;
         };
         /** @description Where an item comes from. */
         ItemSource: {
@@ -3706,6 +3882,79 @@ export interface components {
             /** @description Address to open it, if it lives outside Lighthouse. */
             url?: string | null;
         };
+        /** @description A split. */
+        Split: {
+            /** @description Domain, such as `mail`. */
+            domain?: string | null;
+            /** @description What it shows. */
+            filter: components["schemas"]["SplitFilter"];
+            /** @description Split ID. */
+            id: string;
+            /** @description Name shown in the apps. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Sort key, lowest first.
+             */
+            position: number;
+        };
+        /** @description What a split shows. */
+        SplitFilter: {
+            /**
+             * @description Flags of which the items must have one.
+             * @default []
+             */
+            any_flags: string[];
+            /**
+             * @description Flags the items must all have.
+             * @default []
+             */
+            flags: string[];
+            /**
+             * @description Item kinds, such as `thread`.
+             * @default []
+             */
+            kinds: string[];
+            /**
+             * @description Leave out closed and done items.
+             * @default false
+             */
+            open: boolean;
+            /**
+             * @description Only sources of this organization.
+             * @default null
+             */
+            org: string | null;
+            /**
+             * @description Full-text search.
+             * @default null
+             */
+            q: string | null;
+            /**
+             * @description Only this source.
+             * @default null
+             */
+            source: string | null;
+            /**
+             * @description Only this state.
+             * @default null
+             */
+            state: string | null;
+        };
+        /** @description A split to create or replace. */
+        SplitInput: {
+            /** @description Domain. */
+            domain?: string | null;
+            /** @description What it shows. */
+            filter?: components["schemas"]["SplitFilter"];
+            /** @description Name. */
+            name: string;
+            /**
+             * Format: int32
+             * @description Sort key.
+             */
+            position?: number;
+        };
         /** @description Open deals of one stage. */
         StageTotal: {
             /**
@@ -3831,6 +4080,11 @@ export interface components {
             org?: string | null;
             /** @description ID of the parent item in the service, such as the pull request of a check. */
             parent_id?: string | null;
+            /**
+             * Format: date-time
+             * @description Hidden until this time.
+             */
+            snoozed_until?: string | null;
             /** @description Source name from the configuration. */
             source: string;
             /**
@@ -4940,6 +5194,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -4980,6 +5236,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -5399,6 +5657,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -5417,6 +5677,51 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ItemPage"];
                 };
+            };
+        };
+    };
+    block_focus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FocusBlock"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            /** @description No free slot in the next seven days */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The source has no create action */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5440,6 +5745,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusyBlock"][];
+                };
+            };
+        };
+    };
+    suggest_times: {
+        parameters: {
+            query?: {
+                /** @description Length, default 60 */
+                minutes?: number;
+                /** @description Start, defaults to now */
+                from?: string;
+                /** @description End, defaults to seven days later */
+                to?: string;
+                /** @description Start of working hours, default 09:00 */
+                day_start?: string;
+                /** @description End of working hours, default 18:00 */
+                day_end?: string;
+                /** @description Also Saturday and Sunday */
+                weekends?: boolean;
+                /** @description Most suggestions, default 5 */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusyBlock"][];
+                };
+            };
+        };
+    };
+    bulk_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkAction"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkOutcome"][];
                 };
             };
         };
@@ -5523,6 +5885,66 @@ export interface operations {
             };
         };
     };
+    snooze_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemSnooze"];
+            };
+        };
+        responses: {
+            /** @description Hidden until then */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unsnooze_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shown again */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     refresh_sources: {
         parameters: {
             query?: never;
@@ -5561,6 +5983,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -5673,6 +6097,120 @@ export interface operations {
             };
         };
     };
+    list_splits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Split"][];
+                };
+            };
+        };
+    };
+    save_split: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Split ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SplitInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Split"];
+                };
+            };
+            /** @description Invalid ID or name */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_split: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Split ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown split */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    split_items: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Split ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+            /** @description Unknown split */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     connectors: {
         parameters: {
             query?: never;
@@ -5740,6 +6278,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -5879,6 +6419,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6071,6 +6613,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6111,6 +6655,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6181,6 +6727,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6221,6 +6769,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6261,6 +6811,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6301,6 +6853,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -6341,6 +6895,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -7326,6 +7882,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -7521,6 +8079,8 @@ export interface operations {
                 from?: string;
                 /** @description Items starting or happening before this time */
                 to?: string;
+                /** @description Also items snoozed until later */
+                snoozed?: boolean;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */

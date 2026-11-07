@@ -1308,6 +1308,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -1426,6 +1435,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -2086,6 +2104,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -2115,6 +2142,56 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/calendar/focus": {
+      "post": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Blocks focus time through the source's `create` action. The input has\n`title`, `start`, `end` and `focus: true`; a writing tool waits for approval.",
+        "operationId": "block_focus",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FocusBlock"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No free slot in the next seven days"
+          },
+          "422": {
+            "description": "The source has no create action"
           }
         },
         "security": [
@@ -2161,6 +2238,141 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/BusyBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/calendar/suggestions": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Suggests free slots from the calendar, within working hours in the owner's time zone.",
+        "operationId": "suggest_times",
+        "parameters": [
+          {
+            "name": "minutes",
+            "in": "query",
+            "description": "Length, default 60",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start, defaults to now",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End, defaults to seven days later",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "day_start",
+            "in": "query",
+            "description": "Start of working hours, default 09:00",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "day_end",
+            "in": "query",
+            "description": "End of working hours, default 18:00",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekends",
+            "in": "query",
+            "description": "Also Saturday and Sunday",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Most suggestions, default 5",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BusyBlock"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/connected/actions/bulk": {
+      "post": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Asks for the same action on many items, such as archiving a batch of mail.\nEvery item gets its own approval when the tool writes; decide them together\nwith `POST /approvals/decisions`.",
+        "operationId": "bulk_action",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BulkOutcome"
                   }
                 }
               }
@@ -2286,6 +2498,82 @@
         ]
       }
     },
+    "/connected/items/{id}/snooze": {
+      "post": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Hides an item from lists and the inbox until a time (\"later\"). Nothing\nchanges in the service.",
+        "operationId": "snooze_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Item ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemSnooze"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Hidden until then"
+          },
+          "404": {
+            "description": "Unknown item"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Shows a snoozed item again.",
+        "operationId": "unsnooze_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Item ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Shown again"
+          },
+          "404": {
+            "description": "Unknown item"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/connected/refresh": {
       "post": {
         "tags": [
@@ -2394,6 +2682,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -2569,6 +2866,173 @@
         ]
       }
     },
+    "/connected/splits": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists the splits, the saved filters of the lists.",
+        "operationId": "list_splits",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Split"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/connected/splits/{id}": {
+      "put": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Creates or replaces a split.",
+        "operationId": "save_split",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Split ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Split"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID or name"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Deletes a split.",
+        "operationId": "delete_split",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Split ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown split"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/connected/splits/{id}/items": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists the items of a split.",
+        "operationId": "split_items",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Split ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown split"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/connectors": {
       "get": {
         "tags": [
@@ -2714,6 +3178,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -2973,6 +3446,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -3299,6 +3781,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -3417,6 +3908,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -3615,6 +4115,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -3733,6 +4242,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -3857,6 +4375,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -3978,6 +4505,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -4096,6 +4632,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -5615,6 +6160,15 @@
             }
           },
           {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Page size",
@@ -5960,6 +6514,15 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "snoozed",
+            "in": "query",
+            "description": "Also items snoozed until later",
+            "required": false,
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -7733,6 +8296,63 @@
           }
         }
       },
+      "BulkAction": {
+        "type": "object",
+        "description": "The same action on many items.",
+        "required": [
+          "ids",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Action name, such as `archive`."
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Item IDs."
+          },
+          "input": {
+            "description": "Values for `{{input.<field>}}`."
+          }
+        }
+      },
+      "BulkOutcome": {
+        "type": "object",
+        "description": "What became of one item of a bulk action.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why not."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Item ID."
+          },
+          "result": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActionResult",
+                "description": "The result, if the action could be asked for."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "BusyBlock": {
         "type": "object",
         "description": "A busy block in the calendar.",
@@ -8551,6 +9171,42 @@
           }
         }
       },
+      "FocusBlock": {
+        "type": "object",
+        "description": "A focus block to put into the calendar.",
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Length in minutes, default 90."
+          },
+          "source": {
+            "type": "string",
+            "description": "Calendar source with a `create` action."
+          },
+          "starts_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Start. Without it, the first free slot is taken."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Title. Defaults to \"Focus\"."
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "description": "Answer of the health check.",
@@ -8756,6 +9412,20 @@
             "type": "integer",
             "format": "int64",
             "description": "Matching items in total."
+          }
+        }
+      },
+      "ItemSnooze": {
+        "type": "object",
+        "description": "When to show an item again.",
+        "required": [
+          "until"
+        ],
+        "properties": {
+          "until": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Hide it until this time."
           }
         }
       },
@@ -10656,6 +11326,138 @@
           }
         }
       },
+      "Split": {
+        "type": "object",
+        "description": "A split.",
+        "required": [
+          "id",
+          "name",
+          "filter",
+          "position"
+        ],
+        "properties": {
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Domain, such as `mail`."
+          },
+          "filter": {
+            "$ref": "#/components/schemas/SplitFilter",
+            "description": "What it shows."
+          },
+          "id": {
+            "type": "string",
+            "description": "Split ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name shown in the apps."
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Sort key, lowest first."
+          }
+        }
+      },
+      "SplitFilter": {
+        "type": "object",
+        "description": "What a split shows.",
+        "properties": {
+          "any_flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Flags of which the items must have one.",
+            "default": []
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Flags the items must all have.",
+            "default": []
+          },
+          "kinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Item kinds, such as `thread`.",
+            "default": []
+          },
+          "open": {
+            "type": "boolean",
+            "description": "Leave out closed and done items.",
+            "default": false
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only sources of this organization.",
+            "default": null
+          },
+          "q": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Full-text search.",
+            "default": null
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only this source.",
+            "default": null
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only this state.",
+            "default": null
+          }
+        }
+      },
+      "SplitInput": {
+        "type": "object",
+        "description": "A split to create or replace.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Domain."
+          },
+          "filter": {
+            "$ref": "#/components/schemas/SplitFilter",
+            "description": "What it shows."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Sort key."
+          }
+        }
+      },
       "StageTotal": {
         "type": "object",
         "description": "Open deals of one stage.",
@@ -10894,6 +11696,14 @@
               "null"
             ],
             "description": "ID of the parent item in the service, such as the pull request of a check."
+          },
+          "snoozed_until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Hidden until this time."
           },
           "source": {
             "type": "string",
