@@ -116,7 +116,7 @@ function Pool({ posts, pillars, onOpen, onClose }: { posts: Post[]; pillars: Pil
             <span className="pth"><Tile post={post} color={colorOf(post.pillar)} /></span>
             <span className="grow" style={{ minWidth: 0 }}>
               <span className="tt">{titleOf(post)}</span>
-              <span className="sbt clip">{[post.pillar, post.topic].filter(Boolean).join(" · ") || statusLabel(post.status)}</span>
+              <span className="sbt clip">{post.origin === "agent" && <Badge tone="vio">{t("posts.suggested")}</Badge>}{[post.pillar, post.topic].filter(Boolean).join(" · ") || statusLabel(post.status)}</span>
             </span>
           </div>
         )) : (
