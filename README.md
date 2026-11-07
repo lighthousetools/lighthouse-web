@@ -24,6 +24,19 @@ the app from its own address. Routes use the URL hash, because paths like `/agen
 `src/api/schema.d.ts` is generated from `openapi.json`, the description the server publishes at `/openapi.json`. After an
 API change, replace `openapi.json` and run `pnpm types`.
 
+## Crawl
+
+`pnpm build && pnpm crawl` opens every page of the built app against a stub API that answers every operation in
+`openapi.json` with made-up data (`e2e/stub.mjs`). It clicks every visible control, opens menus, dialogs and panels, and
+reports page errors, console errors, controls that do nothing, icon buttons without a name, and horizontal overflow at
+1280 and 1500 pixels in both looks. The findings land in `e2e/report.json`. It takes a few minutes and needs Google
+Chrome, so it is not part of CI.
+
+- `pnpm crawl -- posts decks` crawls some pages only.
+- `CRAWL_CLICKS=0 pnpm crawl` only loads and measures.
+- `CRAWL_URL=http://localhost:5173/ pnpm crawl` uses a running dev server, for readable stack traces.
+- `CRAWL_SHOTS=<dir>` saves a screenshot of every page.
+
 ## Languages
 
 Strings live in `src/i18n`, one file per language, and a test checks that both cover every key. Viewers pick a language on
