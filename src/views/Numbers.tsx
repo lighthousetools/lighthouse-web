@@ -1,6 +1,7 @@
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Download, Sparkles } from "lucide-react";
 import { useState } from "react";
-import type { Schemas } from "../api/client";
+import { api, must, type Schemas } from "../api/client";
+import { toast } from "../shell/state";
 import { language, t, useLanguage } from "../i18n";
 import { go } from "../router";
 import { AreaChart, Badge, Btn, Card, Empty, Failure, Seg, Skeleton, Spark } from "../ui";
@@ -12,6 +13,17 @@ type Tile = "revenue" | "receivables" | "pipeline" | "weighted" | "cash";
 type Split = "stage" | "money";
 
 /** Revenue oldest first, as the chart reads it. The server sends newest first. */
+/** The numbers as CSV (currency, metric, period, value), for a spreadsheet. */
+async function exportCsv(org: string | undefined, months: number) {
+  const text = (await must(api.GET("/numbers/export", { params: { query: org ? { org, months } : { months } }, parseAs: "text" }))) as unknown as string;
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `numbers-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export function revenueSeries(numbers: Pick<Currency, "revenue">) {
   return [...numbers.revenue].reverse();
 }
@@ -99,6 +111,7 @@ export function Numbers() {
           <div className="acts">
             <Freshness domain="invoices" />
             <Seg label={t("numbers.period")} value={months} onChange={setMonths} options={[["3", t("numbers.quarter")], ["12", t("numbers.year")], ["24", t("numbers.twoYears")]]} />
+            <Btn size="sm" onClick={() => void exportCsv(org?.id, Number(months)).catch((error: Error) => toast(error.message, "bad"))}><Download />CSV</Btn>
             {all.length > 1 && <Seg label={t("numbers.currency")} value={String(currencyIndex)} onChange={(value) => setCurrencyIndex(Number(value))} options={all.map((item, index) => [String(index), item.currency] as [string, string])} />}
           </div>
         </header>
@@ -118,9 +131,9 @@ export function Numbers() {
               <div>
                 <div className="l">{t("numbers.revenue")}</div>
                 <div className="vv">
-                  <b className="tn">{money(series.reduce((sum, point) => sum + point.amount, 0), code)}</b>
-                  {change != null && <Badge tone={change >= 0 ? "ok" : "bad"}>{change >= 0 ? "+" : ""}{change} %</Badge>}
-                  <span className="faint">{t("numbers.inMonths", { count: series.length })}</span>
+                  <b className="tn">{money(current.revenue_total, code)}</b>
+                  {current.revenue_change_percent != null && <Badge tone={current.revenue_change_percent >= 0 ? "ok" : "bad"}>{current.revenue_change_percent >= 0 ? "+" : ""}{Math.round(current.revenue_change_percent)} %</Badge>}
+                  <span className="faint">{t("numbers.versus", { count: series.length, previous: money(current.revenue_previous_total, code) })}</span>
                 </div>
               </div>
               <div className="numx-lg"><span>{t("numbers.perMonth")}</span></div>
