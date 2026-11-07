@@ -10,7 +10,7 @@ import { Select } from "../ui/select";
 import { useOrganizations } from "./connected";
 import PostEditor from "./PostEditor";
 import PostsCalendar, { whenOf } from "./PostsCalendar";
-import { inPool, metricsOf, statusLabel, statusTone, Tile, titleOf, useBrainImages, useImport, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post, type Slot } from "./publishing";
+import { inPool, metricsOf, pillarName, statusLabel, statusTone, Tile, titleOf, useBrainImages, useImport, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post, type Slot } from "./publishing";
 import "./posts.css";
 
 type Tab = "calendar" | "posts" | "images" | "topics";
@@ -65,7 +65,7 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
     const keyOf = (post: Post): string | number => {
       const [column] = sort;
       if (column === "title") return titleOf(post).toLowerCase();
-      if (column === "pillar") return post.pillar ?? "￿";
+      if (column === "pillar") return pillarName(pillars, post.pillar) ?? "￿";
       if (column === "topic") return post.topic ?? "￿";
       if (column === "status") return STATUSES.indexOf(post.status as (typeof STATUSES)[number]);
       if (column === "date") return whenOf(post) ?? post.created_at;
@@ -95,7 +95,7 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
       <div className="ptf">
         <SearchField value={query} onChange={setQuery} placeholder={t("posts.searchPosts")} />
         <Select size="sm" label={t("posts.col.status")} value={status} onChange={setStatus} options={[["", t("posts.allStatuses")], ...STATUSES.map((item) => [item, statusLabel(item)] as const)]} />
-        {pillars.length > 0 && <Select size="sm" label={t("posts.pillar")} value={pillar} onChange={setPillar} options={[["", t("posts.allPillars")], ...pillars.map((item) => [item.name, item.name] as const)]} />}
+        {pillars.length > 0 && <Select size="sm" label={t("posts.pillar")} value={pillar} onChange={setPillar} options={[["", t("posts.allPillars")], ...pillars.map((item) => [item.id, item.name] as const)]} />}
         <span className="grow" />
         <span className="faint tn">{t("posts.hits", { count: list.length })}</span>
         <Btn size="sm" onClick={() => setImporting(true)}><Upload />{t("posts.import")}</Btn>
@@ -114,9 +114,9 @@ function Archive({ posts, pillars, onOpen }: { posts: Post[]; pillars: Pillar[];
           const metrics = metricsOf(post);
           return (
             <div className="ptr pgrid" role="row" tabIndex={0} onClick={() => onOpen(post.id)} onKeyDown={(event) => event.key === "Enter" && onOpen(post.id)}>
-              <span className="pt"><Tile post={post} color={pillars.find((item) => item.name === post.pillar)?.color} /></span>
+              <span className="pt"><Tile post={post} color={pillars.find((item) => item.id === post.pillar)?.color} /></span>
               <span className="pcell1"><span className="grow" style={{ minWidth: 0 }}><span className="clip bt">{titleOf(post)}</span></span></span>
-              <span className="clip muted">{post.pillar ?? <span className="faint">–</span>}</span>
+              <span className="clip muted">{pillarName(pillars, post.pillar) ?? <span className="faint">–</span>}</span>
               <span className="clip muted">{post.topic ?? <span className="faint">–</span>}</span>
               <span><Badge tone={statusTone(post.status)}>{statusLabel(post.status)}</Badge></span>
               <span className="tn muted">{when ? new Date(when).toLocaleDateString(locale(), { day: "numeric", month: "numeric", year: "2-digit" }) : <span className="faint">–</span>}</span>
@@ -169,7 +169,7 @@ function PillarCard({ pillar, posts }: { pillar: Pillar; posts: Post[] }) {
     must(api.PUT("/posts/pillars/{id}", { params: { path: { id: pillar.id } }, body: { name: pillar.name, description: pillar.description, color: pillar.color, topics: pillar.topics, ...patch } }))
       .then(() => client.invalidateQueries({ queryKey: ["posts"] }), (error: Error) => toast(error.message, "bad"));
   const remove = () => must(api.DELETE("/posts/pillars/{id}", { params: { path: { id: pillar.id } } })).then(() => client.invalidateQueries({ queryKey: ["posts"] }));
-  const mine = posts.filter((post) => post.pillar === pillar.name);
+  const mine = posts.filter((post) => post.pillar === pillar.id);
   return (
     <Card pad>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--s2)" }}>
@@ -218,7 +218,7 @@ function Rhythm({ slots, pillars }: { slots: Slot[]; pillars: Pillar[] }) {
           <div className="trow" key={slot.id} style={{ height: "auto", minHeight: 40, flexWrap: "wrap", rowGap: 4, padding: "4px var(--s2)" }}>
             <Select size="sm" width={68} label={t("posts.weekday")} value={String(slot.weekday)} onChange={(value) => change(index, { weekday: Number(value) })} options={days} />
             <input className="field" type="time" style={{ width: 84, height: "var(--h-sm)", flex: "none" }} aria-label={t("posts.time")} value={slot.time} onChange={(event) => change(index, { time: event.target.value })} />
-            <Select size="sm" width={112} label={t("posts.pillar")} value={slot.pillar ?? ""} onChange={(value) => change(index, { pillar: value || null })} options={[["", t("posts.anyPillar")], ...pillars.map((item) => [item.name, item.name] as const)]} />
+            <Select size="sm" width={112} label={t("posts.pillar")} value={slot.pillar ?? ""} onChange={(value) => change(index, { pillar: value || null })} options={[["", t("posts.anyPillar")], ...pillars.map((item) => [item.id, item.name] as const)]} />
             {(orgs.data ?? []).length > 0 && <Select size="sm" width={112} label={t("posts.account")} value={slot.org ?? ""} onChange={(value) => change(index, { org: value || null })} options={[["", t("posts.personal")], ...(orgs.data ?? []).map((item) => [item.id, item.name] as const)]} />}
             <span className="grow" />
             <Btn icon size="xs" variant="ghost" aria-label={t("common.delete")} onClick={() => setRows(list.filter((_, at) => at !== index))}><Trash2 /></Btn>
@@ -276,7 +276,7 @@ function Row({ pillar, posts }: { pillar: Pillar; posts: Post[] }) {
     <>
       <span className="ml"><span className="clip">{pillar.name}</span></span>
       {STATUSES.map((status) => {
-        const count = posts.filter((post) => post.pillar === pillar.name && post.status === status).length;
+        const count = posts.filter((post) => post.pillar === pillar.id && post.status === status).length;
         return <span key={status} className="mc tn" style={{ display: "grid", placeItems: "center", borderRadius: "var(--r-sm)", background: count ? `color-mix(in srgb, ${pillar.color ?? "var(--accent)"} ${Math.min(60, 12 + count * 8)}%, transparent)` : "var(--wash)" }}>{count || ""}</span>;
       })}
     </>

@@ -8,7 +8,7 @@ import { go } from "../router";
 import { toast } from "../shell/state";
 import { AreaChart, Btn, Card, cx, Empty, Page, PageHeader, Seg, Skeleton, initials } from "../ui";
 import { addDays, startOfDay, weekdayOf } from "./postdates";
-import { metricsOf, titleOf, useBranding, usePillars, usePosts, type Post } from "./publishing";
+import { metricsOf, pillarName, titleOf, useBranding, usePillars, usePosts, type Post } from "./publishing";
 import "./branding.css";
 
 const locale = () => (language() === "de" ? "de-DE" : "en-GB");
@@ -129,7 +129,7 @@ export default function Branding() {
     ["followers", t("posts.metric.followers"), followers ? number(followers) : "–", t("branding.latest")],
     ["icp_share", t("posts.metric.icp_share"), icp.length ? `${number(share(sum(icp, "icp_share") / icp.length))} %` : "–", t("branding.average")],
   ];
-  const mix = (pillars.data ?? []).map((pillar) => ({ pillar, out: out.filter((post) => post.pillar === pillar.name).length, planned: all.filter((post) => post.pillar === pillar.name && post.status !== "published").length }));
+  const mix = (pillars.data ?? []).map((pillar) => ({ pillar, out: out.filter((post) => post.pillar === pillar.id).length, planned: all.filter((post) => post.pillar === pillar.id && post.status !== "published").length }));
   const mixMax = Math.max(1, ...mix.map((row) => row.out + row.planned));
   const cell = heat(all);
   const heatMax = Math.max(0.0001, ...[1, 2, 3, 4, 5, 6, 7].flatMap((day) => HOURS.map((hour) => cell(day, hour))));
@@ -209,7 +209,7 @@ export default function Branding() {
               <div className="blist">
                 {top.length ? top.map((post) => (
                   <div className="brow lnk" key={post.id} onClick={() => go("posts", post.id)} role="button" tabIndex={0} onKeyDown={(event) => event.key === "Enter" && go("posts", post.id)}>
-                    <div className="grow" style={{ minWidth: 0 }}><b className="clip" style={{ display: "block", fontWeight: 400 }}>{titleOf(post)}</b><span className="faint">{post.published_at ? new Date(post.published_at).toLocaleDateString(locale()) : ""}{post.pillar ? ` · ${post.pillar}` : ""}</span></div>
+                    <div className="grow" style={{ minWidth: 0 }}><b className="clip" style={{ display: "block", fontWeight: 400 }}>{titleOf(post)}</b><span className="faint">{post.published_at ? new Date(post.published_at).toLocaleDateString(locale()) : ""}{post.pillar ? ` · ${pillarName(pillars.data, post.pillar)}` : ""}</span></div>
                     <span className="tn muted">{number(metricsOf(post).impressions ?? 0)}</span>
                   </div>
                 )) : <p className="bleg">{t("branding.noNumbersSub")}</p>}

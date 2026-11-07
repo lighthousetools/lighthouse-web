@@ -10,7 +10,7 @@ import { Select } from "../ui/select";
 import { useOrganizations } from "./connected";
 import { addDays, dayIso, isoWeek, monthDays, nearestTime, openGaps, sameDay, suggestFor, weekStart, weekdayOf } from "./postdates";
 import { fromZone, inZone, validZone } from "./zone";
-import { inPool, statusLabel, statusTone, Tile, titleOf, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post } from "./publishing";
+import { inPool, pillarName, statusLabel, statusTone, Tile, titleOf, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post } from "./publishing";
 
 const locale = () => (language() === "de" ? "de-DE" : "en-GB");
 const dm = (date: Date) => date.toLocaleDateString(locale(), { day: "numeric", month: "numeric" });
@@ -50,7 +50,7 @@ function startDrag(event: DragEvent, id: string) {
   event.dataTransfer.effectAllowed = "move";
 }
 
-function Card({ post, color, zone, onOpen, onUnplan }: { post: Post; color?: string | null; zone?: string; onOpen: () => void; onUnplan: () => void }) {
+function Card({ post, color, label, zone, onOpen, onUnplan }: { post: Post; color?: string | null; label?: string | null; zone?: string; onOpen: () => void; onUnplan: () => void }) {
   const when = whenOf(post);
   const out = post.status === "published" || post.status === "publishing";
   return (
@@ -67,7 +67,7 @@ function Card({ post, color, zone, onOpen, onUnplan }: { post: Post; color?: str
         </div>
         <div className="bd">
           <span className="tt">{titleOf(post)}</span>
-          <span className="mt"><Badge tone={statusTone(post.status)}>{statusLabel(post.status)}</Badge>{post.pillar && <Badge>{post.pillar}</Badge>}</span>
+          <span className="mt"><Badge tone={statusTone(post.status)}>{statusLabel(post.status)}</Badge>{label && <Badge>{label}</Badge>}</span>
         </div>
       </div>
     </div>
@@ -101,14 +101,14 @@ function Pool({ posts, pillars, onOpen, onClose }: { posts: Post[]; pillars: Pil
   const [pillar, setPillar] = useState("");
   const needle = query.toLowerCase();
   const list = posts.filter((post) => (!pillar || post.pillar === pillar) && (!needle || `${post.title ?? ""} ${post.body} ${post.topic ?? ""}`.toLowerCase().includes(needle)));
-  const colorOf = (name?: string | null) => pillars.find((item) => item.name === name)?.color;
+  const colorOf = (name?: string | null) => pillars.find((item) => item.id === name)?.color;
   return (
     <aside className="ppool" aria-label={t("posts.pool")}>
       <div className="poolh"><b>{t("posts.pool")}</b><span className="faint tn">{posts.length}</span><Btn icon size="xs" variant="ghost" aria-label={t("posts.hidePool")} title={t("posts.hidePool")} onClick={onClose}><PanelLeft /></Btn></div>
       <div className="poolq"><SearchField value={query} onChange={setQuery} placeholder={t("posts.search")} /></div>
       {pillars.length > 0 && (
         <div className="poolf">
-          <Select size="sm" label={t("posts.pillar")} value={pillar} onChange={setPillar} options={[["", t("posts.allPillars")], ...pillars.map((item) => [item.name, item.name] as const)]} />
+          <Select size="sm" label={t("posts.pillar")} value={pillar} onChange={setPillar} options={[["", t("posts.allPillars")], ...pillars.map((item) => [item.id, item.name] as const)]} />
         </div>
       )}
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
@@ -117,7 +117,7 @@ function Pool({ posts, pillars, onOpen, onClose }: { posts: Post[]; pillars: Pil
             <span className="pth"><Tile post={post} color={colorOf(post.pillar)} /></span>
             <span className="grow" style={{ minWidth: 0 }}>
               <span className="tt">{titleOf(post)}</span>
-              <span className="sbt clip">{post.origin === "agent" && <Badge tone="vio">{t("posts.suggested")}</Badge>}{[post.pillar, post.topic].filter(Boolean).join(" · ") || statusLabel(post.status)}</span>
+              <span className="sbt clip">{post.origin === "agent" && <Badge tone="vio">{t("posts.suggested")}</Badge>}{[pillarName(pillars, post.pillar), post.topic].filter(Boolean).join(" · ") || statusLabel(post.status)}</span>
             </span>
           </div>
         )) : (
@@ -151,7 +151,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const all = posts.data ?? [];
   const pool = all.filter(inPool);
   const byId = new Map(all.map((post) => [post.id, post]));
-  const colorOf = (name?: string | null) => pillars.data?.find((item) => item.name === name)?.color;
+  const colorOf = (name?: string | null) => pillars.data?.find((item) => item.id === name)?.color;
   const gaps = openGaps(calendar.data ?? [], new Date());
 
   // Slot times are in the server's time zone, which is the owner's zone the calendar shows.
@@ -267,7 +267,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
                         const dragged = over === key;
                         return (
                           <div key={key} className={cx("pcell", weekend && "blk", day < today && "past", sameDay(day, today) && "td", dragged && "over")} {...dropProps(key, day, time, lane.org)}>
-                            {here.map((post) => <Card key={post.id} post={post} zone={zone} color={colorOf(post.pillar)} onOpen={() => onOpen(post.id)} onUnplan={() => unplan(post.id)} />)}
+                            {here.map((post) => <Card key={post.id} post={post} zone={zone} color={colorOf(post.pillar)} label={pillarName(pillars.data, post.pillar)} onOpen={() => onOpen(post.id)} onUnplan={() => unplan(post.id)} />)}
                             {!here.length && isGap && <GapCard gap={gap} pool={pool} first={assigned.get(gap.at + gap.slot.id)} onOpen={onOpen} onFill={(post) => fill(gap, post)} />}
                             {dragged && <span className="droptime tn">{time}</span>}
                           </div>

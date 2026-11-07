@@ -69,6 +69,10 @@ export function useImport() {
 
 export const metricsOf = (post: Pick<Post, "metrics">): Metrics => (post.metrics && typeof post.metrics === "object" ? (post.metrics as Metrics) : {});
 
+/** Posts and slots name a pillar by its id; this shows its name, or the id when the pillar is gone. */
+export const pillarName = (pillars: Pick<Pillar, "id" | "name">[] | undefined, id: string | null | undefined) =>
+  id ? pillars?.find((pillar) => pillar.id === id)?.name ?? id : null;
+
 /** The first line, as the feed shows it above "…more". */
 export const titleOf = (post: Pick<Post, "title" | "body">) => post.title?.trim() || post.body.split("\n").find((line) => line.trim())?.trim() || t("posts.untitled");
 

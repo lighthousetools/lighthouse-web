@@ -294,10 +294,10 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
 
   if (!post) return null;
   const locked = post.status === "publishing" || post.status === "published";
-  const pillar = pillars.data?.find((item) => item.name === post.pillar);
+  const pillar = pillars.data?.find((item) => item.id === post.pillar);
   const orgName = post.org ? orgs.data?.find((item) => item.id === post.org)?.name ?? post.org : null;
   const when = post.scheduled_at ?? post.published_at;
-  const sub = [orgName, post.pillar, when ? new Date(when).toLocaleString(locale(), { timeZone: validZone(me.data?.timezone), weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
+  const sub = [orgName, pillar?.name ?? post.pillar, when ? new Date(when).toLocaleString(locale(), { timeZone: validZone(me.data?.timezone), weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
   const publish = async () => {
     setAsking(false);
     if (text !== saved.current) {
@@ -368,7 +368,7 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
               <h3>{t("posts.pillar")}<small>{t("posts.pillarHint")}</small></h3>
               <div className="xp" role="radiogroup" aria-label={t("posts.pillar")}>
                 {(pillars.data ?? []).map((item) => (
-                  <button type="button" key={item.id} role="radio" aria-checked={post.pillar === item.name} className={cx(post.pillar === item.name && "on")} onClick={() => void actions.patch(id, { pillar: post.pillar === item.name ? null : item.name, ...(post.pillar === item.name ? { topic: null } : {}) })}>{item.name}</button>
+                  <button type="button" key={item.id} role="radio" aria-checked={post.pillar === item.id} className={cx(post.pillar === item.id && "on")} onClick={() => void actions.patch(id, { pillar: post.pillar === item.id ? null : item.id, ...(post.pillar === item.id ? { topic: null } : {}) })}>{item.name}</button>
                 ))}
               </div>
               {pillar && pillar.topics.length > 0 && (
