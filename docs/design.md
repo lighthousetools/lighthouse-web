@@ -20,6 +20,13 @@ menu bar and the status island hide, the window fills the view, and the rail and
 approvals, permission requests and waiting sessions, and `openExternal` for sign-in pages. The app's `palette` and
 `newNote` commands arrive as the cancelable `lighthouse:command` event.
 
+## Live updates
+
+`GET /events` names what changed. Each named event reloads only the data it touches (`queriesFor` in `src/data.ts`):
+`tasks.changed` the tasks and the ready feed, `alerts.changed` the alerts, `document.created` the briefs and recaps, and
+so on. `changed` reloads everything on screen. The sidebar counts come from `GET /ready` and `GET /alerts/counts`, and in
+the Mac app the Dock badge shows the ready count.
+
 ## Pages not ported yet
 
 The navigation shows only pages with real data behind them. These pages of the design wait for the API:
@@ -27,14 +34,14 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Design page | Missing in the API |
 |---|---|
 | Assistant conversation | A chat endpoint with history |
-| Tasks, Waiting for you | Tasks and an inbox across sources |
+| Waiting for you | An inbox across sources |
 | Mail, Calendar | Mail and calendar data |
-| Linear, Pull requests, Alerts | Issue, pull request and alert feeds |
+| Linear, Pull requests | Issue and pull request feeds |
 | Pipeline, Numbers, Rooms, Contracts, Invoices, Account, Stocks | Business data |
 | Posts, Personal branding, Decks | Content and publishing data |
-| Automations | Automations apart from agents |
 | Mission control | A combined live view of all work |
-| Rules, What I know | Editable rules and a profile of the owner |
 | Session detail: plan, context, diff, prompting | Session transcripts, diffs and input to a running session |
+| Alert detail: metric chart and cause tree | Metrics and root-cause analysis for alerts |
+| Automation builder: branches, dry run over past days | Branching steps and a dry-run endpoint |
+| Tasks: hand a task to Lighthouse | Delegating a task to an agent |
 | Workspace or account filter | Accounts |
-| Weekly report as a film | Nothing; it is planned for later |

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,7 +7,7 @@ import { askStream, storeToken, type Schemas } from "./api/client";
 import { App } from "./shell/App";
 import { setLanguage } from "./i18n";
 import { Markdown } from "./ui/markdown";
-import { Approvals } from "./views/Approvals";
+import { Ready } from "./views/Ready";
 import { plainFields } from "./views/Decisions";
 
 type Handler = (request: Request) => unknown;
@@ -17,6 +17,22 @@ function json(status: number, body: unknown) {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+const EMPTY_FEED = { total: 0, counts: {}, groups: {}, alerts: { critical: 0, warning: 0, info: 0 }, items: [] };
+const DEFAULTS: Record<string, unknown> = {
+  "/me": { name: "Alex Example" },
+  "/ready": EMPTY_FEED,
+  "/alerts/counts": { critical: 0, warning: 0, info: 0 },
+};
+
+/** The ready feed as the server builds it from approvals and permission requests. */
+function feed(approvals: Schemas["Approval"][], permissions: Record<string, unknown>[] = []) {
+  const items = [
+    ...approvals.map((item) => ({ kind: "approval", group: "decisions", id: item.id, title: item.tool, summary: item.reason, agent_id: item.agent_id, run_id: item.run_id, created_at: item.created_at, expires_at: item.expires_at, detail: item })),
+    ...permissions.map((item) => ({ kind: "permission", group: "decisions", id: item.id, title: "Claude Code", summary: null, agent_id: null, run_id: null, created_at: "2026-11-06T10:00:00Z", expires_at: null, detail: item })),
+  ];
+  return { ...EMPTY_FEED, total: items.length, items };
 }
 
 function serve(routes: Record<string, Handler>) {
@@ -29,7 +45,7 @@ function serve(routes: Record<string, Handler>) {
       const url = new URL(request.url);
       const handler = routes[`${request.method} ${url.pathname}`];
       if (url.pathname === "/events" && !handler) return new Response("", { status: 200 });
-      if (!handler) return json(200, url.pathname === "/me" ? { name: "Alex Example" } : []);
+      if (!handler) return json(200, DEFAULTS[url.pathname] ?? []);
       const answer = handler(request);
       return answer instanceof Response ? answer : json(200, answer);
     }),
@@ -71,7 +87,7 @@ describe("sign-in", () => {
     show(<App />);
     await userEvent.type(await screen.findByLabelText("Password"), "secret password");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    await screen.findByRole("heading", { level: 1, name: /Alex$/ });
+    await screen.findByRole("heading", { level: 1, name: /Alex\.?$/ });
     const login = calls.find((call) => call.url.endsWith("/auth/login"));
     expect(await login?.json()).toMatchObject({ device_kind: "web" });
   });
@@ -99,28 +115,32 @@ describe("sign-in", () => {
     storeToken("lht_old");
     serve({
       "GET /auth/status": () => ({ setup_required: false }),
-      "GET /runs": () => json(401, { error: "sign-in required" }),
+      "GET /ready": () => json(401, { error: "sign-in required" }),
     });
     show(<App />);
     expect(await screen.findByLabelText("Password")).toBeTruthy();
   });
 });
 
-describe("today", () => {
-  it("counts the same things in the subtitle, the section and the badge", async () => {
+describe("ready", () => {
+  it("counts what is ready in the lead, the queue and the badge", async () => {
     storeToken("lht_x");
-    serve({
-      "GET /approvals": () => [approval],
-      "GET /sessions": () => [{
-        id: "s1", node_id: "n1", node_name: "Mac", project: "billing", branch: null,
-        status: "waiting", summary: null, cost_eur: 0, started_at: "2026-11-06T10:00:00Z",
-        updated_at: "2026-11-06T10:00:00Z",
-      }],
-    });
+    serve({ "GET /ready": () => feed([approval, { ...approval, id: "a2", tool: "slack.post" }]) });
     show(<App />);
-    expect(await screen.findByText("2 things need you")).toBeTruthy();
-    const section = (await screen.findByRole("heading", { name: /Needs you/ })).closest("section")!;
-    expect(within(section).getByText("billing")).toBeTruthy();
+    expect(await screen.findByText(/2 things are ready for you/)).toBeTruthy();
+    expect(screen.getAllByText("Slack: Post").length).toBeGreaterThan(0);
+  });
+
+  it("accepts a proposed task", async () => {
+    storeToken("lht_x");
+    const task = { id: "t1", title: "Call Jane", priority: 0, status: "proposed", position: 1, origin: "agent", created_at: "2026-11-06T10:00:00Z", updated_at: "2026-11-06T10:00:00Z", agent_id: "inbox", notes: null, source: null };
+    const calls = serve({
+      "GET /ready": () => ({ ...EMPTY_FEED, total: 1, items: [{ kind: "task", group: "suggestions", id: "t1", title: "Call Jane", summary: null, agent_id: "inbox", run_id: null, created_at: task.created_at, expires_at: null, detail: task }] }),
+      "POST /tasks/t1/accept": () => ({ ...task, status: "open" }),
+    });
+    show(<Ready />);
+    await userEvent.click(await screen.findByRole("button", { name: /^Accept/ }));
+    await waitFor(() => expect(calls.some((call) => call.url.endsWith("/tasks/t1/accept"))).toBe(true));
   });
 });
 
@@ -128,8 +148,8 @@ describe("approvals", () => {
   beforeEach(() => storeToken("lht_x"));
 
   it("explains a proposal in plain language", async () => {
-    serve({ "GET /approvals": () => [approval] });
-    show(<Approvals />);
+    serve({ "GET /ready": () => feed([approval]) });
+    show(<Ready />);
     expect(await screen.findByRole("heading", { name: "Mail: Send draft" })).toBeTruthy();
     expect(screen.getByText("Subject")).toBeTruthy();
     expect(screen.getByText("Offer")).toBeTruthy();
@@ -150,10 +170,10 @@ describe("approvals", () => {
 
   it("sends edited arguments and refuses broken JSON", async () => {
     const calls = serve({
-      "GET /approvals": () => [approval],
+      "GET /ready": () => feed([approval]),
       "POST /approvals/a1/decision": () => ({ ...approval, status: "approved" }),
     });
-    show(<Approvals />);
+    show(<Ready />);
     await userEvent.click(await screen.findByRole("button", { name: /^Edit/ }));
     const editor = screen.getByLabelText("Arguments as JSON");
     await userEvent.clear(editor);
@@ -170,10 +190,10 @@ describe("approvals", () => {
 
   it("decides permission requests of sessions", async () => {
     const calls = serve({
-      "GET /permissions": () => [{ id: "p1", tool: "Bash", project: "billing", input: { command: "ls" } }],
+      "GET /ready": () => feed([], [{ id: "p1", tool: "Bash", project: "billing", input: { command: "ls" } }]),
       "POST /permissions/p1/decision": () => ({ id: "p1" }),
     });
-    show(<Approvals />);
+    show(<Ready />);
     expect(await screen.findByText("Command")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /^Allow/ }));
     await waitFor(() => expect(calls.some((call) => call.url.endsWith("/decision"))).toBe(true));
@@ -181,8 +201,8 @@ describe("approvals", () => {
 
   it("says when nothing waits", async () => {
     serve({});
-    show(<Approvals />);
-    expect(await screen.findByText(/Nothing is waiting for you/)).toBeTruthy();
+    show(<Ready />);
+    expect(await screen.findByText("All clear.")).toBeTruthy();
   });
 });
 
