@@ -64,7 +64,8 @@ function RuleRow({ rule, agents, names, fresh }: { rule: Rule; agents: [string, 
           <button type="button" className="t" title={t("rules.edit")} onClick={() => setEditing(true)}>{rule.text}</button>
         )}
         <span className="s mono">
-          {rule.agent_id ? agentName(rule.agent_id, names) : t("rules.everywhere")} · {t("rules.since", { date: shortDate(rule.created_at) })}
+          {rule.agent_id ? agentName(rule.agent_id, names) : t("rules.everywhere")} · {rule.applied_count ? t("rules.applied", { count: rule.applied_count }) : t("rules.since", { date: shortDate(rule.created_at) })}
+          {rule.last_applied_at && <span title={rule.last_applied_at}> · {t("rules.lastApplied", { date: shortDate(rule.last_applied_at) })}</span>}
         </span>
       </div>
       <Select

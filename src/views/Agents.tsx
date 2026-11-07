@@ -20,8 +20,21 @@ type Agent = Schemas["AgentInfo"];
 type Filter = "all" | "scheduled" | "manual";
 
 /** How freely an agent acts: write tools always ask first, read-only agents only look. */
+/** The model behind an agent, short: "Sonnet 4.5", or the provider when no model is named. */
+export function modelName(agent: Pick<Agent, "model">) {
+  const route = agent.model;
+  if (!route) return "–";
+  const model = route.model ?? route.provider;
+  const named = /claude-(\w+)-(\d+)(?:-(\d+))?/.exec(model);
+  return named ? `${named[1]!.charAt(0).toUpperCase()}${named[1]!.slice(1)} ${named[2]}${named[3] ? `.${named[3]}` : ""}` : model;
+}
+
 export function freedom(agent: Agent): { label: string; tone: Tone } {
   if (agent.blocked.length) return { label: t("agents.blocked"), tone: "bad" };
+  // The server says how far an agent may go: only look, also save drafts, or also propose actions (which wait for you).
+  if (agent.autonomy === "observe") return { label: t("agents.autonomy.observe"), tone: "" };
+  if (agent.autonomy === "prepare") return { label: t("agents.autonomy.prepare"), tone: "ok" };
+  if (agent.autonomy === "propose") return { label: t("agents.autonomy.propose"), tone: "info" };
   if (agent.tools.some((tool) => tool.level === "write")) return { label: t("agents.asksFirst"), tone: "info" };
   if (agent.tools.length === 0) return { label: t("agents.noTools"), tone: "" };
   return { label: t("agents.readOnly"), tone: "" };
@@ -217,6 +230,9 @@ function Detail({ agent }: { agent: Agent }) {
           <div className="card ag-kv">
             <div><span>{t("agents.schedule")}</span><b title={agent.schedule ?? undefined}>{agent.schedule ? cronText(agent.schedule) : t("agents.manual")}</b></div>
             <div><span>{t("agents.freedom")}</span><b><Badge tone={free.tone}>{free.label}</Badge></b></div>
+            <div><span>{t("agents.model")}</span><b>{modelName(agent)}{agent.model?.fallback_model ? <span className="faint"> · {t("agents.fallback", { model: agent.model.fallback_model })}</span> : null}</b></div>
+            {agent.max_cost_eur > 0 && <div><span>{t("agents.maxCost")}</span><b className="tn">{euro(agent.max_cost_eur)}</b></div>}
+            <div><span>{t("agents.corrected")}</span><b className="tn">{agent.corrections ?? 0}</b></div>
             <div><span>{t("agents.delivers")}</span><b>{agent.deliver.length ? agent.deliver.join(", ") : t("common.none")}</b></div>
             <div><span>{t("agents.skills")}</span><b>{agent.skills.length ? agent.skills.join(", ") : t("common.none")}</b></div>
             {!agent.editable && <div><span>{t("agents.file")}</span><b>{t("agents.managed")}</b></div>}
@@ -294,9 +310,12 @@ function Overview() {
         <Stat label={t("today.costsToday")} value={euro(today)} />
         <Stat label={t("agents.runs")} value={history.length} delta={t("agents.lastHundred")} />
         <Stat
-          label={t("agents.successRate")}
-          value={history.length ? `${Math.round((history.filter((item) => item.status === "succeeded").length / history.length) * 100)} %` : "–"}
-          delta={t("agents.failed", { count: history.filter((item) => item.status === "failed").length })}
+          label={t("agents.corrected")}
+          value={(() => {
+            const corrections = all.reduce((sum, agent) => sum + (agent.corrections ?? 0), 0);
+            return history.length ? `${((corrections / history.length) * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} %` : String(corrections);
+          })()}
+          delta={t("agents.correctedHint", { count: all.reduce((sum, agent) => sum + (agent.corrections ?? 0), 0) })}
         />
       </div>
       {running.length > 0 && (
@@ -320,7 +339,7 @@ function Overview() {
         <div className="card ag-tbl">
           <div className="ag-th">
             <span>{t("agents.agent")}</span>
-            <span>{t("agents.tools")}</span>
+            <span>{t("agents.model")}</span>
             <span>{t("agents.freedom")}</span>
             <span>{t("agents.nextRun")}</span>
             <span className="r">{t("today.today")}</span>
@@ -339,10 +358,7 @@ function Overview() {
                     <span className="s clip">{last ? t("agents.lastRunAt", { time: dayTime(last.started_at) }) : agent.schedule ? cronText(agent.schedule) : t("agents.manual")}</span>
                   </span>
                 </span>
-                <span className="c tools">
-                  {agent.tools.slice(0, 3).map((tool) => <ServiceIcon key={tool.name} name={brandOf(tool.name.split(".")[0])} fallback={tool.name} size={18} />)}
-                  {agent.tools.length > 3 && <span className="faint" style={{ fontSize: 12, marginLeft: 4 }}>+{agent.tools.length - 3}</span>}
-                </span>
+                <span className="c clip" title={agent.model ? [agent.model.provider, agent.model.model, agent.model.fallback_model && `→ ${agent.model.fallback_model}`].filter(Boolean).join(" ") : undefined}>{modelName(agent)}</span>
                 <span><Badge tone={free.tone}>{free.label}</Badge></span>
                 <span className="c">{agent.next_run ? dayTime(agent.next_run) : t("agents.onRequest")}</span>
                 <span className="c r tn">{euro(costToday(agent.id))}</span>
