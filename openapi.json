@@ -3246,6 +3246,35 @@
         ]
       }
     },
+    "/node/events": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Stores what the sessions of this desktop agent did.",
+        "operationId": "report_session_events",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionEvents"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Stored"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/node/permissions": {
       "post": {
         "tags": [
@@ -3355,6 +3384,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NodeState"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/node/sessions/{id}/messages": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Hands over the messages the owner sent to a session of this desktop agent.\nWaits up to `wait` seconds for one.",
+        "operationId": "take_session_messages",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wait",
+            "in": "query",
+            "description": "Seconds to wait, at most 60",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionMessage"
+                  }
                 }
               }
             }
@@ -4128,6 +4207,117 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/{node}/{id}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Returns a session with its todo list, plan, changed files, timeline and messages.",
+        "operationId": "get_session",
+        "parameters": [
+          {
+            "name": "node",
+            "in": "path",
+            "description": "Node ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown session"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/{node}/{id}/messages": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Sends a message to a session. The desktop agent hands it over as the next\ninstruction when the session stops, see `docs/desktop-agent.md`.",
+        "operationId": "send_session_message",
+        "parameters": [
+          {
+            "name": "node",
+            "in": "path",
+            "description": "Node ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewSessionMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty message"
+          },
+          "404": {
+            "description": "Unknown session"
           }
         },
         "security": [
@@ -5267,6 +5457,38 @@
           }
         }
       },
+      "ChangedFile": {
+        "type": "object",
+        "description": "A changed file with its latest change.",
+        "required": [
+          "path",
+          "edits",
+          "changed_at"
+        ],
+        "properties": {
+          "changed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the latest edit."
+          },
+          "diff": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The latest edit as a diff, if the hook had one."
+          },
+          "edits": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of edits."
+          },
+          "path": {
+            "type": "string",
+            "description": "File path."
+          }
+        }
+      },
       "ConnectStarted": {
         "type": "object",
         "description": "Answer when an OAuth flow started.",
@@ -6114,6 +6336,69 @@
           }
         }
       },
+      "NewSessionEvent": {
+        "type": "object",
+        "description": "One thing a session did, as a desktop agent reports it.",
+        "required": [
+          "session_id",
+          "kind"
+        ],
+        "properties": {
+          "at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it happened. Defaults to the time of the report."
+          },
+          "detail": {
+            "description": "Kind-specific data: `todos`, `plan` or `diff`."
+          },
+          "file_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Changed file."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`tool`, `file`, `todos`, `plan`, `prompt` or `stop`."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session ID from Claude Code."
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One line, such as a command or a file path."
+          },
+          "tool": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Tool name."
+          }
+        }
+      },
+      "NewSessionMessage": {
+        "type": "object",
+        "description": "A message to a session.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The next instruction for the session."
+          }
+        }
+      },
       "NewTask": {
         "type": "object",
         "description": "A task to create.",
@@ -6774,6 +7059,167 @@
             "type": "string",
             "format": "date-time",
             "description": "Latest report."
+          }
+        }
+      },
+      "SessionDetail": {
+        "type": "object",
+        "description": "Everything known about a session.",
+        "required": [
+          "session",
+          "files",
+          "timeline",
+          "messages"
+        ],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangedFile"
+            },
+            "description": "Files it changed, latest first."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionMessage"
+            },
+            "description": "Messages the owner sent to it."
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The latest plan the session presented."
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session",
+            "description": "The session."
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionEvent"
+            },
+            "description": "Its latest 200 events, oldest first."
+          },
+          "todos": {
+            "description": "The latest todo list of the session, as Claude Code wrote it."
+          }
+        }
+      },
+      "SessionEvent": {
+        "type": "object",
+        "description": "A stored event.",
+        "required": [
+          "id",
+          "session_id",
+          "kind",
+          "detail",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened."
+          },
+          "detail": {
+            "description": "Kind-specific data."
+          },
+          "file_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Changed file."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Event ID."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Kind."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session ID."
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One line."
+          },
+          "tool": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Tool name."
+          }
+        }
+      },
+      "SessionEvents": {
+        "type": "object",
+        "description": "Events a desktop agent reports.",
+        "required": [
+          "events"
+        ],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NewSessionEvent"
+            },
+            "description": "At most 100 events."
+          }
+        }
+      },
+      "SessionMessage": {
+        "type": "object",
+        "description": "A message from the owner to a session.",
+        "required": [
+          "id",
+          "session_id",
+          "text",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was sent."
+          },
+          "delivered_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the session got it."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Message ID."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session ID."
+          },
+          "status": {
+            "type": "string",
+            "description": "`pending` or `delivered`."
+          },
+          "text": {
+            "type": "string",
+            "description": "The text, which the session gets as its next instruction."
           }
         }
       },

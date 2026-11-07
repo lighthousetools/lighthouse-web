@@ -11,6 +11,11 @@ import { Agents } from "../views/Agents";
 import { Alerts } from "../views/Alerts";
 import { Automations } from "../views/Automations";
 import { Brief } from "../views/Brief";
+import { Calendar } from "../views/Calendar";
+import { Code } from "../views/Code";
+import { Inbox } from "../views/Inbox";
+import { Issues } from "../views/Issues";
+import { Mail } from "../views/Mail";
 import { Me } from "../views/Me";
 import { Ready } from "../views/Ready";
 import { Recap } from "../views/Recap";
@@ -25,7 +30,8 @@ import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
 import { lookChoice, setLook, watchLook, type LookChoice } from "./look";
-import { NAV, groupOf } from "./nav";
+import { NAV, groupOf, visibleNav } from "./nav";
+import { useDomains } from "../views/connected";
 import { Palette } from "./Palette";
 import { closeInspector, inspector, palette, toasts } from "./state";
 
@@ -33,7 +39,7 @@ import { closeInspector, inspector, palette, toasts } from "./state";
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
 
 const VIEW_COMPONENTS: Record<View, (() => JSX.Element) | typeof Brain> = {
-  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, sessions: Sessions, alerts: Alerts, brain: Brain,
+  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, alerts: Alerts, brain: Brain,
   automations: Automations, rules: Rules, me: Me,
   agents: Agents, log: Log, connections: Connections, settings: Settings,
 };
@@ -243,13 +249,14 @@ function Rail({ view }: { view: View }) {
   const alerts = useAlertTotal();
   const me = useMe();
   const current = groupOf(view);
+  const nav = visibleNav(useDomains()).filter((group) => group.items.length);
   const badge = (id: string) => (id === "today" ? ready.data?.total ?? 0 : id === "work" ? alerts : 0);
   return (
     <nav className="rail" aria-label={t("nav.main")}>
       <span className="rl" title={t("app.name")}>
         <Logo size={22} />
       </span>
-      {NAV.map((group) => {
+      {nav.map((group) => {
         const on = current.id === group.id;
         const count = badge(group.id);
         return (
@@ -289,7 +296,8 @@ function Sidebar({ view, live }: { view: View; live: LiveState }) {
   const ready = useReady();
   const tasks = useTasks("today");
   const alerts = useAlertTotal();
-  const group = groupOf(view);
+  const domains = useDomains();
+  const group = visibleNav(domains).find((entry) => entry.id === groupOf(view).id) ?? groupOf(view);
   if (group.items.length < 2) return null;
   const counts: Partial<Record<View, number>> = { ready: ready.data?.total, tasks: tasks.data?.length, alerts };
   const tone: Partial<Record<View, string>> = { ready: "count hot", alerts: "count red" };
@@ -384,7 +392,8 @@ function Shell() {
     lastView.current = route.view;
   }, [route.view]);
   const Content = VIEW_COMPONENTS[route.view];
-  const solo = groupOf(route.view).items.length < 2;
+  const domains = useDomains();
+  const solo = (visibleNav(domains).find((entry) => entry.id === groupOf(route.view).id)?.items.length ?? 0) < 2;
   return (
     <div className="os">
       <Light />

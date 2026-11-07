@@ -46,6 +46,53 @@ export function parseUnifiedDiff(text: string): DiffFile[] {
   return files;
 }
 
+type Side = { n: number | ""; text: string; sign: "+" | "-" | " " } | null;
+
+/** Pairs removed and added lines side by side; context lines stand on both sides. */
+export function splitRows(hunk: Hunk): [Side, Side][] {
+  const rows: [Side, Side][] = [];
+  let oldLine = hunk.o;
+  let newLine = hunk.n;
+  let index = 0;
+  while (index < hunk.lines.length) {
+    const [sign, text] = hunk.lines[index]!;
+    if (sign === " ") {
+      rows.push([{ n: oldLine++, text, sign }, { n: newLine++, text, sign }]);
+      index++;
+      continue;
+    }
+    const removed: Side[] = [];
+    const added: Side[] = [];
+    while (index < hunk.lines.length && hunk.lines[index]![0] === "-") removed.push({ n: oldLine++, text: hunk.lines[index++]![1], sign: "-" });
+    while (index < hunk.lines.length && hunk.lines[index]![0] === "+") added.push({ n: newLine++, text: hunk.lines[index++]![1], sign: "+" });
+    for (let row = 0; row < Math.max(removed.length, added.length); row++) rows.push([removed[row] ?? null, added[row] ?? null]);
+  }
+  return rows;
+}
+
+function SplitHunk({ hunk }: { hunk: Hunk }) {
+  const cell = (side: Side) =>
+    side ? (
+      <>
+        <span className="ln tn">{side.n}</span>
+        <code className={side.sign === "+" ? "add" : side.sign === "-" ? "del" : ""}>{side.text || " "}</code>
+      </>
+    ) : (
+      <>
+        <span className="ln" />
+        <code className="nil"> </code>
+      </>
+    );
+  return (
+    <div className="dfh">
+      <div className="dfhh mono">@@ −{hunk.o} +{hunk.n} @@ <span>{hunk.head}</span></div>
+      {splitRows(hunk).map(([left, right], index) => (
+        <div key={index} className="dfr2">{cell(left)}{cell(right)}</div>
+      ))}
+    </div>
+  );
+}
+
 const Counts = ({ add, del }: { add: number; del: number }) => (
   <span className="dfn tn">
     <b>+{add}</b>
@@ -54,8 +101,8 @@ const Counts = ({ add, del }: { add: number; del: number }) => (
 );
 
 /** Files list plus hunks. Each changed line takes a comment, notes render in amber at their line. */
-export function DiffViewer({ files, comments = {}, onComment, onDelete, notes = [], viewed = [], onViewed, focus, toolbar, me }: {
-  files: DiffFile[]; comments?: Record<string, DiffComment[]>; onComment?: (key: string, text: string) => void;
+export function DiffViewer({ files, comments = {}, onComment, onDelete, notes = [], viewed = [], onViewed, focus, toolbar, me, sideBySide }: {
+  sideBySide?: boolean; files: DiffFile[]; comments?: Record<string, DiffComment[]>; onComment?: (key: string, text: string) => void;
   onDelete?: (key: string, index: number) => void; notes?: DiffNote[]; viewed?: string[]; onViewed?: (path: string) => void;
   focus?: string | null; toolbar?: ReactNode; me?: string;
 }) {
@@ -142,7 +189,8 @@ export function DiffViewer({ files, comments = {}, onComment, onDelete, notes = 
                   </span>
                 )}
               </header>
-              {!shut &&
+              {!shut && sideBySide && file.hunks.map((hunk, hunkIndex) => <SplitHunk key={hunkIndex} hunk={hunk} />)}
+              {!shut && !sideBySide &&
                 file.hunks.map((hunk, hunkIndex) => {
                   let oldLine = hunk.o;
                   let newLine = hunk.n;

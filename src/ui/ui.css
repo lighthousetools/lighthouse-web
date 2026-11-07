@@ -67,3 +67,7 @@ textarea.ta, .ta { width: 100%; padding: var(--s3); border-radius: var(--r-md); 
 textarea.ta.mono, .ta.mono { font: 12.5px/1.6 var(--mono); }
 .note-box { padding: var(--s2) var(--s3); border-radius: var(--r); background: var(--warn-soft); color: var(--ink); font-size: var(--t-13); line-height: 18px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 var(--s2) 0 5px; border-radius: var(--r-sm); background: var(--surface2); color: var(--ink2); font-size: var(--t-12); white-space: nowrap; transition: background var(--fast), color var(--fast); } button.chip:hover { background: var(--active); color: var(--ink); } .chip.plain { padding-left: var(--s2); }
+.cn-fresh { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-12); color: var(--ink3); white-space: nowrap; } .cn-fresh .dot { width: 6px; height: 6px; }
+.ln-detail { background: var(--pane); } .cal-main { position: relative; }
+.ln-gh { background: color-mix(in srgb, var(--pane) 86%, var(--wash)); }
+.ln-body.opened .ln-list { visibility: hidden; }

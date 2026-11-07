@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 
 /** Views in the order of their number shortcuts. */
 export const VIEWS = [
-  "ready", "tasks", "brief", "recap", "sessions", "alerts", "brain", "automations", "agents", "log",
-  "connections", "rules", "me", "settings",
+  "ready", "tasks", "brief", "recap", "inbox", "mail", "calendar", "issues", "code", "sessions", "alerts", "brain",
+  "automations", "agents", "log", "connections", "rules", "me", "settings",
 ] as const;
 
 /** Older names that links, notifications and the Mac app still use. */
-const ALIASES: Record<string, View> = { today: "ready", approvals: "ready", weekly: "recap" };
+const ALIASES: Record<string, View> = { today: "ready", approvals: "ready", weekly: "recap", cal: "calendar", linear: "issues", pulls: "code", claude: "sessions" };
 
 export type View = (typeof VIEWS)[number];
 export type Route = { view: View; param?: string };

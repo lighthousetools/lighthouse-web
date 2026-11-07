@@ -1078,6 +1078,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/node/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stores what the sessions of this desktop agent did. */
+        post: operations["report_session_events"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/node/permissions": {
         parameters: {
             query?: never;
@@ -1123,6 +1140,26 @@ export interface paths {
         put?: never;
         /** Reports the state of a desktop agent. */
         post: operations["report_node"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/node/sessions/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hands over the messages the owner sent to a session of this desktop agent.
+         *     Waits up to `wait` seconds for one.
+         */
+        get: operations["take_session_messages"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1389,6 +1426,43 @@ export interface paths {
         get: operations["sessions"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{node}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a session with its todo list, plan, changed files, timeline and messages. */
+        get: operations["get_session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{node}/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sends a message to a session. The desktop agent hands it over as the next
+         *     instruction when the session stops, see `docs/desktop-agent.md`.
+         */
+        post: operations["send_session_message"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1845,6 +1919,23 @@ export interface components {
              */
             starts_at: string;
         };
+        /** @description A changed file with its latest change. */
+        ChangedFile: {
+            /**
+             * Format: date-time
+             * @description Time of the latest edit.
+             */
+            changed_at: string;
+            /** @description The latest edit as a diff, if the hook had one. */
+            diff?: string | null;
+            /**
+             * Format: int64
+             * @description Number of edits.
+             */
+            edits: number;
+            /** @description File path. */
+            path: string;
+        };
         /** @description Answer when an OAuth flow started. */
         ConnectStarted: {
             /** @description URL to open in a browser. */
@@ -2199,6 +2290,31 @@ export interface components {
             /** @description The rule. */
             text: string;
         };
+        /** @description One thing a session did, as a desktop agent reports it. */
+        NewSessionEvent: {
+            /**
+             * Format: date-time
+             * @description When it happened. Defaults to the time of the report.
+             */
+            at?: string | null;
+            /** @description Kind-specific data: `todos`, `plan` or `diff`. */
+            detail?: unknown;
+            /** @description Changed file. */
+            file_path?: string | null;
+            /** @description `tool`, `file`, `todos`, `plan`, `prompt` or `stop`. */
+            kind: string;
+            /** @description Session ID from Claude Code. */
+            session_id: string;
+            /** @description One line, such as a command or a file path. */
+            summary?: string | null;
+            /** @description Tool name. */
+            tool?: string | null;
+        };
+        /** @description A message to a session. */
+        NewSessionMessage: {
+            /** @description The next instruction for the session. */
+            text: string;
+        };
         /** @description A task to create. */
         NewTask: {
             /**
@@ -2510,6 +2626,75 @@ export interface components {
              * @description Latest report.
              */
             updated_at: string;
+        };
+        /** @description Everything known about a session. */
+        SessionDetail: {
+            /** @description Files it changed, latest first. */
+            files: components["schemas"]["ChangedFile"][];
+            /** @description Messages the owner sent to it. */
+            messages: components["schemas"]["SessionMessage"][];
+            /** @description The latest plan the session presented. */
+            plan?: string | null;
+            /** @description The session. */
+            session: components["schemas"]["Session"];
+            /** @description Its latest 200 events, oldest first. */
+            timeline: components["schemas"]["SessionEvent"][];
+            /** @description The latest todo list of the session, as Claude Code wrote it. */
+            todos?: unknown;
+        };
+        /** @description A stored event. */
+        SessionEvent: {
+            /**
+             * Format: date-time
+             * @description When it happened.
+             */
+            created_at: string;
+            /** @description Kind-specific data. */
+            detail: unknown;
+            /** @description Changed file. */
+            file_path?: string | null;
+            /**
+             * Format: uuid
+             * @description Event ID.
+             */
+            id: string;
+            /** @description Kind. */
+            kind: string;
+            /** @description Session ID. */
+            session_id: string;
+            /** @description One line. */
+            summary?: string | null;
+            /** @description Tool name. */
+            tool?: string | null;
+        };
+        /** @description Events a desktop agent reports. */
+        SessionEvents: {
+            /** @description At most 100 events. */
+            events: components["schemas"]["NewSessionEvent"][];
+        };
+        /** @description A message from the owner to a session. */
+        SessionMessage: {
+            /**
+             * Format: date-time
+             * @description When it was sent.
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When the session got it.
+             */
+            delivered_at?: string | null;
+            /**
+             * Format: uuid
+             * @description Message ID.
+             */
+            id: string;
+            /** @description Session ID. */
+            session_id: string;
+            /** @description `pending` or `delivered`. */
+            status: string;
+            /** @description The text, which the session gets as its next instruction. */
+            text: string;
         };
         /** @description A session as a desktop agent reports it. */
         SessionReport: {
@@ -4914,6 +5099,28 @@ export interface operations {
             };
         };
     };
+    report_session_events: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionEvents"];
+            };
+        };
+        responses: {
+            /** @description Stored */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     request_permission: {
         parameters: {
             query?: never;
@@ -4988,6 +5195,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NodeState"];
+                };
+            };
+        };
+    };
+    take_session_messages: {
+        parameters: {
+            query?: {
+                /** @description Seconds to wait, at most 60 */
+                wait?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Session ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessage"][];
                 };
             };
         };
@@ -5476,6 +5708,79 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Session"][];
                 };
+            };
+        };
+    };
+    get_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Node ID */
+                node: string;
+                /** @description Session ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionDetail"];
+                };
+            };
+            /** @description Unknown session */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    send_session_message: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Node ID */
+                node: string;
+                /** @description Session ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSessionMessage"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionMessage"];
+                };
+            };
+            /** @description Empty message */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown session */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
