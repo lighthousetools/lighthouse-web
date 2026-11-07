@@ -3,6 +3,9 @@ import { countSteps, insertStep, moveStepBy, parseAutomation, removeStep, replac
 import { layoutFlow, NODE_W, widthOf } from "./flow";
 import { issueTargets } from "./Issues";
 import { laterOptions } from "./later";
+import { failedShare } from "./Alerts";
+import { tokens } from "./Sessions";
+import { groupOf, sourcesOf } from "./Talk";
 
 const source = `---
 name: Triage
@@ -88,5 +91,31 @@ describe("new issues", () => {
       { name: "github", domain: "code", actions: ["approve", "create_issue"] },
       { name: "gitlab", domain: "code", actions: ["approve"] },
     ])).toEqual([{ source: "linear", action: "create", kind: "tracker" }, { source: "github", action: "create_issue", kind: "repo" }]);
+  });
+});
+
+
+describe("talk, usage and alert charts", () => {
+  it("groups threads by their last message, pinned ones first", () => {
+    const now = new Date(2026, 10, 7, 12);
+    const at = (days: number) => new Date(2026, 10, 7 - days, 9).toISOString();
+    expect(groupOf({ pinned: true, updated_at: at(30) }, now)).toBe("pinned");
+    expect(groupOf({ pinned: false, updated_at: at(0) }, now)).toBe("today");
+    expect(groupOf({ pinned: false, updated_at: at(1) }, now)).toBe("yesterday");
+    expect(groupOf({ pinned: false, updated_at: at(4) }, now)).toBe("week");
+    expect(groupOf({ pinned: false, updated_at: at(9) }, now)).toBe("older");
+  });
+
+  it("reads the Brain sources of an answer and tolerates anything else", () => {
+    expect(sourcesOf({ sources: [{ id: "e1", title: "Pricing" }, null, { title: "no id" }] })).toEqual([{ id: "e1", title: "Pricing" }]);
+    expect(sourcesOf({ sources: {} })).toEqual([]);
+  });
+
+  it("shows token counts and the failed share of a day", () => {
+    expect(tokens(950)).toBe("950");
+    expect(tokens(12_400)).toBe("12.4k");
+    expect(tokens(1_250_000)).toBe("1.3M");
+    expect(failedShare({ total: 4, failed: 1 })).toBe(0.25);
+    expect(failedShare({ total: 0, failed: 0 })).toBe(0);
   });
 });
