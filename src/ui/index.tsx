@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Check, Search } from "lucide-react";
+import { Brain, CalendarDays, Check, CircleDot, FileSignature, GitPullRequest, Globe, Handshake, Landmark, Mail, MessagesSquare, Receipt, Search, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
 import {
   useEffect, useId, useLayoutEffect, useRef, useState,
   type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode,
@@ -332,16 +332,38 @@ export function brandOf(name?: string): string | undefined {
   return Object.keys(BRANDS).find((brand) => lower.includes(brand));
 }
 
+/** Icons for kinds of sources without a public logo: what the thing is, never a lone letter. */
+const KIND_ICONS: [RegExp, LucideIcon][] = [
+  [/mail|imap|smtp|inbox|superhuman|outlook/, Mail],
+  [/calendar|cal\b|event/, CalendarDays],
+  [/bank|account|finance|qonto|transaction/, Landmark],
+  [/invoice|books|billing|receipt/, Receipt],
+  [/issue|ticket|jira/, CircleDot],
+  [/code|repo|pull|git/, GitPullRequest],
+  [/crm|deal|pipeline|pipedrive|hubspot/, Handshake],
+  [/contract|sign|document|docs/, FileSignature],
+  [/room/, MessagesSquare],
+  [/depot|holding|stock|portfolio|quote/, TrendingUp],
+  [/brain|note|memory/, Brain],
+  [/lighthouse|agent|run|automation/, Sparkles],
+  [/web|http|api|url/, Globe],
+];
+
 export function ServiceIcon({ name, size = 20, fallback }: { name?: string; size?: number; fallback?: string }) {
   const brand = brandOf(name);
   const src = brand ? BRANDS[brand] : undefined;
-  return src ? (
-    <span className="svc" style={{ width: size, height: size }}>
-      <img src={src} alt="" />
-    </span>
-  ) : (
-    <span className="svc fb" aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.45 }}>
-      {(fallback ?? name ?? "?")[0]?.toUpperCase()}
+  if (src) {
+    return (
+      <span className="svc" style={{ width: size, height: size }}>
+        <img src={src} alt="" />
+      </span>
+    );
+  }
+  const key = `${name ?? ""} ${fallback ?? ""}`.toLowerCase();
+  const Icon = KIND_ICONS.find(([pattern]) => pattern.test(key))?.[1];
+  return (
+    <span className={`svc fb ${Icon ? "ic" : ""}`} aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.45 }}>
+      {Icon ? <Icon size={Math.round(size * 0.6)} strokeWidth={1.8} /> : (fallback ?? name ?? "?")[0]?.toUpperCase()}
     </span>
   );
 }

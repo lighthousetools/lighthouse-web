@@ -45,3 +45,7 @@
 .rd-ext2 { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-12); color: var(--ink3); }
 .rd-ext2 svg { color: var(--warn); }
 .insp-msg { margin-top: var(--s3); font-size: var(--t-13); } .insp-msg b { font-weight: 500; display: block; margin-bottom: 2px; }
+/* Four tabs fit the queue column down to a 1100px window: tighter buttons, no wrap. */
+.rd-qh .seg { flex-wrap: nowrap; max-width: 100%; }
+.rd-qh .seg button { padding: 0 7px; gap: 4px; min-width: 0; }
+.rd-qh .seg button em { margin-left: 0; }

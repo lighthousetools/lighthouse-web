@@ -71,3 +71,4 @@ textarea.ta.mono, .ta.mono { font: 12.5px/1.6 var(--mono); }
 .ln-detail { background: var(--pane); } .cal-main { position: relative; }
 .ln-gh { background: color-mix(in srgb, var(--pane) 86%, var(--wash)); }
 .ln-body.opened .ln-list { visibility: hidden; }
+.svc.fb.ic { background: var(--surface); box-shadow: var(--ring); color: var(--ink2); }
