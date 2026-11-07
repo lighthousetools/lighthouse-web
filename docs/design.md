@@ -27,6 +27,16 @@ approvals, permission requests and waiting sessions, and `openExternal` for sign
 so on. `changed` reloads everything on screen. The sidebar counts come from `GET /ready` and `GET /alerts/counts`, and in
 the Mac app the Dock badge shows the ready count.
 
+## Connected data
+
+Inbox, Mail, Calendar, Issues and Pull requests read the server's cache of connected sources (`/inbox`, `/mail/threads`,
+`/calendar/events`, `/issues`, `/pulls`, `/connected/items/{id}`). A page appears in the navigation only when
+`/connected/sources` lists a source of its domain. Each page shows how fresh its data is and refreshes on request.
+Actions such as reply, move, comment or approve go through `POST /connected/items/{id}/actions/{action}`: a `202` means the
+action waits for approval in Ready for you, a `200` that it ran, for example as a draft. Connected search is part of the
+command palette. The Claude Code page shows a session's plan, todos, timeline and changed files, and queues messages that
+the session receives at its next stop.
+
 ## Pages not ported yet
 
 The navigation shows only pages with real data behind them. These pages of the design wait for the API:
@@ -34,13 +44,14 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Design page | Missing in the API |
 |---|---|
 | Assistant conversation | A chat endpoint with history |
-| Waiting for you | An inbox across sources |
-| Mail, Calendar | Mail and calendar data |
-| Linear, Pull requests | Issue and pull request feeds |
 | Pipeline, Numbers, Rooms, Contracts, Invoices, Account, Stocks | Business data |
 | Posts, Personal branding, Decks | Content and publishing data |
 | Mission control | A combined live view of all work |
-| Session detail: plan, context, diff, prompting | Session transcripts, diffs and input to a running session |
+| Mail: splits, snooze, bulk actions, context column | Labels, snooze and related records in the mail source |
+| Calendar: drag to move, focus blocks, scheduling assistant | Moving goes through an approval; drag and focus planning need more API |
+| Issues: board, bulk edit, new issue form | Board columns and bulk actions in the issue source |
+| Pull requests: deployments | A deployment feed |
+| Session detail: context usage, rules in effect | Token usage and the session's rules from the desktop agent |
 | Alert detail: metric chart and cause tree | Metrics and root-cause analysis for alerts |
 | Automation builder: branches, dry run over past days | Branching steps and a dry-run endpoint |
 | Tasks: hand a task to Lighthouse | Delegating a task to an agent |
