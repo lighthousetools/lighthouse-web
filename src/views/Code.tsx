@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, CircleDashed, ExternalLink, GitBranch, Loader2, MessageSquare, Search, X } from "lucide-react";
+import { ArrowLeft, Check, CircleDashed, ExternalLink, GitBranch, Loader2, MessageSquare, Rocket, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { dayTime } from "../format";
 import { t, useLanguage } from "../i18n";
@@ -68,7 +68,9 @@ function Detail({ id }: { id: string }) {
   if (!detail.data) return <div className="cd-d"><div className="cd-dm">{detail.isPending ? <Skeleton count={5} /> : <Failure error={detail.error} />}</div></div>;
   const pr = detail.data.item;
   const children = detail.data.children;
-  const checks = children.filter((child) => child.kind === "check");
+  // Checks that mention a deployment or preview carry the `deployment` flag and get a section of their own.
+  const deployments = children.filter((child) => child.kind === "check" && has(child, "deployment"));
+  const checks = children.filter((child) => child.kind === "check" && !has(child, "deployment"));
   const files = children.filter((child) => child.kind === "file").map(fileDiff);
   const reviews = children.filter((child) => child.kind === "review" || child.kind === "comment");
   const state = checkState(pr, checks);
@@ -122,6 +124,24 @@ function Detail({ id }: { id: string }) {
               {checks.length === 0 && <li className="faint">{t("code.noChecks")}</li>}
             </ul>
           </section>
+          {deployments.length > 0 && (
+            <section>
+              <div className="sect">{t("code.deployments")}<small>{deployments.length}</small></div>
+              <ul className="cd-chk">
+                {deployments.map((deployment) => {
+                  const failed = has(deployment, "failed");
+                  const running = ["pending", "queued", "in_progress", "running"].includes((deployment.state ?? "").toLowerCase());
+                  return (
+                    <li key={deployment.id}>
+                      {failed ? <X size={13} className="down" /> : running ? <CircleDashed size={13} className="faint" /> : <Rocket size={13} className="up" />}
+                      <button type="button" className="cd-cr clip" disabled={!deployment.url} title={deployment.url ?? undefined} onClick={() => openItem(deployment)}>{deployment.title}</button>
+                      {deployment.url && !failed && !running && <Btn size="xs" variant="ghost" onClick={() => openItem(deployment)}><ExternalLink />{t("code.openPreview")}</Btn>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
           <section>
             <div className="sect">{t("code.reviews")}<small>{reviews.length}</small></div>
             {reviews.map((review) => (
