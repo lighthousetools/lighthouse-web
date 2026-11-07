@@ -2,21 +2,25 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Check, ChevronRight, Search } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type JSX } from "react";
 import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type LiveState } from "../api/client";
-import { sessionKey, useAgentNames, useMe, useNeedsYou } from "../data";
-import { agentName, toolName } from "../format";
+import { queriesFor, sessionKey, useAlertCounts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
 import { Dot, Kbd, Logo, Menu, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
 import { useNow } from "../ui/live";
 import { Agents } from "../views/Agents";
-import { Approvals } from "../views/Approvals";
+import { Alerts } from "../views/Alerts";
+import { Automations } from "../views/Automations";
+import { Brief } from "../views/Brief";
+import { Me } from "../views/Me";
+import { Ready } from "../views/Ready";
+import { Recap } from "../views/Recap";
+import { Rules } from "../views/Rules";
+import { Tasks } from "../views/Tasks";
 import { Connections } from "../views/Connections";
 import { Log } from "../views/Log";
 import { Login } from "../views/Login";
 import { Sessions } from "../views/Sessions";
 import { Settings } from "../views/Settings";
-import { Today } from "../views/Today";
-import { Weekly } from "../views/Weekly";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
@@ -29,7 +33,8 @@ import { closeInspector, inspector, palette, toasts } from "./state";
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
 
 const VIEW_COMPONENTS: Record<View, (() => JSX.Element) | typeof Brain> = {
-  today: Today, approvals: Approvals, weekly: Weekly, sessions: Sessions, brain: Brain,
+  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, sessions: Sessions, alerts: Alerts, brain: Brain,
+  automations: Automations, rules: Rules, me: Me,
   agents: Agents, log: Log, connections: Connections, settings: Settings,
 };
 
@@ -39,7 +44,12 @@ function useLiveUpdates() {
   const [state, setState] = useState<LiveState>("reconnecting");
   useEffect(() => {
     const stop = new AbortController();
-    void followEvents(() => void client.invalidateQueries({ refetchType: "active" }), setState, stop.signal);
+    const reload = (event: string) => {
+      const keys = queriesFor(event);
+      if (keys === "all") void client.invalidateQueries({ refetchType: "active" });
+      else for (const queryKey of keys) void client.invalidateQueries({ queryKey });
+    };
+    void followEvents(reload, setState, stop.signal);
     return () => stop.abort();
   }, [client]);
   return state;
@@ -222,11 +232,18 @@ function Island({ live }: { live: LiveState }) {
   );
 }
 
+/** Open alerts, all severities. */
+function useAlertTotal() {
+  const counts = useAlertCounts();
+  return counts.data ? counts.data.critical + counts.data.warning + counts.data.info : 0;
+}
+
 function Rail({ view }: { view: View }) {
-  const needs = useNeedsYou();
+  const ready = useReady();
+  const alerts = useAlertTotal();
   const me = useMe();
   const current = groupOf(view);
-  const badge = (id: string) => (id === "today" ? needs.decisions : id === "work" ? needs.waiting.length : 0);
+  const badge = (id: string) => (id === "today" ? ready.data?.total ?? 0 : id === "work" ? alerts : 0);
   return (
     <nav className="rail" aria-label={t("nav.main")}>
       <span className="rl" title={t("app.name")}>
@@ -246,7 +263,7 @@ function Rail({ view }: { view: View }) {
             onClick={() => go(group.items[0]!.view)}
           >
             <group.icon size={18} strokeWidth={1.75} />
-            {count > 0 && <b>{count}</b>}
+            {count > 0 && <b className={group.id === "work" ? "red" : ""}>{count}</b>}
           </button>
         );
       })}
@@ -269,10 +286,13 @@ function Rail({ view }: { view: View }) {
 }
 
 function Sidebar({ view, live }: { view: View; live: LiveState }) {
-  const needs = useNeedsYou();
+  const ready = useReady();
+  const tasks = useTasks("today");
+  const alerts = useAlertTotal();
   const group = groupOf(view);
   if (group.items.length < 2) return null;
-  const counts: Partial<Record<View, number>> = { approvals: needs.decisions };
+  const counts: Partial<Record<View, number>> = { ready: ready.data?.total, tasks: tasks.data?.length, alerts };
+  const tone: Partial<Record<View, string>> = { ready: "count hot", alerts: "count red" };
   return (
     <aside className="sidebar" aria-label={t(group.label)}>
       <h2>{t(group.label)}</h2>
@@ -293,7 +313,7 @@ function Sidebar({ view, live }: { view: View; live: LiveState }) {
           >
             <item.icon size={15} strokeWidth={1.75} />
             <span className="grow">{t(item.label)}</span>
-            {count > 0 && <em className="count hot">{count}</em>}
+            {count > 0 && <em className={tone[item.view] ?? "count"}>{count}</em>}
           </button>
         );
       })}
@@ -325,7 +345,7 @@ function Toasts() {
 /** Keeps the Mac app informed: the Dock badge, notifications for new requests, and its menu commands. */
 function BridgeSync() {
   const needs = useNeedsYou();
-  const names = useAgentNames();
+  const ready = useReady();
   const seen = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (!inNativeShell()) return;
@@ -333,17 +353,21 @@ function BridgeSync() {
     return listenForCommands({ palette: () => palette.set(true), newNote: () => go("brain", "new") });
   }, []);
   useEffect(() => {
-    if (!inNativeShell() || needs.loading) return;
-    post({ type: "badge", count: needs.total });
+    if (!inNativeShell() || !ready.data || needs.loading) return;
+    post({ type: "badge", count: ready.data.total });
     const items = [
-      ...needs.approvals.map((item) => ({ id: item.id, title: toolName(item.tool), body: t("approvals.proposes", { agent: agentName(item.agent_id, names) }), route: `#approvals/${item.id}` })),
-      ...needs.permissions.map((item) => ({ id: item.id, title: t("approvals.claudeWants", { tool: item.tool }), body: item.project, route: `#approvals/${item.id}` })),
+      ...ready.data.items.map((item) => ({
+        id: `${item.kind}:${item.id}`,
+        title: item.title,
+        body: item.summary ?? undefined,
+        route: `#ready/${item.kind}:${item.id}`,
+      })),
       ...needs.waiting.map((item) => ({ id: sessionKey(item), title: t("island.waitingOne"), body: item.project, route: `#sessions/${encodeURIComponent(sessionKey(item))}` })),
     ];
     const fresh = new Set(newIds(seen.current, items.map((item) => item.id)));
     for (const item of items) if (fresh.has(item.id)) post({ type: "notify", ...item });
     seen.current = new Set(items.map((item) => item.id));
-  }, [needs.loading, needs.total, needs.approvals, needs.permissions, needs.waiting, names]);
+  }, [ready.data, needs.loading, needs.waiting]);
   return null;
 }
 

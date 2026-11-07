@@ -91,6 +91,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists alerts, unresolved and worst first. */
+        get: operations["list_alerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alerts/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts unresolved alerts per severity. */
+        get: operations["count_alerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alerts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns an alert. */
+        get: operations["get_alert"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alerts/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledges an open alert. It stays visible until it is resolved. */
+        post: operations["acknowledge_alert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/alerts/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolves an alert. If the problem happens again, a new alert opens. */
+        post: operations["resolve_alert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/approvals": {
         parameters: {
             query?: never;
@@ -261,6 +346,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/automations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the automations. */
+        get: operations["list_automations"];
+        put?: never;
+        /** Creates or replaces an automation. The ID comes from the file. */
+        post: operations["save_automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automations/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reports an event from outside, such as `mail.received`, and starts the
+         *     automations that wait for it.
+         */
+        post: operations["emit_event"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns an automation. */
+        get: operations["get_automation"];
+        put?: never;
+        post?: never;
+        /** Deletes an automation created in the apps. */
+        delete: operations["delete_automation"];
+        options?: never;
+        head?: never;
+        /** Switches an automation on or off without changing its file. */
+        patch: operations["switch_automation"];
+        trace?: never;
+    };
+    "/automations/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Starts an automation now, whatever its trigger, for example to test it. */
+        post: operations["run_automation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automations/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the runs of an automation, newest first. */
+        get: operations["automation_runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/automations/{id}/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calls the webhook of an automation with a JSON payload.
+         * @description It needs a bearer token like every endpoint. Issue a device token for the
+         *     service that calls it.
+         */
+        post: operations["automation_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/brain/ask": {
         parameters: {
             query?: never;
@@ -403,6 +600,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/briefs/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the latest morning brief. */
+        get: operations["latest_brief"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists calendar events, earliest first. */
+        get: operations["list_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calendar/freebusy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the busy blocks of the calendar, merged. Defaults to the next seven days. */
+        get: operations["free_busy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Returns an item with its children, such as the messages of a thread or the
+         *     checks and files of a pull request.
+         */
+        get: operations["get_connected_item"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/items/{id}/actions/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Asks for an action on an item, such as `reply`, `archive`, `comment` or `approve`.
+         * @description A tool with external effect waits for the owner's approval, and the answer
+         *     is `202` with the approval. A `read` or `draft` tool runs at once.
+         */
+        post: operations["act_on_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refreshes every source now. */
+        post: operations["refresh_sources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Searches every cached item; filter with `domain`. */
+        get: operations["search_connected"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the sources with their freshness. */
+        get: operations["list_sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/sources/{name}/actions/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks for an action of a source without an item, such as `create` or `send`. */
+        post: operations["act_on_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connected/sources/{name}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refreshes one source now. */
+        post: operations["refresh_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/connectors": {
         parameters: {
             query?: never;
@@ -489,6 +863,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists documents, latest period first. */
+        get: operations["list_documents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/events": {
         parameters: {
             query?: never;
@@ -498,7 +889,9 @@ export interface paths {
         };
         /**
          * Tells a client when to reload, as a stream of server-sent events.
-         * @description A `changed` event means something the apps show has changed.
+         * @description A `changed` event means something the apps show has changed. Named events
+         *     such as `run.finished`, `run.waiting`, `alert.raised` or `tasks.changed`
+         *     say what changed and carry IDs. See `docs/api.md` for the list.
          */
         get: operations["events"];
         put?: never;
@@ -526,6 +919,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The unified inbox: important and unread mail, mentions, review requests and
+         *     assigned issues that are still open, most important first.
+         */
+        get: operations["inbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists issues, latest change first. */
+        get: operations["list_issues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/issues/cycles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists cycles, earliest first. */
+        get: operations["list_cycles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/issues/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists projects. */
+        get: operations["list_projects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mail/threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists mail threads, latest first. */
+        get: operations["list_mail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/me": {
         parameters: {
             query?: never;
@@ -537,6 +1018,60 @@ export interface paths {
         get: operations["me"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists facts about the owner, newest first. */
+        get: operations["list_facts"];
+        put?: never;
+        /** Stores a fact the owner states. It is confirmed at once. */
+        post: operations["create_fact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memory/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a fact. */
+        get: operations["get_fact"];
+        put?: never;
+        post?: never;
+        /** Forgets a fact. */
+        delete: operations["delete_fact"];
+        options?: never;
+        head?: never;
+        /** Rewords, regroups, pauses or resumes a fact. Rewording confirms it. */
+        patch: operations["update_fact"];
+        trace?: never;
+    };
+    "/memory/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirms a fact an agent learned. */
+        post: operations["confirm_fact"];
         delete?: never;
         options?: never;
         head?: never;
@@ -662,6 +1197,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pulls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists pull requests, latest change first. */
+        get: operations["list_pulls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Collects what waits for the owner: open approvals and permission requests,
+         *     drafts agents saved in external tools during the last seven days, and tasks
+         *     and facts agents proposed.
+         */
+        get: operations["ready_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ready/drafts/{id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clears a draft from the feed once the owner has dealt with it in its tool.
+         *     Approvals, permissions, tasks and facts leave the feed through their own
+         *     decisions.
+         */
+        post: operations["dismiss_draft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists weekly recaps, latest week first. */
+        get: operations["list_recaps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recaps/{week}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the weekly recap of an ISO week, such as `2026-W45`, or `latest`. */
+        get: operations["get_recap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists rules, oldest first. */
+        get: operations["list_rules"];
+        put?: never;
+        /** Creates a rule. */
+        post: operations["create_rule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a rule. */
+        get: operations["get_rule"];
+        put?: never;
+        post?: never;
+        /** Deletes a rule. */
+        delete: operations["delete_rule"];
+        options?: never;
+        head?: never;
+        /** Changes, enables or disables a rule. */
+        patch: operations["update_rule"];
+        trace?: never;
+    };
     "/runs": {
         parameters: {
             query?: never;
@@ -688,6 +1353,23 @@ export interface paths {
         };
         /** Returns a run with all its steps. */
         get: operations["get_run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the document a run wrote. */
+        get: operations["run_document"];
         put?: never;
         post?: never;
         delete?: never;
@@ -730,10 +1412,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists tasks. */
+        get: operations["list_tasks"];
+        put?: never;
+        /** Creates a task at the top of the list. */
+        post: operations["create_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Changes the order of tasks. */
+        post: operations["reorder_tasks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a task. */
+        get: operations["get_task"];
+        put?: never;
+        post?: never;
+        /** Deletes a task, which also rejects a proposal. */
+        delete: operations["delete_task"];
+        options?: never;
+        head?: never;
+        /** Changes a task. Missing fields stay, `null` clears. */
+        patch: operations["update_task"];
+        trace?: never;
+    };
+    "/tasks/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts a task an agent proposed. */
+        post: operations["accept_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marks a task as done. */
+        post: operations["complete_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Puts a done task back on the list. */
+        post: operations["reopen_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description An action the owner asks for, such as a reply or a comment. */
+        ActionRequest: {
+            /** @description Values for the action's `{{input.<field>}}` placeholders, such as `body`. */
+            input?: unknown;
+        };
+        /** @description What became of an action. */
+        ActionResult: {
+            /**
+             * Format: uuid
+             * @description The approval to decide, when it was proposed.
+             */
+            approval_id?: string | null;
+            /** @description Tool output, when it ran at once. */
+            output?: string | null;
+            /**
+             * Format: uuid
+             * @description The run that holds it.
+             */
+            run_id: string;
+            /** @description `proposed` when it waits for approval, `done` or `failed` when it ran at once. */
+            status: string;
+            /** @description Qualified tool name. */
+            tool: string;
+        };
         /** @description A description of a new agent. */
         AgentDraftRequest: {
             /** @description What the agent should do. */
@@ -777,6 +1588,75 @@ export interface components {
             /** @description Qualified name. */
             name: string;
         };
+        /** @description An alert. */
+        Alert: {
+            /**
+             * Format: date-time
+             * @description When the owner acknowledged it.
+             */
+            acknowledged_at?: string | null;
+            /**
+             * Format: int32
+             * @description How often it happened while unresolved.
+             */
+            count: number;
+            /** @description The latest error text. */
+            detail?: string | null;
+            /**
+             * Format: date-time
+             * @description First occurrence.
+             */
+            first_seen_at: string;
+            /**
+             * Format: uuid
+             * @description Alert ID.
+             */
+            id: string;
+            /** @description Identifies the problem, such as `connector:linear`. */
+            key: string;
+            /** @description `run_failed`, `connector`, `node_offline` or `cost_limit`. */
+            kind: string;
+            /**
+             * Format: date-time
+             * @description Latest occurrence.
+             */
+            last_seen_at: string;
+            /**
+             * Format: date-time
+             * @description When it was resolved.
+             */
+            resolved_at?: string | null;
+            /** @description How bad it is. */
+            severity: components["schemas"]["Severity"];
+            source?: components["schemas"]["SourceLink"] | null;
+            /** @description `open`, `acknowledged` or `resolved`. */
+            status: string;
+            /** @description Short description. */
+            title: string;
+        };
+        /** @description Number of unresolved alerts per severity. */
+        AlertCounts: {
+            /**
+             * Format: int64
+             * @description Critical alerts.
+             */
+            critical: number;
+            /**
+             * Format: int64
+             * @description Information.
+             */
+            info: number;
+            /**
+             * Format: int64
+             * @description Warnings.
+             */
+            warning: number;
+        };
+        /**
+         * @description Which alerts to list.
+         * @enum {string}
+         */
+        AlertView: "active" | "open" | "acknowledged" | "resolved" | "all";
         /** @description A proposed tool call. */
         Approval: {
             /** @description The agent that proposes the call. */
@@ -841,6 +1721,62 @@ export interface components {
             /** @description Whether the owner still has to set a password. */
             setup_required: boolean;
         };
+        /** @description An automation. */
+        AutomationInfo: {
+            /** @description What it is for. */
+            description: string;
+            /** @description Whether the apps can change the file. */
+            editable: boolean;
+            /** @description Whether it runs on its trigger. */
+            enabled: boolean;
+            /** @description Automation ID. */
+            id: string;
+            /** @description Display name. */
+            name: string;
+            /**
+             * Format: date-time
+             * @description Next scheduled run.
+             */
+            next_run?: string | null;
+            /** @description The file. */
+            source: string;
+            /** @description Steps in order. */
+            steps: components["schemas"]["AutomationStepInfo"][];
+            /** @description Trigger. */
+            trigger: components["schemas"]["AutomationTriggerInfo"];
+        };
+        /** @description Runs started by a request. */
+        AutomationRuns: {
+            /** @description IDs of the started runs. */
+            runs: string[];
+        };
+        /** @description One step of an automation. */
+        AutomationStepInfo: {
+            /** @description `agent`, `tool`, `notify` or `if`. */
+            kind: string;
+            /** @description Whether it waits for the owner's approval before it acts. */
+            needs_approval: boolean;
+            /** @description What it does, in a few words. */
+            summary: string;
+        };
+        /** @description Switches an automation on or off. */
+        AutomationSwitch: {
+            /** @description Whether it runs on its trigger. */
+            enabled: boolean;
+        };
+        /** @description The trigger of an automation. */
+        AutomationTriggerInfo: {
+            /** @description Cron expression. */
+            cron?: string | null;
+            /** @description Event name, such as `run.failed` or `mail.received`. */
+            event?: string | null;
+            /** @description Fields the event or webhook payload must contain. */
+            filter: {
+                [key: string]: string;
+            };
+            /** @description `cron`, `event`, `webhook` or `manual`. */
+            kind: string;
+        };
         /** @description One decision on many proposals, for example a batch of similar ones. */
         BatchDecision: {
             /** @description Whether the actions may run. */
@@ -854,6 +1790,60 @@ export interface components {
             decided: string[];
             /** @description Proposals already decided or expired. */
             skipped: string[];
+        };
+        /** @description The structured result of a briefing run. */
+        BriefingContent: {
+            /** @description `morning_brief`, `weekly_recap` or another lowercase kind. */
+            kind: string;
+            /** @description The sections in order. */
+            sections: components["schemas"]["DocumentSection"][];
+            /** @description A few sentences on the whole. */
+            summary?: string | null;
+            /** @description Title. */
+            title: string;
+            /** @description Sources that could not be read. */
+            unavailable?: string[];
+        };
+        /** @description A stored document. */
+        BriefingDocument: {
+            /** @description The agent of that run. */
+            agent_id: string;
+            /** @description The structured content. */
+            content: components["schemas"]["BriefingContent"];
+            /**
+             * Format: date-time
+             * @description When it was stored.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description Document ID.
+             */
+            id: string;
+            /** @description Kind, as in the content. */
+            kind: string;
+            /** @description Covered period: `YYYY-MM-DD`, or `YYYY-Www` for weekly recaps. */
+            period: string;
+            /**
+             * Format: uuid
+             * @description The run that wrote it.
+             */
+            run_id: string;
+            /** @description Title, as in the content. */
+            title: string;
+        };
+        /** @description A busy block in the calendar. */
+        BusyBlock: {
+            /**
+             * Format: date-time
+             * @description End.
+             */
+            ends_at: string;
+            /**
+             * Format: date-time
+             * @description Start.
+             */
+            starts_at: string;
         };
         /** @description Answer when an OAuth flow started. */
         ConnectStarted: {
@@ -934,6 +1924,25 @@ export interface components {
          * @enum {string}
          */
         DeviceKind: "web" | "mac" | "ios" | "node" | "api";
+        /** @description One line of a section. */
+        DocumentItem: {
+            /** @description More detail, if needed. */
+            detail?: string | null;
+            /** @description Numbers that belong to it. */
+            numbers?: components["schemas"]["ItemNumber"][];
+            source?: components["schemas"]["ItemSource"] | null;
+            /** @description The statement, one sentence. */
+            text: string;
+        };
+        /** @description A section, such as "Needs you". */
+        DocumentSection: {
+            /** @description Its lines. */
+            items?: components["schemas"]["DocumentItem"][];
+            /** @description Stable key for the apps, such as `needs_you`. */
+            key?: string | null;
+            /** @description Heading. */
+            title: string;
+        };
         /** @description An entry of the Brain. */
         Entry: {
             /**
@@ -1007,12 +2016,132 @@ export interface components {
              */
             updated_at: string;
         };
+        /** @description An event from outside, such as a new mail reported by a connector. */
+        ExternalEvent: {
+            /** @description Event name like `mail.received`. Names starting with `run.` are reserved. */
+            name: string;
+            /** @description Payload that triggers match against and steps read. */
+            payload?: unknown;
+        };
+        /** @description A fact about the owner. */
+        Fact: {
+            /** @description The agent that learned it. */
+            agent_id?: string | null;
+            /** @description Optional grouping, such as `work`, `writing` or `people`. */
+            category?: string | null;
+            /**
+             * Format: double
+             * @description From 0 to 1. Facts of the owner have 1.
+             */
+            confidence: number;
+            /**
+             * Format: date-time
+             * @description When the owner confirmed it.
+             */
+            confirmed_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description Fact ID.
+             */
+            id: string;
+            /** @description Whether the owner paused it. Paused facts stay out of prompts. */
+            paused: boolean;
+            /**
+             * Format: uuid
+             * @description The run that learned it.
+             */
+            run_id?: string | null;
+            /** @description Where it came from. */
+            source: components["schemas"]["FactSource"];
+            /** @description `proposed` or `confirmed`. */
+            status: string;
+            /** @description The fact, as one sentence. */
+            text: string;
+            /**
+             * Format: date-time
+             * @description Last change.
+             */
+            updated_at: string;
+        };
+        /** @description Changes to a fact. Missing fields stay, `null` clears. */
+        FactPatch: {
+            /** @description New grouping. */
+            category?: string | null;
+            /** @description Pause or resume. */
+            paused?: boolean | null;
+            /** @description New text. Rewording a fact confirms it. */
+            text?: string | null;
+        };
+        /** @description Where a fact came from. */
+        FactSource: {
+            /** @description `owner` when the owner stated it, `agent` when a run learned it. */
+            kind: string;
+            /** @description What it was learned from, in a few words. */
+            label?: string | null;
+            /** @description ID within that kind, such as the run ID. */
+            reference?: string | null;
+        };
         /** @description Answer of the health check. */
         Health: {
             /** @description Always `ok`. */
             status: string;
             /** @description Server version. */
             version: string;
+        };
+        /** @description An item with its children, such as a thread with messages or a pull request with checks and files. */
+        ItemDetail: {
+            /** @description Its children. */
+            children: components["schemas"]["SyncedItem"][];
+            /** @description The item. */
+            item: components["schemas"]["SyncedItem"];
+            /** @description The item as the tool returned it, if it was small enough. */
+            raw?: unknown;
+        };
+        /** @description A number of an item, such as merged pull requests this week. */
+        ItemNumber: {
+            /** @description What is counted. */
+            label: string;
+            /**
+             * Format: double
+             * @description The value of the period before, for comparison.
+             */
+            previous?: number | null;
+            /** @description Unit, such as `EUR` or `%`. */
+            unit?: string | null;
+            /**
+             * Format: double
+             * @description The value.
+             */
+            value: number;
+        };
+        /** @description A page of items. */
+        ItemPage: {
+            /** @description Items on this page. */
+            items: components["schemas"]["SyncedItem"][];
+            /**
+             * Format: int64
+             * @description Offset for the next page, if there is one.
+             */
+            next_offset?: number | null;
+            /**
+             * Format: int64
+             * @description Matching items in total.
+             */
+            total: number;
+        };
+        /** @description Where an item comes from. */
+        ItemSource: {
+            /** @description ID within the service, such as an issue key or a pull request number. */
+            reference?: string | null;
+            /** @description Service name, such as `linear` or `github`. */
+            service: string;
+            /** @description Address to open it. */
+            url?: string | null;
         };
         /** @description A sign-in attempt. */
         LoginRequest: {
@@ -1041,6 +2170,13 @@ export interface components {
             /** @description One of the entry kinds. */
             type: string;
         };
+        /** @description A fact the owner states. */
+        NewFact: {
+            /** @description Optional grouping. */
+            category?: string | null;
+            /** @description The fact. */
+            text: string;
+        };
         /** @description A permission request from a session. */
         NewPermission: {
             /** @description Tool arguments. */
@@ -1051,6 +2187,35 @@ export interface components {
             session_id: string;
             /** @description Tool name. */
             tool: string;
+        };
+        /** @description A rule to create. */
+        NewRule: {
+            /** @description The agent it applies to. Leave out for every agent. */
+            agent_id?: string | null;
+            /** @description Optional grouping. */
+            category?: string | null;
+            /** @description Whether runs see it. Defaults to `true`. */
+            enabled?: boolean;
+            /** @description The rule. */
+            text: string;
+        };
+        /** @description A task to create. */
+        NewTask: {
+            /**
+             * Format: date
+             * @description Due date.
+             */
+            due_on?: string | null;
+            /** @description Free notes. */
+            notes?: string | null;
+            /**
+             * Format: int32
+             * @description 0 to 3.
+             */
+            priority?: number;
+            source?: components["schemas"]["SourceLink"] | null;
+            /** @description What to do. */
+            title: string;
         };
         /** @description A machine with a desktop agent. */
         Node: {
@@ -1088,6 +2253,11 @@ export interface components {
             /** @description Whether remote actions are paused. */
             paused: boolean;
         };
+        /**
+         * @description Who created something.
+         * @enum {string}
+         */
+        Origin: "owner" | "agent";
         /** @description A stored permission request. */
         Permission: {
             /**
@@ -1131,6 +2301,66 @@ export interface components {
             /** @description Whether the tool may run. */
             allow: boolean;
         };
+        /** @description Everything that waits for the owner. */
+        ReadyFeed: {
+            /** @description Unresolved alerts per severity, shown beside the feed. */
+            alerts: components["schemas"]["AlertCounts"];
+            /** @description Items per kind. */
+            counts: {
+                [key: string]: number;
+            };
+            /** @description Items per group. */
+            groups: {
+                [key: string]: number;
+            };
+            /** @description Decisions first, then drafts, then suggestions; oldest first within a group. */
+            items: components["schemas"]["ReadyItem"][];
+            /** @description Number of items. */
+            total: number;
+        };
+        /** @description One thing that waits for the owner. */
+        ReadyItem: {
+            /** @description The agent behind it. */
+            agent_id?: string | null;
+            /**
+             * Format: date-time
+             * @description Since when it waits.
+             */
+            created_at: string;
+            /** @description The full item, as its own endpoint returns it. */
+            detail: unknown;
+            /**
+             * Format: date-time
+             * @description When it lapses, if it does.
+             */
+            expires_at?: string | null;
+            /** @description `decisions`, `drafts` or `suggestions`. */
+            group: string;
+            /** @description ID of the item within its kind. */
+            id: string;
+            /** @description `approval`, `permission`, `draft`, `task` or `fact`. */
+            kind: string;
+            /**
+             * Format: uuid
+             * @description The run behind it.
+             */
+            run_id?: string | null;
+            /** @description What the agent said about it, if anything. */
+            summary?: string | null;
+            /** @description One line for the list. */
+            title: string;
+        };
+        /** @description What a refresh did. */
+        RefreshResult: {
+            /** @description Errors of single collections. */
+            errors: string[];
+            /** @description Events sent to automations. */
+            events: number;
+            /** @description Items fetched. */
+            items: number;
+            /** @description Source name. */
+            source: string;
+        };
         /** @description The entry behind a link. */
         ResolvedEntry: {
             /**
@@ -1138,6 +2368,43 @@ export interface components {
              * @description Entry ID.
              */
             id: string;
+        };
+        /** @description A standing rule. */
+        Rule: {
+            /** @description The agent it applies to. `None` means every agent. */
+            agent_id?: string | null;
+            /** @description Optional grouping for the apps, such as `work` or `tech`. */
+            category?: string | null;
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /** @description Whether runs see it. */
+            enabled: boolean;
+            /**
+             * Format: uuid
+             * @description Rule ID.
+             */
+            id: string;
+            /** @description The rule in the owner's words. */
+            text: string;
+            /**
+             * Format: date-time
+             * @description Last change.
+             */
+            updated_at: string;
+        };
+        /** @description Changes to a rule. Missing fields stay, `null` clears. */
+        RulePatch: {
+            /** @description New agent, or `null` for every agent. */
+            agent_id?: string | null;
+            /** @description New grouping. */
+            category?: string | null;
+            /** @description Enable or disable. */
+            enabled?: boolean | null;
+            /** @description New text. */
+            text?: string | null;
         };
         /** @description A run with its steps. */
         RunDetail: {
@@ -1267,6 +2534,11 @@ export interface components {
             /** @description The password, at least 12 characters. */
             password: string;
         };
+        /**
+         * @description How bad a problem is.
+         * @enum {string}
+         */
+        Severity: "info" | "warning" | "critical";
         /** @description A skill. */
         SkillInfo: {
             /** @description What it is for. */
@@ -1280,6 +2552,39 @@ export interface components {
             kind: string;
             /** @description Reference inside that source. */
             ref: string;
+        };
+        /** @description A configured source with its freshness. */
+        SourceInfo: {
+            /** @description Actions the owner can ask for. */
+            actions: string[];
+            /** @description Connector it calls. */
+            connector: string;
+            /** @description `mail`, `calendar`, `issues` or `code`. */
+            domain: string;
+            /**
+             * Format: int64
+             * @description Refresh interval in seconds.
+             */
+            interval_seconds: number;
+            /** @description Source name. */
+            name: string;
+            /** @description Whether the last success is older than two intervals, or missing. */
+            stale: boolean;
+            status?: components["schemas"]["SyncStatus"] | null;
+        };
+        /**
+         * @description A link to the thing something came from, such as a run, an approval, a mail
+         *     or an issue.
+         */
+        SourceLink: {
+            /** @description What it points to, such as `run`, `approval`, `mail`, `issue` or `brain`. */
+            kind: string;
+            /** @description Display text. */
+            label?: string | null;
+            /** @description ID within that kind, such as a run ID or an issue key. */
+            reference: string;
+            /** @description Address to open it, if it lives outside Lighthouse. */
+            url?: string | null;
         };
         /** @description A step as stored. */
         StepRecord: {
@@ -1322,6 +2627,182 @@ export interface components {
             /** @description Status. */
             status: string;
         };
+        /** @description Freshness of a source. */
+        SyncStatus: {
+            /**
+             * Format: int32
+             * @description Items fetched by the last successful refresh.
+             */
+            items: number;
+            /**
+             * Format: date-time
+             * @description Last refresh attempt.
+             */
+            last_attempt_at?: string | null;
+            /** @description Error of the last attempt, if it failed. */
+            last_error?: string | null;
+            /**
+             * Format: date-time
+             * @description Last successful refresh.
+             */
+            last_success_at?: string | null;
+            /** @description Source name. */
+            source: string;
+        };
+        /** @description A cached item. */
+        SyncedItem: {
+            /** @description Assignee. */
+            assignee?: string | null;
+            /** @description Author or sender. */
+            author?: string | null;
+            /** @description Every mapped field. */
+            data: unknown;
+            /** @description `mail`, `calendar`, `issues` or `code`. */
+            domain: string;
+            /**
+             * Format: date-time
+             * @description End, for events and cycles.
+             */
+            ends_at?: string | null;
+            /** @description ID in the service. */
+            external_id: string;
+            /** @description Flags such as `important`, `unread`, `assigned`, `review_requested`, `mine`, `mention` or `failed`. */
+            flags: string[];
+            /**
+             * Format: uuid
+             * @description Item ID in Lighthouse.
+             */
+            id: string;
+            /**
+             * Format: int32
+             * @description How much it asks for attention, from 0 to 100.
+             */
+            importance: number;
+            /** @description Kind, such as `thread`, `event`, `issue`, `pull_request` or `check`. */
+            kind: string;
+            /**
+             * Format: date-time
+             * @description When it last changed or arrived.
+             */
+            occurred_at?: string | null;
+            /** @description ID of the parent item in the service, such as the pull request of a check. */
+            parent_id?: string | null;
+            /** @description Source name from the configuration. */
+            source: string;
+            /**
+             * Format: date-time
+             * @description Start, for events and cycles.
+             */
+            starts_at?: string | null;
+            /** @description State in the service. */
+            state?: string | null;
+            /** @description Snippet, description or body. */
+            summary?: string | null;
+            /**
+             * Format: date-time
+             * @description When it was fetched.
+             */
+            synced_at: string;
+            /** @description Title or subject. */
+            title?: string | null;
+            /** @description Address to open it in the service. */
+            url?: string | null;
+        };
+        /** @description A task. */
+        Task: {
+            /** @description The proposing agent. */
+            agent_id?: string | null;
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description When it was done.
+             */
+            done_at?: string | null;
+            /**
+             * Format: date
+             * @description Due date in the owner's time zone.
+             */
+            due_on?: string | null;
+            /**
+             * Format: uuid
+             * @description Task ID.
+             */
+            id: string;
+            /** @description Free notes. */
+            notes?: string | null;
+            /** @description Who created it. */
+            origin: components["schemas"]["Origin"];
+            /**
+             * Format: double
+             * @description Sort key, lowest first.
+             */
+            position: number;
+            /**
+             * Format: int32
+             * @description 0 for none up to 3 for high.
+             */
+            priority: number;
+            /**
+             * Format: uuid
+             * @description The proposing run.
+             */
+            run_id?: string | null;
+            source?: components["schemas"]["SourceLink"] | null;
+            /** @description `proposed`, `open` or `done`. */
+            status: components["schemas"]["TaskStatus"];
+            /** @description What to do. */
+            title: string;
+            /**
+             * Format: date-time
+             * @description Last change.
+             */
+            updated_at: string;
+        };
+        /** @description A new order of tasks. */
+        TaskOrder: {
+            /** @description Task IDs, first to last. Tasks not named keep their order after these. */
+            ids: string[];
+        };
+        /** @description Result of a reorder. */
+        TaskOrderResult: {
+            /**
+             * Format: int64
+             * @description Number of tasks that were found and moved.
+             */
+            moved: number;
+        };
+        /** @description Changes to a task. Missing fields stay, `null` clears. */
+        TaskPatch: {
+            /**
+             * Format: date
+             * @description New due date.
+             */
+            due_on?: string | null;
+            /** @description New notes. */
+            notes?: string | null;
+            /**
+             * Format: int32
+             * @description New priority.
+             */
+            priority?: number | null;
+            source?: components["schemas"]["SourceLink"] | null;
+            /** @description New title. */
+            title?: string | null;
+        };
+        /**
+         * @description State of a task.
+         * @enum {string}
+         */
+        TaskStatus: "proposed" | "open" | "done";
+        /**
+         * @description Which tasks to list.
+         * @enum {string}
+         */
+        TaskView: "all" | "today" | "upcoming" | "done" | "proposed";
         /** @description A device token. It is shown only once. */
         TokenIssued: {
             /**
@@ -1338,6 +2819,30 @@ export interface components {
             kind: components["schemas"]["DeviceKind"];
             /** @description Name of the token. */
             name: string;
+        };
+        /** @description A successful tool call, as listed for review. */
+        ToolCall: {
+            /** @description The agent of the run. */
+            agent_id: string;
+            /**
+             * Format: date-time
+             * @description When it ran.
+             */
+            created_at: string;
+            /** @description Tool arguments as JSON text. */
+            detail?: string | null;
+            /**
+             * Format: uuid
+             * @description Step ID.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The run.
+             */
+            run_id: string;
+            /** @description Qualified tool name. */
+            tool: string;
         };
     };
     responses: never;
@@ -1538,6 +3043,136 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RunRecord"][];
                 };
+            };
+        };
+    };
+    list_alerts: {
+        parameters: {
+            query?: {
+                /** @description active (default), open, acknowledged, resolved or all */
+                view?: components["schemas"]["AlertView"];
+                /** @description Maximum number of alerts */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"][];
+                };
+            };
+        };
+    };
+    count_alerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertCounts"];
+                };
+            };
+        };
+    };
+    get_alert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Alert ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"];
+                };
+            };
+            /** @description Unknown alert */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    acknowledge_alert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Alert ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"];
+                };
+            };
+            /** @description Not open or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolve_alert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Alert ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Alert"];
+                };
+            };
+            /** @description Resolved already or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1788,6 +3423,279 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TokenIssued"];
                 };
+            };
+        };
+    };
+    list_automations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationInfo"][];
+                };
+            };
+        };
+    };
+    save_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSource"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationInfo"];
+                };
+            };
+            /** @description Invalid file or read-only automation */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    emit_event: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExternalEvent"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationRuns"];
+                };
+            };
+            /** @description Invalid or reserved event name */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationInfo"];
+                };
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Managed as a file on the server */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switch_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomationSwitch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationInfo"];
+                };
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    run_automation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional `payload` that the steps read as the event */
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunStarted"];
+                };
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    automation_runs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunRecord"][];
+                };
+            };
+        };
+    };
+    automation_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Automation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        /** @description Any JSON payload */
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomationRuns"];
+                };
+            };
+            /** @description Unknown automation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a webhook automation, or switched off */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2102,6 +4010,321 @@ export interface operations {
             };
         };
     };
+    latest_brief: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDocument"];
+                };
+            };
+            /** @description No brief yet */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_events: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    free_busy: {
+        parameters: {
+            query?: {
+                /** @description Start, defaults to now */
+                from?: string;
+                /** @description End, defaults to seven days later */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BusyBlock"][];
+                };
+            };
+        };
+    };
+    get_connected_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Item ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemDetail"];
+                };
+            };
+            /** @description Unknown item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    act_on_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Item ID */
+                id: string;
+                /** @description Action name from the source */
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            /** @description Unknown item */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown action, or the item does not fit it */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh_sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResult"][];
+                };
+            };
+        };
+    };
+    search_connected: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceInfo"][];
+                };
+            };
+        };
+    };
+    act_on_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Source name */
+                name: string;
+                /** @description Action name from the source */
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            /** @description Unknown source or action */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Source name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshResult"];
+                };
+            };
+            /** @description Unknown source */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     connectors: {
         parameters: {
             query?: never;
@@ -2249,6 +4472,30 @@ export interface operations {
             };
         };
     };
+    list_documents: {
+        parameters: {
+            query?: {
+                /** @description morning_brief, weekly_recap or another kind */
+                kind?: string;
+                /** @description Maximum number of documents */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDocument"][];
+                };
+            };
+        };
+    };
     events: {
         parameters: {
             query?: never;
@@ -2288,6 +4535,186 @@ export interface operations {
             };
         };
     };
+    inbox: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_issues: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_cycles: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_projects: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_mail: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -2304,6 +4731,186 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Me"];
                 };
+            };
+        };
+    };
+    list_facts: {
+        parameters: {
+            query?: {
+                /** @description proposed or confirmed */
+                status?: string;
+                /** @description Only this grouping */
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fact"][];
+                };
+            };
+        };
+    };
+    create_fact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFact"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fact"];
+                };
+            };
+            /** @description Invalid fact */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_fact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fact ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fact"];
+                };
+            };
+            /** @description Unknown fact */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_fact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fact ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Forgotten */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown fact */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_fact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fact ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FactPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fact"];
+                };
+            };
+            /** @description Invalid change */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown fact */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirm_fact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Fact ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fact"];
+                };
+            };
+            /** @description Confirmed already or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2492,6 +5099,284 @@ export interface operations {
             };
         };
     };
+    list_pulls: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    ready_feed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadyFeed"];
+                };
+            };
+        };
+    };
+    dismiss_draft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the draft item */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cleared */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_recaps: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of recaps */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDocument"][];
+                };
+            };
+        };
+    };
+    get_recap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ISO week like 2026-W45, or latest */
+                week: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDocument"];
+                };
+            };
+            /** @description No recap for that week */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_rules: {
+        parameters: {
+            query?: {
+                /** @description Only the enabled rules a run of this agent sees */
+                agent?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"][];
+                };
+            };
+        };
+    };
+    create_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewRule"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                };
+            };
+            /** @description Invalid rule */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                };
+            };
+            /** @description Unknown rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_rule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RulePatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Rule"];
+                };
+            };
+            /** @description Invalid change */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown rule */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_runs: {
         parameters: {
             query?: {
@@ -2543,6 +5428,35 @@ export interface operations {
             };
         };
     };
+    run_document: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Run ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BriefingDocument"];
+                };
+            };
+            /** @description The run wrote none */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     sessions: {
         parameters: {
             query?: {
@@ -2581,6 +5495,267 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SkillInfo"][];
                 };
+            };
+        };
+    };
+    list_tasks: {
+        parameters: {
+            query?: {
+                /** @description all, today, upcoming, done or proposed */
+                view?: components["schemas"]["TaskView"];
+                /** @description Maximum number of tasks */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"][];
+                };
+            };
+        };
+    };
+    create_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTask"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Invalid task */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reorder_tasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskOrder"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOrderResult"];
+                };
+            };
+        };
+    };
+    get_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unknown task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Invalid change */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown task */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Not a proposal or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    complete_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Already done or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reopen_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Not done or unknown */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

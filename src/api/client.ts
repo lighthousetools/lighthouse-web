@@ -132,9 +132,12 @@ export async function askStream(
 
 export type LiveState = "live" | "reconnecting";
 
-/** Calls `onChange` whenever the server reports a change, until aborted. */
+/**
+ * Calls `onEvent` with the name and data of every event the server sends, until aborted. `changed` means anything
+ * may have changed; the named events say what.
+ */
 export async function followEvents(
-  onChange: () => void,
+  onEvent: (event: string, data: unknown) => void,
   onState: (state: LiveState) => void,
   signal: AbortSignal,
 ) {
@@ -146,8 +149,14 @@ export async function followEvents(
       if (response.ok) {
         onState("live");
         delay = 1000;
-        await readEvents(response, ({ event }) => {
-          if (event === "changed") onChange();
+        await readEvents(response, ({ event, data }) => {
+          let parsed: unknown = null;
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            // Events carry IDs only; a body that is not JSON still names what changed.
+          }
+          onEvent(event, parsed);
         });
       }
     } catch {

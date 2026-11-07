@@ -35,7 +35,7 @@ describe("translations", () => {
   it("switch at once and follow the browser by default", () => {
     setLanguage("de");
     expect(language()).toBe("de");
-    expect(t("nav.today")).toBe("Heute");
+    expect(t("nav.ready")).toBe("Fertig für dich");
     expect(statusLabel("limit_exceeded")).toBe("Am Limit gestoppt");
     expect(longDate(new Date(2026, 10, 6))).toBe("Freitag, 6. November");
     setLanguage("en");

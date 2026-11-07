@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 
 /** Views in the order of their number shortcuts. */
 export const VIEWS = [
-  "today", "approvals", "weekly", "sessions", "brain", "agents", "log", "connections", "settings",
+  "ready", "tasks", "brief", "recap", "sessions", "alerts", "brain", "automations", "agents", "log",
+  "connections", "rules", "me", "settings",
 ] as const;
+
+/** Older names that links, notifications and the Mac app still use. */
+const ALIASES: Record<string, View> = { today: "ready", approvals: "ready", weekly: "recap" };
 
 export type View = (typeof VIEWS)[number];
 export type Route = { view: View; param?: string };
@@ -14,7 +18,8 @@ export function parseRoute(hash: string): Route {
   const slash = raw.indexOf("/");
   const view = slash === -1 ? raw : raw.slice(0, slash);
   const param = slash === -1 ? undefined : decodeURIComponent(raw.slice(slash + 1)) || undefined;
-  return VIEWS.includes(view as View) ? { view: view as View, param } : { view: "today" };
+  const known = VIEWS.includes(view as View) ? (view as View) : ALIASES[view];
+  return known ? { view: known, param } : { view: "ready" };
 }
 
 export function href(view: View, param?: string) {

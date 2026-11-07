@@ -41,3 +41,4 @@
 [data-native-shell] .sidebar { padding-top: calc(var(--native-titlebar-height, 28px) + 4px); }
 [data-native-shell] .content { margin-top: var(--native-titlebar-height, 28px); }
 [data-native-shell] .toasts { bottom: 20px; }
+.rail b.red { background: #f0584c; color: #fff; }

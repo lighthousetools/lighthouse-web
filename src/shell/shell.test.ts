@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { parseRoute } from "../router";
-import { costsByDay } from "../views/Today";
+import { costsByDay } from "../views/briefing";
 import { groupEntries } from "../views/Brain";
-import { heat, reportParts } from "../views/Weekly";
+import { heat, reportParts } from "../views/Recap";
 import { freedom } from "../views/Agents";
 import { newIds } from "./bridge";
 import { dayPhase, resolveLook } from "./look";
@@ -27,10 +27,12 @@ describe("look", () => {
 });
 
 describe("routes", () => {
-  it("reads views and parameters, and falls back to Today", () => {
-    expect(parseRoute("#approvals/approval%3Aa1")).toEqual({ view: "approvals", param: "approval:a1" });
+  it("reads views and parameters, keeps old names, and falls back to Ready", () => {
+    expect(parseRoute("#approvals/approval%3Aa1")).toEqual({ view: "ready", param: "approval:a1" });
+    expect(parseRoute("#weekly")).toEqual({ view: "recap" });
+    expect(parseRoute("#today")).toEqual({ view: "ready" });
     expect(parseRoute("#/brain/e1")).toEqual({ view: "brain", param: "e1" });
-    expect(parseRoute("#nowhere")).toEqual({ view: "today" });
+    expect(parseRoute("#nowhere")).toEqual({ view: "ready" });
   });
 });
 

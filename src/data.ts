@@ -90,3 +90,86 @@ export function useNeedsYou() {
     loading: approvals.isPending || permissions.isPending || sessions.isPending,
   };
 }
+
+export type TaskView = "all" | "today" | "upcoming" | "done" | "proposed";
+
+export function useReady() {
+  return useQuery({ queryKey: ["ready"], queryFn: () => must(api.GET("/ready")) });
+}
+
+export function useTasks(view: TaskView = "all") {
+  return useQuery({
+    queryKey: ["tasks", view],
+    queryFn: () => must(api.GET("/tasks", { params: { query: { view, limit: 500 } } })),
+  });
+}
+
+export function useRules() {
+  return useQuery({ queryKey: ["rules"], queryFn: () => must(api.GET("/rules", { params: { query: {} } })) });
+}
+
+export function useFacts() {
+  return useQuery({ queryKey: ["memory"], queryFn: () => must(api.GET("/memory", { params: { query: {} } })) });
+}
+
+export function useAlerts(view: "active" | "open" | "acknowledged" | "resolved" | "all" = "active") {
+  return useQuery({
+    queryKey: ["alerts", view],
+    queryFn: () => must(api.GET("/alerts", { params: { query: { view, limit: 200 } } })),
+  });
+}
+
+export function useAlertCounts() {
+  return useQuery({ queryKey: ["alerts", "counts"], queryFn: () => must(api.GET("/alerts/counts")) });
+}
+
+export function useAutomations() {
+  return useQuery({ queryKey: ["automations"], queryFn: () => must(api.GET("/automations")) });
+}
+
+/** The latest morning brief, or null when none was written yet. */
+export function useBrief() {
+  return useQuery({
+    queryKey: ["documents", "brief"],
+    queryFn: async () => {
+      const { data, response } = await api.GET("/briefs/latest");
+      if (response.status === 404) return null;
+      if (!data) throw new Error(`${response.status}`);
+      return data;
+    },
+  });
+}
+
+export function useRecaps() {
+  return useQuery({
+    queryKey: ["documents", "recaps"],
+    queryFn: () => must(api.GET("/recaps", { params: { query: { limit: 12 } } })),
+  });
+}
+
+/** Which cached data a live event touches. `changed` and unknown events reload everything on screen. */
+export function queriesFor(event: string): string[][] | "all" {
+  switch (event) {
+    case "tasks.changed":
+      return [["tasks"], ["ready"]];
+    case "rules.changed":
+      return [["rules"]];
+    case "memory.changed":
+      return [["memory"], ["ready"]];
+    case "run.waiting":
+      return [["runs"], ["approvals"], ["ready"], ["permissions"]];
+    case "run.finished":
+      return [["runs"], ["ready"], ["agents"], ["automations"]];
+    case "alert.raised":
+    case "alerts.changed":
+      return [["alerts"], ["ready"]];
+    case "ready.changed":
+      return [["ready"]];
+    case "document.created":
+      return [["documents"], ["runs"]];
+    case "automations.changed":
+      return [["automations"]];
+    default:
+      return "all";
+  }
+}
