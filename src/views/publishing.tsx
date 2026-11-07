@@ -120,7 +120,7 @@ export function Tile({ post, image, color }: { post?: Pick<Post, "images" | "pil
 }
 
 /** How the post will look in the feed: the text cut after three lines with "…more", the image, the bar. */
-export function FeedPreview({ text, image, width }: { text: string; image?: string; width: number | string }) {
+export function FeedPreview({ text, image, comment, width }: { text: string; image?: string; comment?: string; width: number | string }) {
   const me = useMe();
   const branding = useBranding();
   const ref = useRef<HTMLDivElement>(null);
@@ -159,6 +159,12 @@ export function FeedPreview({ text, image, width }: { text: string; image?: stri
           <span key={label}><Icon size={18} /><em>{label}</em></span>
         ))}
       </footer>
+      {comment && (
+        <div className="cm">
+          <span className="pic m mini">{initials(name) || "·"}</span>
+          <div><b>{name}</b><span className="liau">{t("posts.author")}</span><p>{comment}</p></div>
+        </div>
+      )}
     </article>
   );
 }

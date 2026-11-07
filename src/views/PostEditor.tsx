@@ -1,11 +1,15 @@
-import { AlertTriangle, ArrowLeft, CalendarClock, Check, ChevronRight, Copy, CornerDownLeft, ExternalLink, Hash, List, ListOrdered, MoreHorizontal, Trash2, X } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { AlertTriangle, ArrowLeft, CalendarClock, Check, ChevronRight, Copy, CornerDownLeft, ExternalLink, Hash, List, ListOrdered, MoreHorizontal, Plus, Scissors, Sparkles, Trash2, Type, X, Zap } from "lucide-react";
+import { api, must } from "../api/client";
 import { useEffect, useRef, useState } from "react";
 import { go } from "../router";
 import { language, t } from "../i18n";
 import { toast } from "../shell/state";
 import { Badge, Btn, Confirm, cx, Menu, Seg, Stat } from "../ui";
+import { useMe } from "../data";
 import { useOrganizations } from "./connected";
-import { dayIso, hhmm } from "./postdates";
+import { openRun } from "./runs";
+import { fromZone, inZone } from "./zone";
 import { FeedPreview, metricsOf, STEPS, stepOf, Tile, titleOf, useBrainImages, useCheck, usePillars, usePostActions, usePosts, type Metrics, type Post } from "./publishing";
 
 /** Where a post starts to feel long, and where the network cuts it off. */
@@ -72,29 +76,109 @@ function Checks({ text }: { text: string }) {
 }
 
 function Schedule({ post, onSave }: { post: Post; onSave: (at: string | null) => void }) {
-  const when = post.scheduled_at ? new Date(post.scheduled_at) : null;
-  const [day, setDay] = useState(when ? dayIso(when) : "");
-  const [time, setTime] = useState(when ? hhmm(when) : "09:00");
+  // Dates and times are in the owner's time zone, the one the server plans slots in.
+  const zone = useMe().data?.timezone ?? undefined;
+  const when = post.scheduled_at ? inZone(post.scheduled_at, zone) : null;
+  const [day, setDay] = useState(when?.day ?? "");
+  const [time, setTime] = useState(when?.time ?? "09:00");
   useEffect(() => {
-    setDay(when ? dayIso(when) : "");
-    if (when) setTime(hhmm(when));
-  }, [post.scheduled_at]);
+    setDay(when?.day ?? "");
+    if (when) setTime(when.time);
+  }, [post.scheduled_at, zone]);
   const save = (nextDay: string, nextTime: string) => {
-    if (!nextDay) return;
-    const [year, month, date] = nextDay.split("-").map(Number);
-    const [hours, minutes] = nextTime.split(":").map(Number);
-    onSave(new Date(year!, month! - 1, date!, hours ?? 9, minutes ?? 0).toISOString());
+    if (nextDay) onSave(fromZone(nextDay, nextTime, zone));
   };
   const locked = post.status === "publishing" || post.status === "published";
   return (
     <section className="ecard">
-      <h3>{t("posts.schedule")}</h3>
+      <h3>{t("posts.schedule")}{zone && <small>{zone}</small>}</h3>
       <div className="esch">
-        <label className="field"><CalendarClock /><input type="date" aria-label={t("posts.date")} value={day} min={dayIso(new Date())} disabled={locked} onChange={(event) => { setDay(event.target.value); save(event.target.value, time); }} /></label>
+        <label className="field"><CalendarClock /><input type="date" aria-label={t("posts.date")} value={day} min={inZone(new Date(), zone).day} disabled={locked} onChange={(event) => { setDay(event.target.value); save(event.target.value, time); }} /></label>
         <label className="field" style={{ width: 110 }}><input type="time" aria-label={t("posts.time")} value={time} disabled={locked} onChange={(event) => { setTime(event.target.value); save(day, event.target.value); }} /></label>
         {post.scheduled_at && !locked && <Btn size="sm" variant="ghost" onClick={() => onSave(null)}>{t("posts.unplan")}</Btn>}
       </div>
       <p className="ehint">{t("posts.scheduleHint")}</p>
+    </section>
+  );
+}
+
+export type Variant = { name: string; text: string };
+export const variantsOf = (post: Pick<Post, "variants">): Variant[] =>
+  Array.isArray(post.variants) ? (post.variants as Variant[]).filter((variant) => variant && typeof variant.text === "string") : [];
+/** The next free variant name: B, C, D… (the main text counts as A). */
+export function nextVariantName(variants: Variant[]) {
+  for (let code = 66; code < 91; code++) {
+    const name = String.fromCharCode(code);
+    if (!variants.some((variant) => variant.name === name)) return name;
+  }
+  return String(variants.length + 2);
+}
+
+/** Variants of the text: keep the current one as a variant, or swap a variant in. The server keeps up to ten. */
+function Variants({ post, text, locked, onSwap, onSave }: { post: Post; text: string; locked: boolean; onSwap: (variant: Variant) => void; onSave: (variants: Variant[]) => void }) {
+  const variants = variantsOf(post);
+  return (
+    <div className="evr">
+      <span className="faint">{t("posts.variants")}</span>
+      <span className="ev on" aria-current="true"><button type="button" tabIndex={-1}>A <em className="tn">{[...text].length}</em></button></span>
+      {variants.map((variant) => (
+        <span key={variant.name} className="ev">
+          <button type="button" disabled={locked} title={t("posts.useVariant")} onClick={() => onSwap(variant)}>{variant.name} <em className="tn">{[...variant.text].length}</em></button>
+          {!locked && <button type="button" className="x" aria-label={t("posts.removeVariant", { name: variant.name })} onClick={() => onSave(variants.filter((item) => item.name !== variant.name))}><X size={11} /></button>}
+        </span>
+      ))}
+      {!locked && variants.length < 10 && <Btn size="xs" variant="ghost" disabled={!text.trim()} onClick={() => onSave([...variants, { name: nextVariantName(variants), text }])}><Plus />{t("posts.addVariant")}</Btn>}
+    </div>
+  );
+}
+
+/** Rewrites in the owner's voice. A proposal changes nothing until it is used or kept as a variant. */
+function Rewrite({ post, locked, onUse, onKeep }: { post: Post; locked: boolean; onUse: (text: string) => void; onKeep: (text: string) => void }) {
+  const [instruction, setInstruction] = useState("");
+  const rewrite = useMutation({
+    mutationFn: (value: string) => must(api.POST("/posts/{id}/rewrite", { params: { path: { id: post.id } }, body: { instruction: value || null } })),
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const ask = (value: string) => rewrite.mutate(value);
+  const proposal = rewrite.data;
+  if (locked) return null;
+  return (
+    <>
+      <div className="eai">
+        <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.sharperAsk"))}><Zap />{t("posts.rewrite.sharper")}</Btn>
+        <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.shorterAsk"))}><Scissors />{t("posts.rewrite.shorter")}</Btn>
+        <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.hookAsk"))}><Type />{t("posts.rewrite.hook")}</Btn>
+        <label className="field" style={{ flex: 1, minWidth: 180, height: "var(--h-sm)" }}>
+          <Sparkles />
+          <input aria-label={t("posts.rewrite.custom")} placeholder={t("posts.rewrite.custom")} value={instruction} onChange={(event) => setInstruction(event.target.value)} onKeyDown={(event) => event.key === "Enter" && instruction.trim() && ask(instruction.trim())} />
+        </label>
+        {rewrite.isPending && <span className="enote"><i className="talx-as-spin" />{t("posts.rewrite.writing")}</span>}
+      </div>
+      {proposal && (
+        <section className="ecard">
+          <h3>{t("posts.rewrite.proposal")}<small>{t("posts.rewrite.proposalHint")}</small><span className="grow" /><Btn size="xs" variant="ghost" aria-label={t("common.close")} onClick={() => rewrite.reset()}><X /></Btn></h3>
+          <div className="ecm" style={{ whiteSpace: "pre-wrap" }}>{proposal.text}</div>
+          <div className="eai" style={{ marginTop: "var(--s2)" }}>
+            <Btn size="sm" variant="primary" onClick={() => { onUse(proposal.text); rewrite.reset(); }}><Check />{t("posts.rewrite.use")}</Btn>
+            <Btn size="sm" onClick={() => { onKeep(proposal.text); rewrite.reset(); }}><Plus />{t("posts.rewrite.keep")}</Btn>
+            <Btn size="sm" variant="ghost" onClick={() => openRun(proposal.run_id)}>{t("talk.openRun")}</Btn>
+          </div>
+        </section>
+      )}
+    </>
+  );
+}
+
+function FirstComment({ post, locked, onSave }: { post: Post; locked: boolean; onSave: (value: string | null) => void }) {
+  const [value, setValue] = useState(post.first_comment ?? "");
+  useEffect(() => setValue(post.first_comment ?? ""), [post.id, post.first_comment]);
+  return (
+    <section className="ecard">
+      <h3>
+        {t("posts.firstComment")}<small className="tn">{[...value].length}</small><span className="grow" />
+        <Btn size="xs" variant="ghost" disabled={!value} onClick={() => { void navigator.clipboard?.writeText(value); toast(t("posts.copied")); }}><Copy />{t("talk.copy")}</Btn>
+      </h3>
+      <textarea className="ecm" rows={2} aria-label={t("posts.firstComment")} placeholder={t("posts.firstCommentHint")} value={value} readOnly={locked} onChange={(event) => setValue(event.target.value)} onBlur={() => value !== (post.first_comment ?? "") && onSave(value || null)} />
     </section>
   );
 }
@@ -183,6 +267,7 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
   const [asking, setAsking] = useState(false);
   const [removing, setRemoving] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  const me = useMe();
   const saved = useRef(post?.body ?? "");
 
   useEffect(() => {
@@ -212,7 +297,7 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
   const pillar = pillars.data?.find((item) => item.name === post.pillar);
   const orgName = post.org ? orgs.data?.find((item) => item.id === post.org)?.name ?? post.org : null;
   const when = post.scheduled_at ?? post.published_at;
-  const sub = [orgName, post.pillar, when ? new Date(when).toLocaleString(locale(), { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
+  const sub = [orgName, post.pillar, when ? new Date(when).toLocaleString(locale(), { timeZone: me.data?.timezone ?? undefined, weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : t("posts.noDate")].filter(Boolean).join(" · ");
   const publish = async () => {
     setAsking(false);
     if (text !== saved.current) {
@@ -251,6 +336,19 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
       )}
       <div className="edb">
         <div className="edl">
+          <Variants
+            post={post}
+            text={text}
+            locked={locked}
+            onSave={(variants) => void actions.patch(id, { variants })}
+            onSwap={(variant) => {
+              // The variant becomes the text, and the text takes the variant's place under its name.
+              const variants = variantsOf(post).map((item) => (item.name === variant.name ? { name: variant.name, text } : item));
+              saved.current = variant.text;
+              setText(variant.text);
+              void actions.patch(id, { body: variant.text, variants });
+            }}
+          />
           <div className="eta">
             <div className="etb">
               <Btn icon size="xs" variant="ghost" aria-label={t("posts.arrowList")} title={t("posts.arrowList")} disabled={locked} onClick={() => area.current && insertAt(area.current, "→ ", setText)}><List /></Btn>
@@ -262,6 +360,8 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
             <textarea ref={area} aria-label={t("posts.text")} spellCheck value={text} readOnly={locked} placeholder={t("posts.textPlaceholder")} onChange={(event) => setText(event.target.value)} />
             <Counter count={[...text].length} />
           </div>
+          <Rewrite post={post} locked={locked} onUse={setText} onKeep={(proposal) => void actions.patch(id, { variants: [...variantsOf(post), { name: nextVariantName(variantsOf(post)), text: proposal }] })} />
+          <FirstComment post={post} locked={locked} onSave={(value) => void actions.patch(id, { first_comment: value })} />
           <Checks text={text} />
           {(pillars.data ?? []).length > 0 && (
             <section className="ecard">
@@ -294,7 +394,7 @@ export default function PostEditor({ id, onClose }: { id: string; onClose: () =>
             <b>{t("posts.preview")}</b><span className="grow" />
             <Seg label={t("posts.width")} value={mobile ? "mobile" : "desktop"} onChange={(value) => setMobile(value === "mobile")} options={[["desktop", t("posts.desktop")], ["mobile", t("posts.mobile")]]} />
           </div>
-          <div className="prv"><FeedPreview text={text} image={post.images[0]} width={mobile ? 360 : 440} /></div>
+          <div className="prv"><FeedPreview text={text} image={post.images[0]} comment={post.first_comment ?? undefined} width={mobile ? 360 : 440} /></div>
           <Perform post={post} onSave={(metrics) => void actions.patch(id, { metrics })} />
           <ImagePicker post={post} onPick={(images) => void actions.patch(id, { images })} />
         </div>
