@@ -9,11 +9,73 @@ import { openExternal } from "../shell/bridge";
 import { Btn, Empty, Failure, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { useNow } from "../ui/live";
 import { AskBox } from "./Ask";
-import { Gauge, Sec, Thesis, costsByDay } from "./briefing";
+import { Gauge, Linked, Sec, Thesis, costsByDay, linkedLabel } from "./briefing";
 import { change, columns, formatNumber, thesis, type DocItem, type DocSection } from "./document";
 import { RunDot, openRun, runSentence } from "./runs";
 
 const isoDay = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+
+type Weather = NonNullable<Schemas["BriefingContent"]["weather"]>;
+
+/** Today's weather, as the vision shows it beside the headline: temperature, summary, and the day's range. */
+function WeatherTile({ weather }: { weather: Weather }) {
+  const temperature = weather.temperature_c ?? weather.high_c;
+  return (
+    <div className="bf-g bf-w" title={weather.source ?? undefined}>
+      <div className="gh">
+        {temperature != null && <b className="tn">{Math.round(temperature)}°</b>}
+        <span>{weather.summary}</span>
+      </div>
+      {weather.low_c != null && weather.high_c != null && (
+        <div className="bf-wr" aria-hidden="true">
+          <i style={{ left: `${Math.max(0, Math.min(100, ((weather.low_c + 10) / 45) * 100))}%`, right: `${100 - Math.max(0, Math.min(100, ((weather.high_c + 10) / 45) * 100))}%` }} />
+        </div>
+      )}
+      <div className="gf">{[weather.location, weather.low_c != null && weather.high_c != null ? t("brief.range", { low: Math.round(weather.low_c), high: Math.round(weather.high_c) }) : null].filter(Boolean).join(" · ")}</div>
+    </div>
+  );
+}
+
+/** The week ahead in small day cards: weekday, its one-word label, and what is on. */
+function WeekAhead({ days }: { days: Schemas["WeekDay"][] }) {
+  if (!days.length) return null;
+  return (
+    <Sec title={t("brief.week")} hint={days.length}>
+      <div className="bf-week">
+        {days.slice(0, 6).map((day) => {
+          const date = new Date(`${day.date}T12:00:00`);
+          return (
+            <div key={day.date} className="bf-day">
+              <b>{weekdayShort(date)} <span className="faint tn">{date.getDate()}.</span></b>
+              {day.label && <em className="clip">{day.label}</em>}
+              {(day.items ?? []).slice(0, 2).map((item, index) => <small key={index} className="clip">{item.title ?? item.text}</small>)}
+            </div>
+          );
+        })}
+      </div>
+    </Sec>
+  );
+}
+
+/** "Das hängt zusammen": how items across services belong together, with their sources in a chain. */
+function Connected({ connection, count }: { connection: Schemas["Connection"]; count: number }) {
+  return (
+    <div style={{ marginTop: 20 }}>
+      <Linked
+        label={linkedLabel()}
+        chain={(connection.items ?? []).slice(0, 5).map((source) => ({
+          svc: brandOf(source.service) ?? source.service,
+          label: source.reference ?? source.service,
+          fallback: source.service,
+          run: () => (source.url ? openExternal(source.url) : undefined),
+        }))}
+        action={count > 0 ? <Btn size="sm" onClick={() => go("ready")}>{t("brief.goThrough")}</Btn> : undefined}
+      >
+        <p className="bf-lt"><b>{connection.title}</b> {connection.text}</p>
+      </Linked>
+    </div>
+  );
+}
 
 function CostGauge() {
   const costs = useCosts(14);
@@ -146,8 +208,8 @@ function Item({ item }: { item: DocItem }) {
     <>
       <ServiceIcon name={brandOf(source?.service)} fallback={source?.service ?? item.text} size={24} />
       <span className="tx">
-        <b className="clip">{item.text}</b>
-        {(item.detail || source?.reference) && <small className="clip">{item.detail ?? source?.reference}</small>}
+        <b className="clip">{item.title ?? item.text}</b>
+        {(item.subtitle || item.detail || source?.reference) && <small className="clip">{item.subtitle ?? item.detail ?? source?.reference}</small>}
       </span>
       {number && (
         <span className="end tn" title={number.label}>
@@ -196,7 +258,7 @@ export function Brief() {
           kicker={[longDate(now), t("today.week", { week: isoWeek(now) }), document ? t("brief.from", { time: dayTime(document.created_at) }) : null].filter(Boolean).join(" · ")}
           title={parts.title || (first ? t("today.greeting", { greeting: hello, name: first }) : hello)}
           lead={parts.lead || (document ? document.content.title : t("brief.none"))}
-          side={<CostGauge />}
+          side={document?.content.weather ? <WeatherTile weather={document.content.weather} /> : <CostGauge />}
         >
           {count > 0 && (
             <Btn variant="primary" onClick={() => go("ready")}>
@@ -206,6 +268,7 @@ export function Brief() {
           {document && <Btn onClick={() => openRun(document.run_id)}>{t("brief.openRun")}</Btn>}
           {document && !isToday && <span className="faint" style={{ fontSize: 12 }}>{t("brief.notToday")}</span>}
         </Thesis>
+        {document?.content.connections?.[0] && <Connected connection={document.content.connections[0]} count={count} />}
         <div style={{ marginTop: 20 }}><AskBox /></div>
         <Failure error={brief.error} />
         {brief.isPending && <div style={{ marginTop: 24 }}><Skeleton count={4} /></div>}
@@ -218,6 +281,7 @@ export function Brief() {
           <div className="bf-col">
             {cols[0]!.map((section, index) => <DocSec key={index} section={section} />)}
             <ComingUp />
+            <WeekAhead days={document?.content.week ?? []} />
           </div>
           <div className="bf-col">
             {cols[1]!.map((section, index) => <DocSec key={index} section={section} />)}

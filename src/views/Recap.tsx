@@ -203,6 +203,25 @@ export function Recap() {
         )}
         <div className="bf-grid">
           <div className="bf-col">
+            {(recap?.content.projects ?? []).length > 0 ? (
+              <Sec title={t("weekly.where")} hint={t("weekly.byProject")}>
+                {(() => {
+                  const projects = recap!.content.projects!;
+                  const top = Math.max(1, ...projects.map((project) => (project.done?.length ?? 0) + (project.open?.length ?? 0)));
+                  return projects.slice(0, 6).map((project) => {
+                    const done = project.done?.length ?? 0, open = project.open?.length ?? 0;
+                    const lead = project.done?.[0] ?? project.open?.[0];
+                    return (
+                      <div key={project.name} className="rc-a static">
+                        <span className="top"><b className="clip">{project.name}</b><span className="tn">{done}{open ? <span className="faint"> / {done + open}</span> : null}</span></span>
+                        <span className="bar"><i style={{ width: `${((done + open) / top) * 100}%`, opacity: 0.35 }} /><i style={{ width: `${(done / top) * 100}%`, position: "absolute", left: 0, top: 0 }} /></span>
+                        {lead && <small className="clip">{lead.title ?? lead.text}</small>}
+                      </div>
+                    );
+                  });
+                })()}
+              </Sec>
+            ) : (
             <Sec title={t("weekly.where")} hint={t("weekly.runs")}>
               {byAgent.length === 0 && <div className="bf-ok">{t("today.noActivity")}</div>}
               {byAgent.slice(0, 6).map(([id, entry]) => (
@@ -213,6 +232,7 @@ export function Recap() {
                 </button>
               ))}
             </Sec>
+            )}
           </div>
           <div className="bf-col">
             <Sec title={t("weekly.when")}>

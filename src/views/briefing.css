@@ -49,3 +49,14 @@
 @media (prefers-reduced-motion: reduce) { .film-in, .film-h span b { animation: none; } }
 .rc-pick { display: flex; align-items: center; gap: var(--s2); }
 .rc-k .stat .d.up { color: var(--ok); } .rc-k .stat .d.down { color: var(--bad); }
+
+/* Weather beside the headline, the week ahead in day cards, and the connected story's text. */
+.bf-w { cursor: default; } .bf-w .gh b { font-size: 34px; }
+.bf-wr { position: relative; height: 6px; margin: 14px 0 10px; border-radius: 3px; background: var(--surface2); }
+.bf-wr i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: linear-gradient(90deg, #5aa7ff, #ffc66b); }
+.bf-week { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.bf-day { display: grid; gap: 2px; padding: 8px 10px; border-radius: var(--r-md); background: var(--wash); box-shadow: var(--ring-in); min-width: 0; font-size: var(--t-12); }
+.bf-day b { font-weight: 500; font-size: var(--t-13); } .bf-day em { font-style: normal; color: var(--ink2); } .bf-day small { color: var(--ink3); }
+.bf-lt { font-size: var(--t-14); line-height: 22px; } .bf-lt b { font-weight: 500; }
+
+.rc-a.static { cursor: default; } .rc-a .bar { position: relative; }
