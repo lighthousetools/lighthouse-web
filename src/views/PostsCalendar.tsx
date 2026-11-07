@@ -148,11 +148,19 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const colorOf = (name?: string | null) => pillars.data?.find((item) => item.name === name)?.color;
   const gaps = openGaps(calendar.data ?? [], new Date());
 
+  // Slot times are in the server's time zone. The calendar gives each occurrence as an instant, so rows show the
+  // local time of that instant, and the slot's own time only when this range has no occurrence of it.
+  const localTime = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of calendar.data ?? []) if (!map.has(entry.slot.id)) map.set(entry.slot.id, hhmm(new Date(entry.at)));
+    return (slot: { id?: string; time: string }) => (slot.id && map.get(slot.id)) || slot.time;
+  }, [calendar.data]);
   const lanes = useMemo<Lane[]>(() => {
     const map = new Map<string, Lane>();
     for (const slot of slots.data ?? []) {
       const lane = map.get(slot.org ?? "") ?? { org: slot.org ?? "", times: [], days: [] };
-      if (!lane.times.includes(slot.time)) lane.times.push(slot.time);
+      const time = localTime(slot);
+      if (!lane.times.includes(time)) lane.times.push(time);
       if (!lane.days.includes(slot.weekday)) lane.days.push(slot.weekday);
       map.set(lane.org, lane);
     }
@@ -161,7 +169,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
     }
     if (!map.size) map.set("", { org: "", times: ["09:00"], days: [] });
     return [...map.values()].map((lane) => ({ ...lane, times: lane.times.sort(), days: lane.days.sort() }));
-  }, [slots.data, all]);
+  }, [slots.data, all, localTime]);
 
   const laneName = (org: string) => (org ? orgs.data?.find((item) => item.id === org)?.name ?? org : me.data?.name ?? t("posts.personal"));
 
@@ -195,7 +203,9 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
       event.preventDefault();
       setOver(null);
       const id = event.dataTransfer.getData(DRAG);
-      if (id && day >= today) schedule(id, atTime(day, time), org);
+      // Prefer the slot's own instant, which the server computed in its time zone.
+      const slot = (calendar.data ?? []).find((entry) => (entry.slot.org ?? "") === org && localTime(entry.slot) === time && sameDay(new Date(entry.at), day));
+      if (id && day >= today) schedule(id, slot?.at ?? atTime(day, time), org);
     },
   });
 
@@ -250,7 +260,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
                       {days.map((day) => {
                         const key = `${lane.org}|${dayIso(day)}|${time}`;
                         const here = postsOn(day, lane).filter((post) => nearestTime(lane.times, hhmm(new Date(whenOf(post)!))) === time);
-                        const gap = (calendar.data ?? []).find((slot) => (slot.slot.org ?? "") === lane.org && slot.slot.time === time && sameDay(new Date(slot.at), day));
+                        const gap = (calendar.data ?? []).find((slot) => (slot.slot.org ?? "") === lane.org && localTime(slot.slot) === time && sameDay(new Date(slot.at), day));
                         const isGap = gap && !gap.posts.length && new Date(gap.at) > new Date();
                         const weekend = weekdayOf(day) > 5 && !lane.days.includes(weekdayOf(day));
                         const dragged = over === key;
