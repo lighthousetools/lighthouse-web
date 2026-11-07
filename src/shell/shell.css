@@ -42,3 +42,5 @@
 [data-native-shell] .content { margin-top: var(--native-titlebar-height, 28px); }
 [data-native-shell] .toasts { bottom: 20px; }
 .rail b.red { background: #f0584c; color: #fff; }
+.menubar .firm { margin-left: var(--s2); } .firm .seg { padding: 2px; background: rgba(0,0,0,.26); } .firm .seg button { height: 20px; padding: 0 9px; color: rgba(255,255,255,.8); } .firm .seg button.on { background: rgba(255,255,255,.92); color: #0d1526; }
+.firm-o { display: inline-flex; align-items: center; gap: 5px; } .firm-o i { width: 6px; height: 6px; border-radius: 50%; flex: none; }

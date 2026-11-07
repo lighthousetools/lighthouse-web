@@ -1146,6 +1146,248 @@
         ]
       }
     },
+    "/bank/accounts": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists bank accounts with their balances.",
+        "operationId": "list_bank_accounts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/bank/transactions": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists bank transactions, latest first.",
+        "operationId": "list_transactions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/brain/ask": {
       "post": {
         "tags": [
@@ -1596,6 +1838,64 @@
         ]
       }
     },
+    "/branding": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Returns the owner's brand profile.",
+        "operationId": "get_branding",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Replaces the owner's brand profile.",
+        "operationId": "save_branding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandProfile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandProfile"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/briefs/latest": {
       "get": {
         "tags": [
@@ -1645,6 +1945,15 @@
             "name": "source",
             "in": "query",
             "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
             "required": false,
             "schema": {
               "type": "string"
@@ -1953,6 +2262,15 @@
             }
           },
           {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "state",
             "in": "query",
             "description": "Only this state",
@@ -2237,6 +2555,127 @@
         ]
       }
     },
+    "/contracts": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists contracts and documents, latest first.",
+        "operationId": "list_contracts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/costs": {
       "get": {
         "tags": [
@@ -2375,6 +2814,241 @@
         ]
       }
     },
+    "/deals": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists deals, latest change first. Open deals by default.",
+        "operationId": "list_deals",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/decks": {
+      "get": {
+        "tags": [
+          "decks"
+        ],
+        "summary": "Lists the decks, latest first.",
+        "operationId": "list_decks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntrySummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "decks"
+        ],
+        "summary": "Stores a new deck in the Brain. Change it with `PATCH /brain/entries/{id}`.",
+        "operationId": "create_deck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDeck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Entry"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid deck"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/decks/{id}/export": {
+      "get": {
+        "tags": [
+          "decks"
+        ],
+        "summary": "Exports a deck as one HTML page with a slide per page, or as Markdown.",
+        "description": "For a PDF, open the HTML export and print it; the page breaks after every slide.",
+        "operationId": "export_deck",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Deck ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "html (default) or markdown",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The deck",
+            "content": {
+              "text/html": {}
+            }
+          },
+          "404": {
+            "description": "Unknown deck"
+          },
+          "415": {
+            "description": "Unknown format"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/documents": {
       "get": {
         "tags": [
@@ -2463,6 +3137,248 @@
         }
       }
     },
+    "/holdings": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists holdings of the portfolio. Data only.",
+        "operationId": "list_holdings",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/holdings/quotes": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists market quotes. Data only.",
+        "operationId": "list_quotes",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/inbox": {
       "get": {
         "tags": [
@@ -2487,6 +3403,136 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/invoices": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists issued and received invoices, latest first. Filter with `flags=overdue`, `receivable` or `payable`.",
+        "operationId": "list_invoices",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
             }
           },
           {
@@ -2549,6 +3595,15 @@
             "name": "source",
             "in": "query",
             "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
             "required": false,
             "schema": {
               "type": "string"
@@ -2667,6 +3722,15 @@
             }
           },
           {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "state",
             "in": "query",
             "description": "Only this state",
@@ -2779,6 +3843,15 @@
             }
           },
           {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "state",
             "in": "query",
             "description": "Only this state",
@@ -2885,6 +3958,15 @@
             "name": "source",
             "in": "query",
             "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
             "required": false,
             "schema": {
               "type": "string"
@@ -3516,6 +4598,160 @@
         ]
       }
     },
+    "/numbers": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Computes key numbers from the cache: pipeline, cash, burn, runway, open and\noverdue invoices, revenue per month and holdings, per currency.",
+        "operationId": "numbers",
+        "parameters": [
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "months",
+            "in": "query",
+            "description": "Months of revenue, default 12, at most 36",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Numbers"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/organizations": {
+      "get": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Lists the organizations.",
+        "operationId": "list_organizations",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Organization"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/organizations/{id}": {
+      "put": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Creates or replaces an organization and the sources that belong to it.",
+        "operationId": "save_organization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Organization ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid organization"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "organizations"
+        ],
+        "summary": "Deletes an organization. Its items stay.",
+        "operationId": "delete_organization",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Organization ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown organization"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/permissions": {
       "get": {
         "tags": [
@@ -3615,6 +4851,608 @@
         ]
       }
     },
+    "/posts": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Lists posts: planned and published ones by time, newest first.",
+        "operationId": "list_posts",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "idea, draft, scheduled, publishing or published",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pillar",
+            "in": "query",
+            "description": "Only this pillar",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Planned or published at or after",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Planned or published before",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Post"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Writes a new post. With `scheduled_at` it is planned, never published by itself.",
+        "operationId": "create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPost"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid post"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/calendar": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Lays the weekly slots over a range of days, with the posts planned for each.",
+        "operationId": "post_calendar",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "First day, defaults to today",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Number of days, default 28, at most 92",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarSlot"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/check": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Checks a text: length, hook and hashtags.",
+        "operationId": "check_text",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostCheck"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/import": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Adds published posts to the archive, from a list or from CSV.",
+        "operationId": "import_posts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid data"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/pillars": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Lists the content pillars with their topics.",
+        "operationId": "list_pillars",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pillar"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/pillars/{id}": {
+      "put": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Creates or replaces a pillar.",
+        "operationId": "save_pillar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Pillar ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PillarInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pillar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid pillar"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Deletes a pillar.",
+        "operationId": "delete_pillar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Pillar ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown pillar"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/slots": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Returns the weekly slots of the posting plan.",
+        "operationId": "list_post_slots",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostSlot"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Replaces the weekly slots.",
+        "operationId": "set_post_slots",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PostSlot"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PostSlot"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid slot"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/{id}": {
+      "get": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Returns a post.",
+        "operationId": "get_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown post"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Deletes a post.",
+        "operationId": "delete_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown post"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Changes a post, plans it, or fills in its analytics.",
+        "operationId": "update_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid change"
+          },
+          "404": {
+            "description": "Unknown post"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/posts/{id}/publish": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Asks to publish a post. It goes out only after the owner approves the call.",
+        "operationId": "publish_post",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Post ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown post"
+          },
+          "409": {
+            "description": "Published already or waiting for approval"
+          },
+          "422": {
+            "description": "The check found errors, or publishing is not set up"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/pulls": {
       "get": {
         "tags": [
@@ -3636,6 +5474,15 @@
             "name": "source",
             "in": "query",
             "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
             "required": false,
             "schema": {
               "type": "string"
@@ -3853,6 +5700,127 @@
           },
           "404": {
             "description": "No recap for that week"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/rooms": {
+      "get": {
+        "tags": [
+          "connected"
+        ],
+        "summary": "Lists deal rooms, latest activity first.",
+        "operationId": "list_rooms",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Full-text search",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "Only this source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "org",
+            "in": "query",
+            "description": "Only sources of this organization",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only this state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "flags",
+            "in": "query",
+            "description": "Comma-separated flags the items must have",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "in": "query",
+            "description": "Leave out closed and done items",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Items ending or happening at or after this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Items starting or happening before this time",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Items to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemPage"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5346,6 +7314,69 @@
           }
         }
       },
+      "BrandProfile": {
+        "type": "object",
+        "description": "The owner's profile for writing posts and decks.",
+        "properties": {
+          "audience": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who the owner writes for.",
+            "default": null
+          },
+          "avoid": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Words, claims or topics to avoid.",
+            "default": []
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A few sentences about the owner.",
+            "default": null
+          },
+          "headline": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One line on who the owner is.",
+            "default": null
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Topics the owner stands for.",
+            "default": []
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Last change.",
+            "default": null
+          },
+          "voice": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Notes on tone and style, in the owner's words.",
+            "default": null
+          }
+        }
+      },
       "BriefingContent": {
         "type": "object",
         "description": "The structured result of a briefing run.",
@@ -5457,6 +7488,34 @@
           }
         }
       },
+      "CalendarSlot": {
+        "type": "object",
+        "description": "One occurrence of a slot in the calendar, with the posts planned for it.",
+        "required": [
+          "at",
+          "slot",
+          "posts"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it is."
+          },
+          "posts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Posts scheduled within an hour of it."
+          },
+          "slot": {
+            "$ref": "#/components/schemas/PostSlot",
+            "description": "The slot."
+          }
+        }
+      },
       "ChangedFile": {
         "type": "object",
         "description": "A changed file with its latest change.",
@@ -5486,6 +7545,42 @@
           "path": {
             "type": "string",
             "description": "File path."
+          }
+        }
+      },
+      "CheckIssue": {
+        "type": "object",
+        "description": "One finding.",
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable code, such as `too_long` or `hook_too_long`."
+          },
+          "message": {
+            "type": "string",
+            "description": "What to change."
+          },
+          "severity": {
+            "type": "string",
+            "description": "`error`, `warning` or `hint`."
+          }
+        }
+      },
+      "CheckRequest": {
+        "type": "object",
+        "description": "Text to check.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text of a post."
           }
         }
       },
@@ -5551,6 +7646,109 @@
           "value": {
             "type": "string",
             "description": "The secret value."
+          }
+        }
+      },
+      "CurrencyNumbers": {
+        "type": "object",
+        "description": "The numbers of one currency.",
+        "required": [
+          "currency",
+          "pipeline_open",
+          "pipeline_weighted",
+          "deals_open",
+          "deals_cold",
+          "stages",
+          "cash",
+          "monthly_burn",
+          "receivables_open",
+          "receivables_overdue",
+          "invoices_overdue",
+          "payables_open",
+          "revenue",
+          "holdings"
+        ],
+        "properties": {
+          "cash": {
+            "type": "number",
+            "format": "double",
+            "description": "Sum of account balances."
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency code."
+          },
+          "deals_cold": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Open deals without activity for 30 days."
+          },
+          "deals_open": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Open deals."
+          },
+          "holdings": {
+            "type": "number",
+            "format": "double",
+            "description": "Value of holdings."
+          },
+          "invoices_overdue": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of overdue issued invoices."
+          },
+          "monthly_burn": {
+            "type": "number",
+            "format": "double",
+            "description": "Net outflow per month over the last 90 days. Zero when more came in."
+          },
+          "payables_open": {
+            "type": "number",
+            "format": "double",
+            "description": "Open received invoices."
+          },
+          "pipeline_open": {
+            "type": "number",
+            "format": "double",
+            "description": "Value of open deals."
+          },
+          "pipeline_weighted": {
+            "type": "number",
+            "format": "double",
+            "description": "Value of open deals times their `probability` field in percent, where set."
+          },
+          "receivables_open": {
+            "type": "number",
+            "format": "double",
+            "description": "Open issued invoices."
+          },
+          "receivables_overdue": {
+            "type": "number",
+            "format": "double",
+            "description": "Open issued invoices past their due date."
+          },
+          "revenue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodAmount"
+            },
+            "description": "Issued invoices per month, newest first."
+          },
+          "runway_months": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Cash divided by the monthly burn, if there is a burn."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageTotal"
+            },
+            "description": "Open deals per stage."
           }
         }
       },
@@ -6070,6 +8268,108 @@
           }
         }
       },
+      "ImportRequest": {
+        "type": "object",
+        "description": "Published posts to add to the archive, as a list or as CSV with a header row.",
+        "properties": {
+          "csv": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Posts as CSV."
+          },
+          "posts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportedPost"
+            },
+            "description": "Posts as objects."
+          }
+        }
+      },
+      "ImportResult": {
+        "type": "object",
+        "description": "Result of an import.",
+        "required": [
+          "imported"
+        ],
+        "properties": {
+          "imported": {
+            "type": "integer",
+            "description": "Posts stored or updated.",
+            "minimum": 0
+          }
+        }
+      },
+      "ImportedPost": {
+        "type": "object",
+        "description": "A published post to add to the archive.",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "The text."
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Channel. Defaults to `linkedin`."
+          },
+          "external_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ID in the channel. Either this or `url` identifies the post."
+          },
+          "metrics": {
+            "type": "object",
+            "description": "Analytics.",
+            "additionalProperties": {},
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Organization."
+          },
+          "pillar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pillar."
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it went out."
+          },
+          "topic": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Topic."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Address."
+          }
+        }
+      },
       "ItemDetail": {
         "type": "object",
         "description": "An item with its children, such as a thread with messages or a pull request with checks and files.",
@@ -6221,6 +8521,31 @@
           }
         }
       },
+      "NewDeck": {
+        "type": "object",
+        "description": "A new deck.",
+        "required": [
+          "title",
+          "markdown"
+        ],
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Links to other entries, such as `customer:example`."
+          },
+          "markdown": {
+            "type": "string",
+            "description": "Slides in Markdown, separated by lines with only `---`."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title."
+          }
+        }
+      },
       "NewEntry": {
         "type": "object",
         "description": "A new entry.",
@@ -6302,6 +8627,81 @@
           "tool": {
             "type": "string",
             "description": "Tool name."
+          }
+        }
+      },
+      "NewPost": {
+        "type": "object",
+        "description": "A post to create.",
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "The text."
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Channel. Defaults to `linkedin`."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Images as Brain entry IDs."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free kind."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Organization."
+          },
+          "pillar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pillar."
+          },
+          "scheduled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Planned time. Makes the post `scheduled`."
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`idea` or `draft`. Defaults to `draft`."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Working title."
+          },
+          "topic": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Topic."
           }
         }
       },
@@ -6525,6 +8925,107 @@
           }
         }
       },
+      "Numbers": {
+        "type": "object",
+        "description": "Key numbers of one organization, or of all.",
+        "required": [
+          "computed_at",
+          "currencies"
+        ],
+        "properties": {
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When they were computed."
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyNumbers"
+            },
+            "description": "Numbers per currency."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization, if the numbers are for one."
+          }
+        }
+      },
+      "Organization": {
+        "type": "object",
+        "description": "An organization.",
+        "required": [
+          "id",
+          "name",
+          "sources",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Color for the apps, as `#rrggbb`."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation time."
+          },
+          "id": {
+            "type": "string",
+            "description": "Stable ID of lowercase letters, digits and dashes."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Sources that belong to it."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last change."
+          }
+        }
+      },
+      "OrganizationInput": {
+        "type": "object",
+        "description": "An organization to create or replace.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Color as `#rrggbb`."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Sources that belong to it."
+          }
+        }
+      },
       "Origin": {
         "type": "string",
         "description": "Who created something.",
@@ -6532,6 +9033,25 @@
           "owner",
           "agent"
         ]
+      },
+      "PeriodAmount": {
+        "type": "object",
+        "description": "Revenue of one month.",
+        "required": [
+          "period",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "description": "Sum of issued invoices dated in it."
+          },
+          "period": {
+            "type": "string",
+            "description": "Month as `YYYY-MM`."
+          }
+        }
       },
       "Permission": {
         "type": "object",
@@ -6607,6 +9127,380 @@
           "allow": {
             "type": "boolean",
             "description": "Whether the tool may run."
+          }
+        }
+      },
+      "Pillar": {
+        "type": "object",
+        "description": "A content pillar with its topics.",
+        "required": [
+          "id",
+          "name",
+          "topics"
+        ],
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Color as `#rrggbb`."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it is about."
+          },
+          "id": {
+            "type": "string",
+            "description": "Pillar ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Topics."
+          }
+        }
+      },
+      "PillarInput": {
+        "type": "object",
+        "description": "A pillar to create or replace.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Color."
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it is about."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Topics."
+          }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "description": "A post.",
+        "required": [
+          "id",
+          "channel",
+          "body",
+          "status",
+          "images",
+          "metrics",
+          "origin",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "description": "The text."
+          },
+          "channel": {
+            "type": "string",
+            "description": "Channel, such as `linkedin`."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation time."
+          },
+          "external_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ID in the channel."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Post ID."
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Images, as IDs of Brain entries."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free kind, such as `opinion` or `report`."
+          },
+          "metrics": {
+            "description": "Analytics such as `impressions`, `reactions`, `comments`, `shares`, `clicks`."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Organization it is for, if any."
+          },
+          "origin": {
+            "type": "string",
+            "description": "`owner` or `import`."
+          },
+          "pillar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Content pillar."
+          },
+          "publish_run": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The run that waits for approval to publish it."
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it went out."
+          },
+          "scheduled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Planned time."
+          },
+          "status": {
+            "type": "string",
+            "description": "`idea`, `draft`, `scheduled`, `publishing` or `published`."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Working title."
+          },
+          "topic": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Topic within the pillar."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last change."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Address of the published post."
+          }
+        }
+      },
+      "PostCheck": {
+        "type": "object",
+        "description": "The result of the check.",
+        "required": [
+          "characters",
+          "words",
+          "hook",
+          "hashtags",
+          "issues",
+          "ok"
+        ],
+        "properties": {
+          "characters": {
+            "type": "integer",
+            "description": "Characters.",
+            "minimum": 0
+          },
+          "hashtags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Hashtags in order of appearance."
+          },
+          "hook": {
+            "type": "string",
+            "description": "The first line, which readers see first."
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CheckIssue"
+            },
+            "description": "Findings, errors first."
+          },
+          "ok": {
+            "type": "boolean",
+            "description": "Whether nothing blocks publishing."
+          },
+          "words": {
+            "type": "integer",
+            "description": "Words.",
+            "minimum": 0
+          }
+        }
+      },
+      "PostPatch": {
+        "type": "object",
+        "description": "Changes to a post. Missing fields stay, `null` clears.",
+        "properties": {
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New text."
+          },
+          "images": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "New images."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New kind."
+          },
+          "metrics": {
+            "description": "Analytics to merge, such as `{\"impressions\": 1200}`."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New organization."
+          },
+          "pillar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New pillar."
+          },
+          "scheduled_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "New planned time. `null` unschedules."
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`idea` or `draft`. Use `scheduled_at` to schedule."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New title."
+          },
+          "topic": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New topic."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Address, once published elsewhere."
+          }
+        }
+      },
+      "PostSlot": {
+        "type": "object",
+        "description": "A weekly slot of the posting plan.",
+        "required": [
+          "weekday",
+          "time"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Slot ID."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Organization."
+          },
+          "pillar": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pillar planned for it."
+          },
+          "time": {
+            "type": "string",
+            "description": "Local time as `HH:MM`."
+          },
+          "weekday": {
+            "type": "integer",
+            "format": "int32",
+            "description": "ISO weekday, 1 for Monday to 7 for Sunday."
           }
         }
       },
@@ -7409,6 +10303,31 @@
           }
         }
       },
+      "StageTotal": {
+        "type": "object",
+        "description": "Open deals of one stage.",
+        "required": [
+          "stage",
+          "count",
+          "amount"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "format": "double",
+            "description": "Their value."
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of deals."
+          },
+          "stage": {
+            "type": "string",
+            "description": "Stage, as the state of the deals."
+          }
+        }
+      },
       "StepRecord": {
         "type": "object",
         "description": "A step as stored.",
@@ -7532,6 +10451,14 @@
           "synced_at"
         ],
         "properties": {
+          "amount": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Value of a deal, balance, transaction, invoice or holding."
+          },
           "assignee": {
             "type": [
               "string",
@@ -7546,6 +10473,13 @@
             ],
             "description": "Author or sender."
           },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Currency code."
+          },
           "data": {
             "description": "Every mapped field."
           },
@@ -7559,7 +10493,7 @@
               "null"
             ],
             "format": "date-time",
-            "description": "End, for events and cycles."
+            "description": "End, for events and cycles. The due date of an invoice, the expiry of a contract."
           },
           "external_id": {
             "type": "string",
@@ -7593,6 +10527,13 @@
             ],
             "format": "date-time",
             "description": "When it last changed or arrived."
+          },
+          "org": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The organization whose sources include this item's source."
           },
           "parent_id": {
             "type": [

@@ -1,12 +1,13 @@
 import {
   Bell, Bot, Brain, Layers, ListTodo, Newspaper, Plug, ScrollText, Settings2, Sun, Sunrise, Terminal, UserRound,
-  Briefcase, Workflow, Zap, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, type LucideIcon,
+  Briefcase, Workflow, Zap, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, Building2, Handshake, BarChart3, MessageSquare, FileSignature,
+  Receipt, Coins, TrendingUp, Radar, type LucideIcon,
 } from "lucide-react";
 import type { Key } from "../i18n";
 import type { View } from "../router";
 
-/** `domain` hides an item until a source of that domain is configured. */
-export type NavItem = { view: View; label: Key; icon: LucideIcon; domain?: string };
+/** `domain` hides an item until a source of that domain (or of one of them) is configured. */
+export type NavItem = { view: View; label: Key; icon: LucideIcon; domain?: string | string[] };
 export type NavGroup = { id: string; label: Key; icon: LucideIcon; items: NavItem[] };
 
 // Only pages with real data behind them appear here. A group with one item opens it directly.
@@ -30,6 +31,17 @@ export const NAV: NavGroup[] = [
       { view: "alerts", label: "nav.alerts", icon: Bell },
     ],
   },
+  {
+    id: "biz", label: "nav.group.biz", icon: Building2, items: [
+      { view: "pipeline", label: "nav.pipeline", icon: Handshake, domain: "deals" },
+      { view: "numbers", label: "nav.numbers", icon: BarChart3, domain: ["deals", "bank", "invoices", "holdings"] },
+      { view: "rooms", label: "nav.rooms", icon: MessageSquare, domain: "rooms" },
+      { view: "contracts", label: "nav.contracts", icon: FileSignature, domain: "documents" },
+      { view: "invoices", label: "nav.invoices", icon: Receipt, domain: "invoices" },
+      { view: "finance", label: "nav.finance", icon: Coins, domain: "bank" },
+      { view: "stocks", label: "nav.stocks", icon: TrendingUp, domain: "holdings" },
+    ],
+  },
   { id: "brain", label: "nav.brain", icon: Brain, items: [{ view: "brain", label: "nav.brain", icon: Brain }] },
   {
     id: "auto", label: "nav.group.auto", icon: Zap, items: [
@@ -38,6 +50,7 @@ export const NAV: NavGroup[] = [
       { view: "log", label: "nav.log", icon: FileText },
     ],
   },
+  { id: "center", label: "nav.center", icon: Radar, items: [{ view: "center", label: "nav.center", icon: Radar }] },
   {
     id: "sys", label: "nav.group.settings", icon: Settings2, items: [
       { view: "connections", label: "nav.connections", icon: Plug },
@@ -52,7 +65,9 @@ export const NAV: NavGroup[] = [
 export function visibleNav(domains: Set<string>): NavGroup[] {
   return NAV.map((group) => ({
     ...group,
-    items: group.items.filter((item) => (item.view === "inbox" ? domains.size > 0 : !item.domain || domains.has(item.domain))),
+    items: group.items.filter((item) =>
+      item.view === "inbox" ? domains.size > 0 : !item.domain || [item.domain].flat().some((domain) => domains.has(domain)),
+    ),
   }));
 }
 

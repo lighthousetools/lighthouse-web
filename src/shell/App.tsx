@@ -5,12 +5,20 @@ import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type Li
 import { queriesFor, sessionKey, useAlertCounts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
-import { Dot, Kbd, Logo, Menu, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
+import { Dot, Kbd, Logo, Menu, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
 import { useNow } from "../ui/live";
 import { Agents } from "../views/Agents";
 import { Alerts } from "../views/Alerts";
 import { Automations } from "../views/Automations";
 import { Brief } from "../views/Brief";
+import { Center } from "../views/Center";
+import { Contracts } from "../views/Contracts";
+import { Finance } from "../views/Finance";
+import { Invoices } from "../views/Invoices";
+import { Numbers } from "../views/Numbers";
+import { Pipeline } from "../views/Pipeline";
+import { Rooms } from "../views/Rooms";
+import { Stocks } from "../views/Stocks";
 import { Calendar } from "../views/Calendar";
 import { Code } from "../views/Code";
 import { Inbox } from "../views/Inbox";
@@ -31,7 +39,8 @@ import { Inspector } from "./Inspector";
 import { Light } from "./Light";
 import { lookChoice, setLook, watchLook, type LookChoice } from "./look";
 import { NAV, groupOf, visibleNav } from "./nav";
-import { useDomains } from "../views/connected";
+import { useDomains, useOrganizations } from "../views/connected";
+import { orgStore, setOrg } from "./org";
 import { Palette } from "./Palette";
 import { closeInspector, inspector, palette, toasts } from "./state";
 
@@ -39,7 +48,8 @@ import { closeInspector, inspector, palette, toasts } from "./state";
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
 
 const VIEW_COMPONENTS: Record<View, (() => JSX.Element) | typeof Brain> = {
-  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, alerts: Alerts, brain: Brain,
+  ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, pipeline: Pipeline, numbers: Numbers, rooms: Rooms, contracts: Contracts,
+  invoices: Invoices, finance: Finance, stocks: Stocks, center: Center, alerts: Alerts, brain: Brain,
   automations: Automations, rules: Rules, me: Me,
   agents: Agents, log: Log, connections: Connections, settings: Settings,
 };
@@ -163,6 +173,7 @@ function Menubar({ live }: { live: LiveState }) {
           run: () => go(view),
         }))}
       />
+      <OrgSwitch />
       <span className="grow" />
       <button type="button" className="mb ic" aria-label={t("nav.search")} onClick={() => palette.set(true)}>
         <Search size={14} />
@@ -172,6 +183,27 @@ function Menubar({ live }: { live: LiveState }) {
         {live === "live" ? location.host : t("status.reconnecting")}
       </span>
       <Clock />
+    </div>
+  );
+}
+
+/** All organizations, or one, with its color. Every list and number follows it. */
+function OrgSwitch() {
+  const orgs = useOrganizations();
+  const org = orgStore.use();
+  const list = orgs.data ?? [];
+  if (!list.length) return null;
+  return (
+    <div className="firm">
+      <Seg
+        label={t("org.label")}
+        value={list.some((item) => item.id === org) ? org : ""}
+        onChange={setOrg}
+        options={[
+          ["", t("org.all")],
+          ...list.map((item) => [item.id, <span key={item.id} className="firm-o"><i style={{ background: item.color ?? "var(--ink3)" }} />{item.name}</span>] as [string, JSX.Element]),
+        ]}
+      />
     </div>
   );
 }

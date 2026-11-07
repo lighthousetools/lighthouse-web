@@ -171,6 +171,8 @@ export function queriesFor(event: string): string[][] | "all" {
       return [["automations"]];
     case "connected.changed":
       return [["connected"], ["ready"], ["approvals"]];
+    case "organizations.changed":
+      return [["connected"]];
     case "sessions.changed":
       return [["sessions"]];
     default:

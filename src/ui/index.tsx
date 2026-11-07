@@ -423,7 +423,9 @@ export function AreaChart({ data, labels, height = 200, color = "var(--chart)", 
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => setWidth(element.clientWidth));
+    const measure = () => element.clientWidth && setWidth(element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
   }, []);

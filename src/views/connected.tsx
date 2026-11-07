@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plug, RefreshCw } from "lucide-react";
 import { api, must, type Schemas } from "../api/client";
 import { dayTime } from "../format";
-import { t } from "../i18n";
+import { language, t } from "../i18n";
+import { orgStore } from "../shell/org";
 import { go } from "../router";
 import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
@@ -11,9 +12,24 @@ import { age } from "./Ready";
 
 export type Item = Schemas["SyncedItem"];
 export type Source = Schemas["SourceInfo"];
-export type Domain = "mail" | "calendar" | "issues" | "code";
+export type Domain = "mail" | "calendar" | "issues" | "code" | "deals" | "bank" | "invoices" | "documents" | "rooms" | "holdings";
 type ListQuery = { q?: string; source?: string; state?: string; flags?: string; open?: boolean; from?: string; to?: string; limit?: number; offset?: number };
-type ListPath = "/inbox" | "/mail/threads" | "/calendar/events" | "/issues" | "/issues/projects" | "/issues/cycles" | "/pulls" | "/connected/search";
+type ListPath =
+  | "/inbox" | "/mail/threads" | "/calendar/events" | "/issues" | "/issues/projects" | "/issues/cycles" | "/pulls"
+  | "/connected/search" | "/deals" | "/bank/accounts" | "/bank/transactions" | "/invoices" | "/contracts" | "/rooms"
+  | "/holdings" | "/holdings/quotes";
+export type Organization = Schemas["Organization"];
+
+export function useOrganizations() {
+  return useQuery({ queryKey: ["connected", "organizations"], queryFn: () => must(api.GET("/organizations")), staleTime: 60_000 });
+}
+
+/** The organization chosen in the menu bar, if it still exists. */
+export function useOrg(): Organization | undefined {
+  const org = orgStore.use();
+  const list = useOrganizations();
+  return (list.data ?? []).find((item) => item.id === org);
+}
 
 export function useSources() {
   return useQuery({ queryKey: ["connected", "sources"], queryFn: () => must(api.GET("/connected/sources")), staleTime: 30_000 });
@@ -22,15 +38,52 @@ export function useSources() {
 /** Which domains have a configured source. The navigation shows a page only for these. */
 export function useDomains(): Set<string> {
   const sources = useSources();
-  return new Set((sources.data ?? []).map((source) => source.domain));
+  const org = useOrg();
+  // With an organization chosen, only its sources count.
+  return new Set((sources.data ?? []).filter((source) => !org || org.sources.includes(source.name)).map((source) => source.domain));
 }
 
+/** A list of cached items, narrowed to the organization chosen in the menu bar. */
 export function useItems(path: ListPath, query: ListQuery = {}, enabled = true) {
+  const org = useOrg()?.id;
+  const full = path === "/inbox" || !org ? query : { ...query, org };
   return useQuery({
-    queryKey: ["connected", path, query],
+    queryKey: ["connected", path, full, org ?? ""],
     enabled,
-    queryFn: () => must(api.GET(path, { params: { query: query as never } })),
+    queryFn: async () => {
+      const page = await must(api.GET(path, { params: { query: full as never } }));
+      // The inbox has no org filter, so it filters here.
+      return org && path === "/inbox" ? { ...page, items: page.items.filter((item) => item.org === org) } : page;
+    },
   });
+}
+
+/** Key numbers for the chosen organization, the first currency first. */
+export function useNumbers(months = 12) {
+  const org = useOrg()?.id;
+  return useQuery({
+    queryKey: ["connected", "numbers", org ?? "", months],
+    queryFn: () => must(api.GET("/numbers", { params: { query: org ? { org, months } : { months } } })),
+  });
+}
+
+/** An amount in its currency, without decimals from 1000 on. */
+export function money(amount: number | null | undefined, currency?: string | null, cents = false) {
+  if (amount == null || Number.isNaN(amount)) return "–";
+  const code = currency && /^[A-Z]{3}$/.test(currency) && currency !== "XXX" ? currency : undefined;
+  const digits = cents || Math.abs(amount) < 1000 ? 2 : 0;
+  const locale = language() === "de" ? "de-DE" : "en-GB";
+  return code
+    ? new Intl.NumberFormat(locale, { style: "currency", currency: code, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount)
+    : amount.toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** 386k, 1.2M: amounts in tight places. */
+export function short(amount: number) {
+  const value = Math.abs(amount);
+  if (value >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
+  if (value >= 1000) return `${Math.round(amount / 1000)}k`;
+  return String(Math.round(amount));
 }
 
 export function useItem(id: string | undefined) {

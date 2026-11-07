@@ -458,6 +458,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bank/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists bank accounts with their balances. */
+        get: operations["list_bank_accounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bank/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists bank transactions, latest first. */
+        get: operations["list_transactions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/brain/ask": {
         parameters: {
             query?: never;
@@ -593,6 +627,24 @@ export interface paths {
         /** Searches the Brain. */
         get: operations["search_brain"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the owner's brand profile. */
+        get: operations["get_branding"];
+        /** Replaces the owner's brand profile. */
+        put: operations["save_branding"];
         post?: never;
         delete?: never;
         options?: never;
@@ -811,6 +863,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists contracts and documents, latest first. */
+        get: operations["list_contracts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/costs": {
         parameters: {
             query?: never;
@@ -858,6 +927,61 @@ export interface paths {
         post?: never;
         /** Deletes a credential. */
         delete: operations["delete_credential"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists deals, latest change first. Open deals by default. */
+        get: operations["list_deals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the decks, latest first. */
+        get: operations["list_decks"];
+        put?: never;
+        /** Stores a new deck in the Brain. Change it with `PATCH /brain/entries/{id}`. */
+        post: operations["create_deck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decks/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exports a deck as one HTML page with a slide per page, or as Markdown.
+         * @description For a PDF, open the HTML export and print it; the page breaks after every slide.
+         */
+        get: operations["export_deck"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -919,6 +1043,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/holdings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists holdings of the portfolio. Data only. */
+        get: operations["list_holdings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/holdings/quotes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists market quotes. Data only. */
+        get: operations["list_quotes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/inbox": {
         parameters: {
             query?: never;
@@ -931,6 +1089,23 @@ export interface paths {
          *     assigned issues that are still open, most important first.
          */
         get: operations["inbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists issued and received invoices, latest first. Filter with `flags=overdue`, `receivable` or `payable`. */
+        get: operations["list_invoices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1200,6 +1375,61 @@ export interface paths {
         patch: operations["update_node"];
         trace?: never;
     };
+    "/numbers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Computes key numbers from the cache: pipeline, cash, burn, runway, open and
+         *     overdue invoices, revenue per month and holdings, per currency.
+         */
+        get: operations["numbers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the organizations. */
+        get: operations["list_organizations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Creates or replaces an organization and the sources that belong to it. */
+        put: operations["save_organization"];
+        post?: never;
+        /** Deletes an organization. Its items stay. */
+        delete: operations["delete_organization"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/permissions": {
         parameters: {
             query?: never;
@@ -1228,6 +1458,164 @@ export interface paths {
         put?: never;
         /** Decides a permission request. The first decision wins. */
         post: operations["decide_permission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists posts: planned and published ones by time, newest first. */
+        get: operations["list_posts"];
+        put?: never;
+        /** Writes a new post. With `scheduled_at` it is planned, never published by itself. */
+        post: operations["create_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lays the weekly slots over a range of days, with the posts planned for each. */
+        get: operations["post_calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks a text: length, hook and hashtags. */
+        post: operations["check_text"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds published posts to the archive, from a list or from CSV. */
+        post: operations["import_posts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/pillars": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the content pillars with their topics. */
+        get: operations["list_pillars"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/pillars/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Creates or replaces a pillar. */
+        put: operations["save_pillar"];
+        post?: never;
+        /** Deletes a pillar. */
+        delete: operations["delete_pillar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the weekly slots of the posting plan. */
+        get: operations["list_post_slots"];
+        /** Replaces the weekly slots. */
+        put: operations["set_post_slots"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a post. */
+        get: operations["get_post"];
+        put?: never;
+        post?: never;
+        /** Deletes a post. */
+        delete: operations["delete_post"];
+        options?: never;
+        head?: never;
+        /** Changes a post, plans it, or fills in its analytics. */
+        patch: operations["update_post"];
+        trace?: never;
+    };
+    "/posts/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks to publish a post. It goes out only after the owner approves the call. */
+        post: operations["publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1319,6 +1707,23 @@ export interface paths {
         };
         /** Returns the weekly recap of an ISO week, such as `2026-W45`, or `latest`. */
         get: operations["get_recap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists deal rooms, latest activity first. */
+        get: operations["list_rooms"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1865,6 +2270,45 @@ export interface components {
             /** @description Proposals already decided or expired. */
             skipped: string[];
         };
+        /** @description The owner's profile for writing posts and decks. */
+        BrandProfile: {
+            /**
+             * @description Who the owner writes for.
+             * @default null
+             */
+            audience: string | null;
+            /**
+             * @description Words, claims or topics to avoid.
+             * @default []
+             */
+            avoid: string[];
+            /**
+             * @description A few sentences about the owner.
+             * @default null
+             */
+            bio: string | null;
+            /**
+             * @description One line on who the owner is.
+             * @default null
+             */
+            headline: string | null;
+            /**
+             * @description Topics the owner stands for.
+             * @default []
+             */
+            topics: string[];
+            /**
+             * Format: date-time
+             * @description Last change.
+             * @default null
+             */
+            updated_at: string | null;
+            /**
+             * @description Notes on tone and style, in the owner's words.
+             * @default null
+             */
+            voice: string | null;
+        };
         /** @description The structured result of a briefing run. */
         BriefingContent: {
             /** @description `morning_brief`, `weekly_recap` or another lowercase kind. */
@@ -1919,6 +2363,18 @@ export interface components {
              */
             starts_at: string;
         };
+        /** @description One occurrence of a slot in the calendar, with the posts planned for it. */
+        CalendarSlot: {
+            /**
+             * Format: date-time
+             * @description When it is.
+             */
+            at: string;
+            /** @description Posts scheduled within an hour of it. */
+            posts: string[];
+            /** @description The slot. */
+            slot: components["schemas"]["PostSlot"];
+        };
         /** @description A changed file with its latest change. */
         ChangedFile: {
             /**
@@ -1935,6 +2391,20 @@ export interface components {
             edits: number;
             /** @description File path. */
             path: string;
+        };
+        /** @description One finding. */
+        CheckIssue: {
+            /** @description Stable code, such as `too_long` or `hook_too_long`. */
+            code: string;
+            /** @description What to change. */
+            message: string;
+            /** @description `error`, `warning` or `hint`. */
+            severity: string;
+        };
+        /** @description Text to check. */
+        CheckRequest: {
+            /** @description The text of a post. */
+            text: string;
         };
         /** @description Answer when an OAuth flow started. */
         ConnectStarted: {
@@ -1958,6 +2428,75 @@ export interface components {
         CredentialValue: {
             /** @description The secret value. */
             value: string;
+        };
+        /** @description The numbers of one currency. */
+        CurrencyNumbers: {
+            /**
+             * Format: double
+             * @description Sum of account balances.
+             */
+            cash: number;
+            /** @description Currency code. */
+            currency: string;
+            /**
+             * Format: int64
+             * @description Open deals without activity for 30 days.
+             */
+            deals_cold: number;
+            /**
+             * Format: int64
+             * @description Open deals.
+             */
+            deals_open: number;
+            /**
+             * Format: double
+             * @description Value of holdings.
+             */
+            holdings: number;
+            /**
+             * Format: int64
+             * @description Number of overdue issued invoices.
+             */
+            invoices_overdue: number;
+            /**
+             * Format: double
+             * @description Net outflow per month over the last 90 days. Zero when more came in.
+             */
+            monthly_burn: number;
+            /**
+             * Format: double
+             * @description Open received invoices.
+             */
+            payables_open: number;
+            /**
+             * Format: double
+             * @description Value of open deals.
+             */
+            pipeline_open: number;
+            /**
+             * Format: double
+             * @description Value of open deals times their `probability` field in percent, where set.
+             */
+            pipeline_weighted: number;
+            /**
+             * Format: double
+             * @description Open issued invoices.
+             */
+            receivables_open: number;
+            /**
+             * Format: double
+             * @description Open issued invoices past their due date.
+             */
+            receivables_overdue: number;
+            /** @description Issued invoices per month, newest first. */
+            revenue: components["schemas"]["PeriodAmount"][];
+            /**
+             * Format: double
+             * @description Cash divided by the monthly burn, if there is a burn.
+             */
+            runway_months?: number | null;
+            /** @description Open deals per stage. */
+            stages: components["schemas"]["StageTotal"][];
         };
         /** @description Model costs of one day and provider. */
         DailyCost: {
@@ -2184,6 +2723,44 @@ export interface components {
             /** @description Server version. */
             version: string;
         };
+        /** @description Published posts to add to the archive, as a list or as CSV with a header row. */
+        ImportRequest: {
+            /** @description Posts as CSV. */
+            csv?: string | null;
+            /** @description Posts as objects. */
+            posts?: components["schemas"]["ImportedPost"][];
+        };
+        /** @description Result of an import. */
+        ImportResult: {
+            /** @description Posts stored or updated. */
+            imported: number;
+        };
+        /** @description A published post to add to the archive. */
+        ImportedPost: {
+            /** @description The text. */
+            body?: string;
+            /** @description Channel. Defaults to `linkedin`. */
+            channel?: string | null;
+            /** @description ID in the channel. Either this or `url` identifies the post. */
+            external_id?: string | null;
+            /** @description Analytics. */
+            metrics?: {
+                [key: string]: unknown;
+            };
+            /** @description Organization. */
+            org?: string | null;
+            /** @description Pillar. */
+            pillar?: string | null;
+            /**
+             * Format: date-time
+             * @description When it went out.
+             */
+            published_at?: string | null;
+            /** @description Topic. */
+            topic?: string | null;
+            /** @description Address. */
+            url?: string | null;
+        };
         /** @description An item with its children, such as a thread with messages or a pull request with checks and files. */
         ItemDetail: {
             /** @description Its children. */
@@ -2248,6 +2825,15 @@ export interface components {
             /** @description Display name. */
             name: string;
         };
+        /** @description A new deck. */
+        NewDeck: {
+            /** @description Links to other entries, such as `customer:example`. */
+            links?: string[];
+            /** @description Slides in Markdown, separated by lines with only `---`. */
+            markdown: string;
+            /** @description Title. */
+            title: string;
+        };
         /** @description A new entry. */
         NewEntry: {
             /** @description Markdown text. */
@@ -2278,6 +2864,32 @@ export interface components {
             session_id: string;
             /** @description Tool name. */
             tool: string;
+        };
+        /** @description A post to create. */
+        NewPost: {
+            /** @description The text. */
+            body?: string;
+            /** @description Channel. Defaults to `linkedin`. */
+            channel?: string | null;
+            /** @description Images as Brain entry IDs. */
+            images?: string[];
+            /** @description Free kind. */
+            kind?: string | null;
+            /** @description Organization. */
+            org?: string | null;
+            /** @description Pillar. */
+            pillar?: string | null;
+            /**
+             * Format: date-time
+             * @description Planned time. Makes the post `scheduled`.
+             */
+            scheduled_at?: string | null;
+            /** @description `idea` or `draft`. Defaults to `draft`. */
+            status?: string | null;
+            /** @description Working title. */
+            title?: string | null;
+            /** @description Topic. */
+            topic?: string | null;
         };
         /** @description A rule to create. */
         NewRule: {
@@ -2369,11 +2981,63 @@ export interface components {
             /** @description Whether remote actions are paused. */
             paused: boolean;
         };
+        /** @description Key numbers of one organization, or of all. */
+        Numbers: {
+            /**
+             * Format: date-time
+             * @description When they were computed.
+             */
+            computed_at: string;
+            /** @description Numbers per currency. */
+            currencies: components["schemas"]["CurrencyNumbers"][];
+            /** @description The organization, if the numbers are for one. */
+            org?: string | null;
+        };
+        /** @description An organization. */
+        Organization: {
+            /** @description Color for the apps, as `#rrggbb`. */
+            color?: string | null;
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /** @description Stable ID of lowercase letters, digits and dashes. */
+            id: string;
+            /** @description Display name. */
+            name: string;
+            /** @description Sources that belong to it. */
+            sources: string[];
+            /**
+             * Format: date-time
+             * @description Last change.
+             */
+            updated_at: string;
+        };
+        /** @description An organization to create or replace. */
+        OrganizationInput: {
+            /** @description Color as `#rrggbb`. */
+            color?: string | null;
+            /** @description Display name. */
+            name: string;
+            /** @description Sources that belong to it. */
+            sources?: string[];
+        };
         /**
          * @description Who created something.
          * @enum {string}
          */
         Origin: "owner" | "agent";
+        /** @description Revenue of one month. */
+        PeriodAmount: {
+            /**
+             * Format: double
+             * @description Sum of issued invoices dated in it.
+             */
+            amount: number;
+            /** @description Month as `YYYY-MM`. */
+            period: string;
+        };
         /** @description A stored permission request. */
         Permission: {
             /**
@@ -2416,6 +3080,151 @@ export interface components {
         PermissionDecision: {
             /** @description Whether the tool may run. */
             allow: boolean;
+        };
+        /** @description A content pillar with its topics. */
+        Pillar: {
+            /** @description Color as `#rrggbb`. */
+            color?: string | null;
+            /** @description What it is about. */
+            description?: string | null;
+            /** @description Pillar ID. */
+            id: string;
+            /** @description Name. */
+            name: string;
+            /** @description Topics. */
+            topics: string[];
+        };
+        /** @description A pillar to create or replace. */
+        PillarInput: {
+            /** @description Color. */
+            color?: string | null;
+            /** @description What it is about. */
+            description?: string | null;
+            /** @description Name. */
+            name: string;
+            /** @description Topics. */
+            topics?: string[];
+        };
+        /** @description A post. */
+        Post: {
+            /** @description The text. */
+            body: string;
+            /** @description Channel, such as `linkedin`. */
+            channel: string;
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /** @description ID in the channel. */
+            external_id?: string | null;
+            /**
+             * Format: uuid
+             * @description Post ID.
+             */
+            id: string;
+            /** @description Images, as IDs of Brain entries. */
+            images: string[];
+            /** @description Free kind, such as `opinion` or `report`. */
+            kind?: string | null;
+            /** @description Analytics such as `impressions`, `reactions`, `comments`, `shares`, `clicks`. */
+            metrics: unknown;
+            /** @description Organization it is for, if any. */
+            org?: string | null;
+            /** @description `owner` or `import`. */
+            origin: string;
+            /** @description Content pillar. */
+            pillar?: string | null;
+            /**
+             * Format: uuid
+             * @description The run that waits for approval to publish it.
+             */
+            publish_run?: string | null;
+            /**
+             * Format: date-time
+             * @description When it went out.
+             */
+            published_at?: string | null;
+            /**
+             * Format: date-time
+             * @description Planned time.
+             */
+            scheduled_at?: string | null;
+            /** @description `idea`, `draft`, `scheduled`, `publishing` or `published`. */
+            status: string;
+            /** @description Working title. */
+            title?: string | null;
+            /** @description Topic within the pillar. */
+            topic?: string | null;
+            /**
+             * Format: date-time
+             * @description Last change.
+             */
+            updated_at: string;
+            /** @description Address of the published post. */
+            url?: string | null;
+        };
+        /** @description The result of the check. */
+        PostCheck: {
+            /** @description Characters. */
+            characters: number;
+            /** @description Hashtags in order of appearance. */
+            hashtags: string[];
+            /** @description The first line, which readers see first. */
+            hook: string;
+            /** @description Findings, errors first. */
+            issues: components["schemas"]["CheckIssue"][];
+            /** @description Whether nothing blocks publishing. */
+            ok: boolean;
+            /** @description Words. */
+            words: number;
+        };
+        /** @description Changes to a post. Missing fields stay, `null` clears. */
+        PostPatch: {
+            /** @description New text. */
+            body?: string | null;
+            /** @description New images. */
+            images?: string[] | null;
+            /** @description New kind. */
+            kind?: string | null;
+            /** @description Analytics to merge, such as `{"impressions": 1200}`. */
+            metrics?: unknown;
+            /** @description New organization. */
+            org?: string | null;
+            /** @description New pillar. */
+            pillar?: string | null;
+            /**
+             * Format: date-time
+             * @description New planned time. `null` unschedules.
+             */
+            scheduled_at?: string | null;
+            /** @description `idea` or `draft`. Use `scheduled_at` to schedule. */
+            status?: string | null;
+            /** @description New title. */
+            title?: string | null;
+            /** @description New topic. */
+            topic?: string | null;
+            /** @description Address, once published elsewhere. */
+            url?: string | null;
+        };
+        /** @description A weekly slot of the posting plan. */
+        PostSlot: {
+            /**
+             * Format: uuid
+             * @description Slot ID.
+             */
+            id?: string;
+            /** @description Organization. */
+            org?: string | null;
+            /** @description Pillar planned for it. */
+            pillar?: string | null;
+            /** @description Local time as `HH:MM`. */
+            time: string;
+            /**
+             * Format: int32
+             * @description ISO weekday, 1 for Monday to 7 for Sunday.
+             */
+            weekday: number;
         };
         /** @description Everything that waits for the owner. */
         ReadyFeed: {
@@ -2771,6 +3580,21 @@ export interface components {
             /** @description Address to open it, if it lives outside Lighthouse. */
             url?: string | null;
         };
+        /** @description Open deals of one stage. */
+        StageTotal: {
+            /**
+             * Format: double
+             * @description Their value.
+             */
+            amount: number;
+            /**
+             * Format: int64
+             * @description Number of deals.
+             */
+            count: number;
+            /** @description Stage, as the state of the deals. */
+            stage: string;
+        };
         /** @description A step as stored. */
         StepRecord: {
             /**
@@ -2836,17 +3660,24 @@ export interface components {
         };
         /** @description A cached item. */
         SyncedItem: {
+            /**
+             * Format: double
+             * @description Value of a deal, balance, transaction, invoice or holding.
+             */
+            amount?: number | null;
             /** @description Assignee. */
             assignee?: string | null;
             /** @description Author or sender. */
             author?: string | null;
+            /** @description Currency code. */
+            currency?: string | null;
             /** @description Every mapped field. */
             data: unknown;
             /** @description `mail`, `calendar`, `issues` or `code`. */
             domain: string;
             /**
              * Format: date-time
-             * @description End, for events and cycles.
+             * @description End, for events and cycles. The due date of an invoice, the expiry of a contract.
              */
             ends_at?: string | null;
             /** @description ID in the service. */
@@ -2870,6 +3701,8 @@ export interface components {
              * @description When it last changed or arrived.
              */
             occurred_at?: string | null;
+            /** @description The organization whose sources include this item's source. */
+            org?: string | null;
             /** @description ID of the parent item in the service, such as the pull request of a check. */
             parent_id?: string | null;
             /** @description Source name from the configuration. */
@@ -3884,6 +4717,86 @@ export interface operations {
             };
         };
     };
+    list_bank_accounts: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_transactions: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
     ask_brain: {
         parameters: {
             query?: never;
@@ -4195,6 +5108,48 @@ export interface operations {
             };
         };
     };
+    get_branding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandProfile"];
+                };
+            };
+        };
+    };
+    save_branding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandProfile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandProfile"];
+                };
+            };
+        };
+    };
     latest_brief: {
         parameters: {
             query?: never;
@@ -4228,6 +5183,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -4388,6 +5345,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -4558,6 +5517,46 @@ export interface operations {
             };
         };
     };
+    list_contracts: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
     costs: {
         parameters: {
             query?: {
@@ -4657,6 +5656,135 @@ export interface operations {
             };
         };
     };
+    list_deals: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_decks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrySummary"][];
+                };
+            };
+        };
+    };
+    create_deck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewDeck"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description Invalid deck */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    export_deck: {
+        parameters: {
+            query?: {
+                /** @description html (default) or markdown */
+                format?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Deck ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The deck */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": unknown;
+                };
+            };
+            /** @description Unknown deck */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown format */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_documents: {
         parameters: {
             query?: {
@@ -4720,6 +5848,86 @@ export interface operations {
             };
         };
     };
+    list_holdings: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_quotes: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
     inbox: {
         parameters: {
             query?: {
@@ -4727,6 +5935,48 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+        };
+    };
+    list_invoices: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
                 /** @description Page size */
                 limit?: number;
                 /** @description Items to skip */
@@ -4755,6 +6005,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -4793,6 +6045,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -4831,6 +6085,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -4869,6 +6125,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -5274,6 +6532,110 @@ export interface operations {
             };
         };
     };
+    numbers: {
+        parameters: {
+            query?: {
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Months of revenue, default 12, at most 36 */
+                months?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Numbers"];
+                };
+            };
+        };
+    };
+    list_organizations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"][];
+                };
+            };
+        };
+    };
+    save_organization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrganizationInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Organization"];
+                };
+            };
+            /** @description Invalid organization */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_organization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Organization ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown organization */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     permissions: {
         parameters: {
             query?: {
@@ -5331,6 +6693,416 @@ export interface operations {
             };
         };
     };
+    list_posts: {
+        parameters: {
+            query?: {
+                /** @description idea, draft, scheduled, publishing or published */
+                status?: string;
+                /** @description Only this organization */
+                org?: string;
+                /** @description Only this pillar */
+                pillar?: string;
+                /** @description Text search */
+                q?: string;
+                /** @description Planned or published at or after */
+                from?: string;
+                /** @description Planned or published before */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"][];
+                };
+            };
+        };
+    };
+    create_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPost"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"];
+                };
+            };
+            /** @description Invalid post */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    post_calendar: {
+        parameters: {
+            query?: {
+                /** @description First day, defaults to today */
+                from?: string;
+                /** @description Number of days, default 28, at most 92 */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarSlot"][];
+                };
+            };
+        };
+    };
+    check_text: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostCheck"];
+                };
+            };
+        };
+    };
+    import_posts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            /** @description Invalid data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_pillars: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pillar"][];
+                };
+            };
+        };
+    };
+    save_pillar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Pillar ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PillarInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pillar"];
+                };
+            };
+            /** @description Invalid pillar */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_pillar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Pillar ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown pillar */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_post_slots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostSlot"][];
+                };
+            };
+        };
+    };
+    set_post_slots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostSlot"][];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostSlot"][];
+                };
+            };
+            /** @description Invalid slot */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"];
+                };
+            };
+            /** @description Unknown post */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown post */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PostPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Post"];
+                };
+            };
+            /** @description Invalid change */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown post */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Post ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResult"];
+                };
+            };
+            /** @description Unknown post */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Published already or waiting for approval */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The check found errors, or publishing is not set up */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_pulls: {
         parameters: {
             query?: {
@@ -5338,6 +7110,8 @@ export interface operations {
                 q?: string;
                 /** @description Only this source */
                 source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
                 /** @description Only this state */
                 state?: string;
                 /** @description Comma-separated flags the items must have */
@@ -5457,6 +7231,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_rooms: {
+        parameters: {
+            query?: {
+                /** @description Full-text search */
+                q?: string;
+                /** @description Only this source */
+                source?: string;
+                /** @description Only sources of this organization */
+                org?: string;
+                /** @description Only this state */
+                state?: string;
+                /** @description Comma-separated flags the items must have */
+                flags?: string;
+                /** @description Leave out closed and done items */
+                open?: boolean;
+                /** @description Items ending or happening at or after this time */
+                from?: string;
+                /** @description Items starting or happening before this time */
+                to?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Items to skip */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemPage"];
+                };
             };
         };
     };
