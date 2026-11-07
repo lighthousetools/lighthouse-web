@@ -95,6 +95,19 @@ that instant. Slides move by dragging them in the grid or the slide editor, or w
   a sample payload. The sentence above the list writes a draft through `POST /automations/draft` to review before saving.
   An agent step that waits for an approval makes the automation wait too.
 
+## Talk, usage and alert charts
+
+- **Talk** (`#talk`) keeps conversations as threads (`/talk/threads`): new chat, search, pin, rename and delete, grouped
+  into pinned, today, yesterday, this week and older. An empty thread greets you with what waits in Ready and a few
+  starting questions. A message goes to `POST /talk/threads/{id}/messages`. With a talk agent, the answer is pending
+  (`202`) until its run ends; `talk.changed` brings it in, and polling takes over while the stream is down. The run is
+  one click away, and anything the agent wants to send still waits for approval. Without a talk agent, the Brain answers
+  at once with its sources, which open in the Brain.
+- **Claude Code sessions** show their usage from `GET /sessions/{node}/{id}`: cost in USD, tokens in and out, and how
+  much came from the cache.
+- **Alerts** chart their runs or refreshes per day from `GET /alerts/{id}/series`, failed ones in red, over 7, 14 or 30
+  days. Alerts without a history show no chart.
+
 ## Loading and motion
 
 Only the start page and the sign-in are in the first bundle; every other page, the presenter and the film load when
@@ -107,12 +120,11 @@ The navigation shows only pages with real data behind them. These pages of the d
 
 | Design page | Missing in the API |
 |---|---|
-| Assistant conversation | A chat endpoint with history |
 | Posts: variants, first comment, rewrite suggestions, blocked days; Branding: post-to-meeting funnel, target-account reactions, comment briefing; Presentations: generated drafts, style choice, PDF and PPTX export, publishing to a room | Not in the API yet |
 | Pipeline: suggested values, top deals as tasks; Numbers: export and comparison periods; Contracts: templates and composer; Rooms: publishing, next steps and milestones; Stocks: theses, own metrics and questions | Not in the API yet |
 | Mail: context column | Related records next to a thread |
 | Calendar: drag to move | Moving an event goes through an approval; dragging needs a move action |
 | Issues: board and bulk edit | Board columns in the issue source |
-| Session detail: context usage, rules in effect | Token usage and the session's rules from the desktop agent |
-| Alert detail: metric chart and cause tree | Metrics and root-cause analysis for alerts |
+| Session detail: rules in effect | The session's rules from the desktop agent |
+| Alert detail: cause tree | Root-cause analysis for alerts |
 | Automation builder: dry run over past days | Dry runs replay a payload, not the events of past days |
