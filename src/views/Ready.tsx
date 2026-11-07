@@ -47,7 +47,7 @@ function draftInput(item: ReadyItem): unknown {
 }
 
 export function titleOf(item: ReadyItem, names: Record<string, string> = {}) {
-  const detail = item.detail as Record<string, unknown>;
+  const detail = (item.detail ?? {}) as Record<string, unknown>;
   switch (item.kind as Kind) {
     case "approval":
       return toolName(String(detail.tool ?? item.title));
@@ -62,7 +62,7 @@ export function titleOf(item: ReadyItem, names: Record<string, string> = {}) {
 
 /** The service an item came from, for its icon. */
 function sourceOf(item: ReadyItem) {
-  const detail = item.detail as Record<string, unknown>;
+  const detail = (item.detail ?? {}) as Record<string, unknown>;
   if (item.kind === "permission") return "claude";
   if (item.kind === "approval" || item.kind === "draft") return String(detail.tool ?? "").split(".")[0];
   if (item.kind === "task") return (detail.source as { kind?: string } | null)?.kind ?? "lighthouse";
@@ -116,7 +116,7 @@ function Details({ input }: { input: unknown }) {
 function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<string, string>; onDecided: (stamp: string) => void }) {
   const refresh = useRefresh();
   const kind = item.kind as Kind;
-  const detail = item.detail as Record<string, unknown>;
+  const detail = (item.detail ?? {}) as Record<string, unknown>;
   const initial = kind === "approval" ? JSON.stringify(detail.input, null, 2) : "";
   const [text, setText] = useState(initial);
   const [editing, setEditing] = useState(false);

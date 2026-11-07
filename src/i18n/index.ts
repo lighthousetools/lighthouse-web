@@ -46,8 +46,11 @@ export function setLanguage(next: Choice) {
 }
 
 /** Translates a key and fills in `{name}` placeholders. */
+// Keys built from server values (a status, a kind) can be unknown to this version: they fall back to English, then to
+// the last part of the key, instead of breaking the page.
 export function t(key: Key, values: Record<string, string | number> = {}): string {
-  return tables[language()][key].replace(/\{(\w+)\}/g, (whole, name: string) =>
+  const text: string | undefined = tables[language()][key] ?? tables.en[key];
+  return (text ?? key.split(".").pop() ?? key).replace(/\{(\w+)\}/g, (whole, name: string) =>
     name in values ? String(values[name]) : whole,
   );
 }

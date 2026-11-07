@@ -33,7 +33,8 @@ export function change(number: Num) {
 }
 
 export function formatNumber(number: Pick<Num, "value" | "unit">, locale?: string) {
-  const value = number.value.toLocaleString(locale, { maximumFractionDigits: Math.abs(number.value) < 10 ? 1 : 0 });
+  const raw = Number(number.value ?? 0);
+  const value = raw.toLocaleString(locale, { maximumFractionDigits: Math.abs(raw) < 10 ? 1 : 0 });
   return number.unit ? `${value} ${number.unit}` : value;
 }
 
