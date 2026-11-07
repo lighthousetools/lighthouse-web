@@ -1,8 +1,13 @@
-import { ExternalLink } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { BellPlus, ExternalLink, NotebookPen } from "lucide-react";
+import { api, must } from "../api/client";
+import { go } from "../router";
+import { InspectorPanel } from "../shell/Inspector";
+import { inspect, toast } from "../shell/state";
 import { useMemo, useState } from "react";
 import { shortDate } from "../format";
 import { t, useLanguage } from "../i18n";
-import { Empty, Failure, Skeleton, Spark, Tabs } from "../ui";
+import { Btn, Empty, Failure, Field, Skeleton, Spark, Tabs } from "../ui";
 import { Freshness, NoSource, field, money, openItem, useDomains, useItems, useNumbers, useSources, type Item } from "./connected";
 import "./stocks.css";
 
@@ -23,6 +28,65 @@ export function quotesFor(holding: Pick<Item, "id" | "external_id">, quotes: Ite
     .map((quote) => quote.amount!);
 }
 
+/** Your own theses on a holding, kept as notes in the Brain. Lighthouse gives no advice and never trades. */
+function Theses({ holding }: { holding: Item }) {
+  const client = useQueryClient();
+  const theses = useQuery({ queryKey: ["holdings", holding.id, "theses"], queryFn: () => must(api.GET("/holdings/{id}/theses", { params: { path: { id: holding.id } } })) });
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const add = useMutation({
+    mutationFn: () => must(api.POST("/holdings/{id}/theses", { params: { path: { id: holding.id } }, body: { title: title.trim(), body } })),
+    onSuccess: () => {
+      setTitle("");
+      setBody("");
+      toast(t("stocks.thesisSaved"));
+      void client.invalidateQueries({ queryKey: ["holdings", holding.id, "theses"] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  return (
+    <div className="st-th">
+      <div className="sect"><NotebookPen size={14} />{t("stocks.theses")}<small>{theses.data?.length ?? 0}</small></div>
+      {(theses.data ?? []).map((entry) => (
+        <button type="button" key={entry.id} className="st-thr" onClick={() => go("brain", entry.id)}>
+          <b className="clip">{entry.title}</b>
+          {entry.snippet && <span className="faint clip">{entry.snippet}</span>}
+        </button>
+      ))}
+      {theses.data?.length === 0 && <p className="faint" style={{ fontSize: 12 }}>{t("stocks.noTheses")}</p>}
+      <Field label={t("stocks.thesisTitle")} value={title} onChange={setTitle} placeholder={t("stocks.thesisPlaceholder")} />
+      <textarea className="ta" rows={3} aria-label={t("stocks.thesisBody")} placeholder={t("stocks.thesisBody")} value={body} onChange={(event) => setBody(event.target.value)} />
+      <Btn size="sm" disabled={!title.trim() || add.isPending} onClick={() => add.mutate()}>{t("stocks.addThesis")}</Btn>
+    </div>
+  );
+}
+
+function openHolding(item: Item) {
+  inspect(
+    `holding:${item.id}`,
+    <InspectorPanel
+      kind={t("nav.stocks")}
+      title={item.title ?? item.external_id}
+      facts={[[t("stocks.value"), money(item.amount, item.currency)], ...(field(item, "quantity") ? [[t("stocks.positions"), field(item, "quantity")!] as [string, string]] : [])]}
+      actions={item.url ? <Btn onClick={() => openItem(item)}><ExternalLink />{t("connected.openIn")}</Btn> : undefined}
+    >
+      <Theses holding={item} />
+    </InspectorPanel>,
+  );
+}
+
+function useReminders() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => must(api.POST("/holdings/reminders", { body: { days_before: 3 } })),
+    onSuccess: (result) => {
+      toast(result.proposed.length ? t("stocks.remindersDone", { count: result.proposed.length }) : t("stocks.remindersNone"));
+      for (const key of ["ready", "tasks"]) void client.invalidateQueries({ queryKey: [key] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+}
+
 export function Stocks() {
   useLanguage();
   const domains = useDomains();
@@ -31,6 +95,7 @@ export function Stocks() {
   const holdings = useItems("/holdings", { limit: 200 }, domains.has("holdings"));
   const quotes = useItems("/holdings/quotes", { limit: 1000 }, domains.has("holdings"));
   const [tab, setTab] = useState<Tab>("overview");
+  const reminders = useReminders();
   const list = useMemo(() => (holdings.data?.items ?? []).filter((item) => item.kind === "holding"), [holdings.data]);
   const quoteList = quotes.data?.items ?? [];
   const first = numbers.data?.currencies.find((item) => item.holdings) ?? numbers.data?.currencies[0];
@@ -38,7 +103,7 @@ export function Stocks() {
   const total = first?.holdings ?? list.reduce((sum, item) => sum + (item.amount ?? 0), 0);
   const withChange = list.filter((item) => changeOf(item) != null).sort((a, b) => changeOf(b)! - changeOf(a)!);
   const reports = list
-    .map((item) => ({ item, date: field(item, "next_report") ?? field(item, "earnings_date") }))
+    .map((item) => ({ item, date: field(item, "next_earnings_at") ?? field(item, "next_report") ?? field(item, "earnings_date") }))
     .filter((entry): entry is { item: Item; date: string } => !!entry.date)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (!sources.isPending && !domains.has("holdings")) return <div className="page"><NoSource domain="holdings" /></div>;
@@ -50,7 +115,10 @@ export function Stocks() {
             <h1>{t("nav.stocks")}</h1>
             <p>{t("stocks.lead")}</p>
           </div>
-          <div className="acts"><Freshness domain="holdings" /></div>
+          <div className="acts">
+            <Freshness domain="holdings" />
+            <Btn size="sm" disabled={reminders.isPending} title={t("stocks.remindersHint")} onClick={() => reminders.mutate()}><BellPlus />{t("stocks.reminders")}</Btn>
+          </div>
         </header>
         <Tabs<Tab> value={tab} onChange={setTab} options={[["overview", t("stocks.overview")], ["list", t("stocks.list")], ["reports", t("stocks.reports")]]} />
         <Failure error={holdings.error} />
@@ -75,7 +143,7 @@ export function Stocks() {
                     const series = quotesFor(item, quoteList);
                     const price = Number(field(item, "price") ?? NaN);
                     return (
-                      <div key={item.id} className="card sh1" role={item.url ? "button" : undefined} onClick={() => openItem(item)}>
+                      <div key={item.id} className="card sh1" role="button" tabIndex={0} onClick={() => openHolding(item)} onKeyDown={(event) => event.key === "Enter" && openHolding(item)}>
                         <div className="a">
                           <span style={{ minWidth: 0 }}><b>{symbolOf(item)}</b><small className="faint clip" style={{ display: "block", fontSize: 12 }}>{item.title}</small></span>
                         </div>
@@ -114,13 +182,13 @@ export function Stocks() {
                 {list.map((item) => {
                   const change = changeOf(item);
                   return (
-                    <tr key={item.id}>
+                    <tr key={item.id} style={{ cursor: "pointer" }} onClick={() => openHolding(item)}>
                       <td className="mono">{symbolOf(item)}</td>
                       <td>{item.title}</td>
                       <td className="r">{field(item, "price") ?? "–"}</td>
                       <td className={`r ${change != null ? (change >= 0 ? "up" : "down") : ""}`}>{change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(1)} %` : "–"}</td>
                       <td className="r">{money(item.amount, item.currency)}</td>
-                      <td className="r">{item.url && <button type="button" aria-label={t("connected.openIn")} onClick={() => openItem(item)}><ExternalLink size={13} className="faint" /></button>}</td>
+                      <td className="r">{item.url && <button type="button" aria-label={t("connected.openIn")} onClick={(event) => { event.stopPropagation(); openItem(item); }}><ExternalLink size={13} className="faint" /></button>}</td>
                     </tr>
                   );
                 })}
