@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, FileCode2, Hand, LayoutGrid, ListChecks, Monitor, Pause, Play, Search, Terminal, X } from "lucide-react";
+import { ArrowUp, Check, Coins, FileCode2, Hand, LayoutGrid, ListChecks, Monitor, Pause, Play, Search, Terminal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, must, type Schemas } from "../api/client";
 import { sessionKey, useNodes, usePermissions, useSessions } from "../data";
@@ -309,6 +309,31 @@ function Timeline({ detail }: { detail: Schemas["SessionDetail"] }) {
   );
 }
 
+/** 12.4k, 1.2M: token counts in a tight place. */
+export function tokens(value: number) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return String(Math.round(value));
+}
+
+/** What the session has used, as Claude Code reports it over OpenTelemetry. */
+function Usage({ usage }: { usage: Schemas["SessionUsage"] }) {
+  const input = usage.input_tokens + usage.cache_read_tokens + usage.cache_creation_tokens;
+  const cached = input ? usage.cache_read_tokens / input : 0;
+  return (
+    <section>
+      <div className="sect"><Coins size={15} />{t("sessions.usage")}<small>{usage.updated_at ? dayTime(usage.updated_at) : ""}</small></div>
+      <dl className="cl-usage">
+        <div><dt>{t("sessions.cost")}</dt><dd className="tn">{new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(usage.cost_usd)}</dd></div>
+        <div><dt>{t("sessions.tokensIn")}</dt><dd className="tn">{tokens(input)}</dd></div>
+        <div><dt>{t("sessions.tokensOut")}</dt><dd className="tn">{tokens(usage.output_tokens)}</dd></div>
+        <div><dt>{t("sessions.cacheRead")}</dt><dd className="tn">{Math.round(cached * 100)} %</dd></div>
+      </dl>
+      <Progress value={cached * 100} />
+    </section>
+  );
+}
+
 function Live({ session, nodes, requests }: { session: Session; nodes: Schemas["Node"][]; requests: Schemas["Permission"][] }) {
   const tone = PILL[session.status] ?? "";
   const running = session.status === "running";
@@ -399,6 +424,7 @@ function Live({ session, nodes, requests }: { session: Session; nodes: Schemas["
       </div>
       <aside className="cl-side">
         <div className="cl-sp">
+          {detail.data?.usage && <Usage usage={detail.data.usage} />}
           <section>
             <div className="sect"><ListChecks size={15} />{t("sessions.plan")}<small>{todos.length ? t("sessions.stepOf", { done: doneTodos, count: todos.length }) : ""}</small></div>
             {todos.length > 0 ? (

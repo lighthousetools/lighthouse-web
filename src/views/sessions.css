@@ -47,3 +47,6 @@
 .cl-sr .dot { margin: 0 2px; } .cl-dec + .cl-dec { margin-top: 0; }
 .cl-mach { display: flex; align-items: center; gap: var(--s2); min-height: 36px; font-size: var(--t-13); } .cl-mach small { display: block; font-size: var(--t-12); color: var(--ink3); line-height: 16px; } .cl-mach .grow b { display: block; font-weight: 400; line-height: 18px; }
 .cl-ov .empty { flex: 1; }
+.cl-usage { display: grid; grid-template-columns: 1fr 1fr; gap: 6px var(--s3); margin: 4px 0 8px; font-size: var(--t-12); }
+.cl-usage dt { color: var(--ink3); }
+.cl-usage dd { margin: 0; font-size: var(--t-14); font-weight: 500; }
