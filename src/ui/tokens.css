@@ -29,7 +29,9 @@ input, textarea, select { font: inherit; color: inherit; background: none; borde
 h1, h2, h3, h4, p, ul, ol { margin: 0; padding: 0; } li { list-style: none; }
 :focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 1px; }
 input:focus-visible, textarea:focus-visible, [contenteditable]:focus-visible { outline: 0; }
+/* Fields show focus as a ring around the whole field; bare text areas and inputs get the same ring. */
+.field:focus-within, textarea:focus-visible, input:not(.field input):focus-visible, select:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); }
 ::placeholder { color: var(--ink3); } ::selection { background: var(--accent-soft); }
 ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; } ::-webkit-scrollbar-track { background: transparent; }
 .tn { font-variant-numeric: tabular-nums; } .mono { font-family: var(--mono); } .muted { color: var(--ink2); } .faint { color: var(--ink3); } .up { color: var(--ok); } .down { color: var(--bad); } .warnc { color: var(--warn); } .clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } .grow { flex: 1; min-width: 0; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; } }

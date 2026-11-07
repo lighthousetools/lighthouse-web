@@ -290,6 +290,10 @@ export function Progress({ value, color }: { value: number; color?: string }) {
   );
 }
 
+/** Smooth scrolling, unless the system asks for less motion. */
+export const scrollMotion = (): ScrollBehavior =>
+  typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+
 export function initials(name: string) {
   return name
     .split(/\s+/)

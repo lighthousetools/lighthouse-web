@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, MessageSquarePlus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { t } from "../i18n";
-import { Avatar, Btn, CheckBox } from ".";
+import { Avatar, Btn, CheckBox, scrollMotion } from ".";
 import "./diff.css";
 
 export type Hunk = { head: string; o: number; n: number; lines: ["+" | "-" | " ", string][] };
@@ -116,7 +116,7 @@ export function DiffViewer({ files, comments = {}, onComment, onDelete, notes = 
   );
   const reveal = (path: string) => {
     setClosed((current) => current.filter((item) => item !== path));
-    requestAnimationFrame(() => refs.current[path]?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => refs.current[path]?.scrollIntoView?.({ behavior: scrollMotion(), block: "start" }));
   };
   useEffect(() => {
     if (focus) reveal(focus);

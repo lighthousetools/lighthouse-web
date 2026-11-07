@@ -11,7 +11,7 @@ import { t, tOr, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
 import { createStore } from "../store";
-import { Btn, Confirm, Dot, Failure, Seg, Skeleton } from "../ui";
+import { Btn, Confirm, Dot, Failure, Seg, Skeleton, scrollMotion } from "../ui";
 import { Markdown, headingsOf, toggleTask } from "../ui/markdown";
 import { useAsk } from "./Ask";
 import "./brain.css";
@@ -144,7 +144,7 @@ function Side({ entry, body, tab, setTab }: { entry: Detail; body: string; tab: 
                 key={heading.line}
                 className="br-oln"
                 style={{ paddingLeft: 8 + (heading.level - 1) * 12 }}
-                onClick={() => document.querySelector(`.br-pv [data-line="${heading.line}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                onClick={() => document.querySelector(`.br-pv [data-line="${heading.line}"]`)?.scrollIntoView({ behavior: scrollMotion(), block: "start" })}
               >
                 {heading.text}
               </button>
