@@ -1692,6 +1692,12 @@ export const en = {
   "connected.state": "State",
   "ready.tabs.approvals": "Approvals",
   "ready.tabs.suggestions": "Suggestions",
+  "today.times": "{count}×",
+  "today.waitsFor": "waits for: {step}",
+  "bell.label": "Notifications: {count}",
+  "bell.title": "Notifications",
+  "bell.empty": "Nothing new.",
+  "bell.all": "Open Ready",
 } as const;
 
 export type Key = keyof typeof en;

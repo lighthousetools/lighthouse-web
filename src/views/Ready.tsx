@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, must, type Schemas } from "../api/client";
 import { useAgentNames, useMe, useReady } from "../data";
 import { agentName, dateTime, dayTime, greeting, toolName } from "../format";
-import { t, useLanguage } from "../i18n";
+import { t, useLanguage, type Key } from "../i18n";
 import { go, useRoute } from "../router";
 import { inspect, toast } from "../shell/state";
 import { createStore } from "../store";
@@ -170,6 +170,43 @@ export function viewOf(item: ReadyItem, names: Record<string, string> = {}) {
   };
 }
 
+type Consulted = { label: string; service: string | null; tool: string };
+const TOOL_AREAS: [RegExp, string, Key][] = [
+  [/thread|mail|message|inbox|draft/, "mail", "nav.mail"],
+  [/ticket|issue/, "issues", "nav.issues"],
+  [/pull|review|repo|commit/, "github", "nav.code"],
+  [/event|calendar|freebusy/, "calendar", "nav.calendar"],
+  [/deal|pipeline|crm/, "deals", "nav.pipeline"],
+  [/invoice|payment/, "invoices", "nav.invoices"],
+  [/bank|transaction/, "bank", "nav.finance"],
+  [/contract|document/, "contracts", "nav.contracts"],
+  [/room/, "rooms", "nav.rooms"],
+  [/post|linkedin/, "linkedin", "nav.posts"],
+  [/brain|note|memory|search_entries/, "brain", "nav.brain"],
+];
+
+/** What the agent looked at, as people name it: the server's label when it sends one, otherwise the area a tool touches. */
+export function consultedOf(value: unknown): Consulted[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value.flatMap((entry): Consulted[] => {
+    const tool = typeof entry === "string" ? entry : typeof (entry as { tool?: unknown })?.tool === "string" ? (entry as { tool: string }).tool : "";
+    const given = entry && typeof entry === "object" ? (entry as { label?: string; service?: string | null }) : {};
+    let label = given.label ?? "";
+    let service = given.service ?? null;
+    if (!label) {
+      const [prefix = "", name = tool] = tool.includes(".") ? tool.split(/\.(.*)/) : ["", tool];
+      const brand = brandOf(prefix);
+      const area = TOOL_AREAS.find(([pattern]) => pattern.test(name.toLowerCase())) ?? TOOL_AREAS.find(([pattern]) => pattern.test(tool.toLowerCase()));
+      label = brand && brand !== "claude" ? brand.charAt(0).toUpperCase() + brand.slice(1) : area ? t(area[2]) : toolName(tool);
+      service = brand ?? area?.[1] ?? null;
+    }
+    if (seen.has(label)) return [];
+    seen.add(label);
+    return [{ label, service, tool }];
+  });
+}
+
 const CATEGORY_ICON: Record<Category, typeof Mail> = { mail: Mail, approval: ShieldCheck, task: ListTodo, fact: Brain, post: Send, draft: PencilLine, permission: TerminalSquare };
 
 /** A service's logo when we know it, otherwise an icon for what kind of item it is, never a letter tile. */
@@ -331,7 +368,8 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
     return () => removeEventListener("keydown", key);
   });
 
-  const consulted = kind === "approval" ? ((detail.consulted as string[]) ?? []) : [];
+  // The server may send labelled sources at the top level; older ones list raw tool names in the detail.
+  const consulted = kind === "approval" ? consultedOf((item as { consulted?: unknown }).consulted ?? detail.consulted) : [];
   const shownInput = kind === "permission" ? detail.input : kind === "approval" || kind === "draft" ? inputOf(item) : null;
   const fields = view.fields;
   const taskSource = kind === "task" ? (detail.source as Schemas["SourceLink"] | null) : null;
@@ -403,8 +441,8 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
         {(consulted.length > 0 || view.external) && (
           <div className="rd-evd">
             {consulted.length > 0 && <span className="faint">{t("approvals.consulted")}</span>}
-            {consulted.map((tool) => (
-              <span key={tool} className="rea-srcchip"><ItemIcon service={tool.split(".")[0]!} category={view.category} size={14} />{toolName(tool)}</span>
+            {consulted.map((source) => (
+              <span key={source.label} className="rea-srcchip" title={source.tool}><ServiceIcon name={source.service ?? undefined} fallback={source.service ?? source.label} size={14} />{source.label}</span>
             ))}
             {view.external && <span className="rd-ext2" title={t("approvals.external")}><AlertTriangle size={12} />{t("ready.externalShort")}</span>}
           </div>

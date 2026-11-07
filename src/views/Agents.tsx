@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { cronText } from "../cron";
 import { AlertTriangle, ArrowLeft, Bot, Pencil, Play, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api, must, type Schemas } from "../api/client";
@@ -214,7 +215,7 @@ function Detail({ agent }: { agent: Agent }) {
           </div>
           <h3 className="ag-h">{t("agents.whenHow")}</h3>
           <div className="card ag-kv">
-            <div><span>{t("agents.schedule")}</span><b className="mono">{agent.schedule ?? t("agents.manual")}</b></div>
+            <div><span>{t("agents.schedule")}</span><b title={agent.schedule ?? undefined}>{agent.schedule ? cronText(agent.schedule) : t("agents.manual")}</b></div>
             <div><span>{t("agents.freedom")}</span><b><Badge tone={free.tone}>{free.label}</Badge></b></div>
             <div><span>{t("agents.delivers")}</span><b>{agent.deliver.length ? agent.deliver.join(", ") : t("common.none")}</b></div>
             <div><span>{t("agents.skills")}</span><b>{agent.skills.length ? agent.skills.join(", ") : t("common.none")}</b></div>
@@ -335,7 +336,7 @@ function Overview() {
                   <Tile />
                   <span className="grow">
                     <span className="t clip">{agent.name}{busy && <Dot tone="live" />}</span>
-                    <span className="s clip">{last ? t("agents.lastRunAt", { time: dayTime(last.started_at) }) : agent.schedule ? agent.schedule : t("agents.manual")}</span>
+                    <span className="s clip">{last ? t("agents.lastRunAt", { time: dayTime(last.started_at) }) : agent.schedule ? cronText(agent.schedule) : t("agents.manual")}</span>
                   </span>
                 </span>
                 <span className="c tools">

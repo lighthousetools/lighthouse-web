@@ -64,3 +64,12 @@
 [data-native-vibrancy="1"] .light { display: none; }
 [data-native-vibrancy="1"] .window { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
 [data-native-vibrancy="1"] .rail, [data-native-vibrancy="1"] .sidebar { background: transparent; }
+
+/* The bell in the menu bar and its popover: ready items and open alerts. */
+.menubar .bell { position: relative; } .menubar .bell-dot { position: absolute; top: 4px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
+.bell-pop { display: grid; gap: 2px; padding: 4px; max-height: 70vh; overflow-y: auto; }
+.bell-h { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; font-size: var(--t-13); } .bell-h b { font-weight: 500; }
+.bell-s { padding: 8px 10px 2px; font-size: var(--t-11); color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; }
+.bell-r { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--r); text-align: left; min-width: 0; } .bell-r:hover { background: var(--hover); }
+.bell-r b { display: block; font-weight: 500; font-size: var(--t-13); } .bell-r small { display: block; font-size: var(--t-12); color: var(--ink3); }
+.bell-all { margin-top: 4px; padding: 8px 10px; border-radius: var(--r); font-size: var(--t-12); color: var(--accent); text-align: left; } .bell-all:hover { background: var(--hover); }

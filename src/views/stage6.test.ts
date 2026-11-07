@@ -46,3 +46,27 @@ describe("contracts and rooms", () => {
     expect(sortSteps(steps).map((step) => step.id)).toEqual(["c", "b", "d", "a"]);
   });
 });
+
+import { cronText } from "../cron";
+import { groupRuns } from "./Brief";
+import { consultedOf } from "./Ready";
+
+describe("feel polish", () => {
+  it("writes schedules in plain words", () => {
+    expect(cronText("0 7 * * MON-FRI")).toBe("Mon–Fri 07:00");
+    expect(cronText("0 8 * * FRI")).toBe("Fri 08:00");
+    expect(cronText("30 6 * * *")).toBe("daily 06:30");
+    expect(cronText("0 */4 * * *")).toBe("every 4 hours");
+    expect(cronText("0 7 1 * *")).toBe("0 7 1 * *");
+  });
+
+  it("groups repeated runs into one line", () => {
+    const runs = [{ agent_id: "inbox", status: "waiting" }, { agent_id: "inbox", status: "waiting" }, { agent_id: "brief", status: "succeeded" }, { agent_id: "inbox", status: "waiting" }];
+    expect(groupRuns(runs).map((group) => group.count)).toEqual([2, 1, 1]);
+  });
+
+  it("names what an agent consulted, with the server's label when it has one", () => {
+    expect(consultedOf(["demo.list_threads", "demo.list_tickets", "github.search_pull_requests", "demo.create_draft"]).map((entry) => entry.label)).toEqual(["Mail", "Issues", "Github"]);
+    expect(consultedOf([{ tool: "x.y", label: "Superhuman", service: "superhuman" }])[0]).toMatchObject({ label: "Superhuman", service: "superhuman" });
+  });
+});

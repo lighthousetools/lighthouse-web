@@ -157,7 +157,7 @@ describe("approvals", () => {
     expect(screen.getByText("Priority")).toBeTruthy();
     expect(screen.getByText(/The customer asked/)).toBeTruthy();
     expect(screen.getByText(/outside content/)).toBeTruthy();
-    expect(screen.getByText(/Crm: Get deal/)).toBeTruthy();
+    expect(screen.getByText("Pipeline", { selector: ".rea-srcchip" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /^Send/ })).toBeTruthy();
   });
 

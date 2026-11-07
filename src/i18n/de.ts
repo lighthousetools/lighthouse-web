@@ -1694,4 +1694,10 @@ export const de: Record<Key, string> = {
   "connected.state": "Stand",
   "ready.tabs.approvals": "Freigaben",
   "ready.tabs.suggestions": "Vorschläge",
+  "today.times": "{count}×",
+  "today.waitsFor": "wartet auf: {step}",
+  "bell.label": "Mitteilungen: {count}",
+  "bell.title": "Mitteilungen",
+  "bell.empty": "Nichts Neues.",
+  "bell.all": "Bereit öffnen",
 };

@@ -1,8 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, ChevronRight, Search } from "lucide-react";
+import { AlertCircle, Bell as BellIcon, Check, ChevronRight, Search } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type JSX } from "react";
 import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type LiveState } from "../api/client";
-import { queriesFor, sessionKey, useAlertCounts, useMe, useNeedsYou, useReady, useTasks } from "../data";
+import { queriesFor, sessionKey, useAlertCounts, useAlerts, useMe, useNeedsYou, useReady, useTasks } from "../data";
+import { Popover, type Anchor } from "../ui/popover";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
 import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
@@ -182,12 +183,62 @@ function Menubar({ live }: { live: LiveState }) {
       <button type="button" className="mb ic" aria-label={t("nav.search")} onClick={() => palette.set(true)}>
         <Search size={14} />
       </button>
-      <span className="mb" role="status" title={live === "live" ? t("status.live") : t("status.reconnecting")}>
-        <Dot tone={live === "live" ? "ok" : "warn"} />
-        {live === "live" ? location.host : t("status.reconnecting")}
-      </span>
+      {live !== "live" && (
+        <span className="mb" role="status"><Dot tone="warn" />{t("status.reconnecting")}</span>
+      )}
+      <Bell />
       <Clock />
     </div>
+  );
+}
+
+/** The bell: what is ready for you and which alerts are open, newest first, each one click from its page. */
+function Bell() {
+  const ready = useReady();
+  const alerts = useAlerts("open");
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const items = (ready.data?.items ?? []).slice(0, 6);
+  const open = (alerts.data ?? []).slice(0, 4);
+  const count = (ready.data?.items.length ?? 0) + (alerts.data?.length ?? 0);
+  const close = () => setAnchor(null);
+  return (
+    <>
+      <button
+        type="button"
+        className="mb ic bell"
+        aria-label={t("bell.label", { count })}
+        aria-expanded={!!anchor}
+        onClick={(event) => {
+          const box = event.currentTarget.getBoundingClientRect();
+          setAnchor(anchor ? null : { left: box.left, right: box.right, top: box.top, bottom: box.bottom });
+        }}
+      >
+        <BellIcon size={14} />
+        {count > 0 && <i className="bell-dot" />}
+      </button>
+      {anchor && (
+        <Popover anchor={anchor} onClose={close} width={340} label={t("bell.title")}>
+          <div className="bell-pop">
+            <div className="bell-h"><b>{t("bell.title")}</b><span className="faint tn">{count}</span></div>
+            {items.map((item) => (
+              <button type="button" key={`${item.kind}:${item.id}`} className="bell-r" onClick={() => { close(); go("ready", `${item.kind}:${item.id}`); }}>
+                <ServiceIcon name={item.service ?? item.kind} size={20} fallback={item.kind} />
+                <span className="grow"><b className="clip">{item.title}</b><small className="clip">{item.counterpart?.name ?? item.reason ?? t(`ready.kind.${item.kind as "task"}`)}</small></span>
+              </button>
+            ))}
+            {open.length > 0 && <div className="bell-s">{t("nav.alerts")}</div>}
+            {open.map((alert) => (
+              <button type="button" key={alert.id} className="bell-r" onClick={() => { close(); go("alerts", alert.id); }}>
+                <Dot tone={alert.severity === "critical" ? "bad" : alert.severity === "warning" ? "warn" : "info"} />
+                <span className="grow"><b className="clip">{alert.title}</b><small className="clip">{alert.detail ?? alert.kind}</small></span>
+              </button>
+            ))}
+            {count === 0 && <p className="faint" style={{ padding: "8px 10px", fontSize: 13 }}>{t("bell.empty")}</p>}
+            {count > 0 && <button type="button" className="bell-all" onClick={() => { close(); go("ready"); }}>{t("bell.all")}</button>}
+          </div>
+        </Popover>
+      )}
+    </>
   );
 }
 
@@ -332,14 +383,11 @@ function Rail({ view, live }: { view: View; live: LiveState }) {
 
 /** The day at a glance, at the bottom of the sidebar: what got done of what lay ready today. */
 function TodayCard() {
+  // The same numbers as Ready's own progress line: decided in this visit, of what was ready plus that.
   const ready = useReady();
-  const open = useTasks("today");
-  const done = useTasks("done");
   const decided = decidedStore.use();
-  const today = new Date().toDateString();
-  const doneToday = (done.data ?? []).filter((task) => task.done_at && new Date(task.done_at).toDateString() === today).length;
-  const finished = doneToday + decided.length;
-  const total = finished + (ready.data?.total ?? 0) + (open.data?.length ?? 0);
+  const finished = decided.length;
+  const total = finished + (ready.data?.items.length ?? 0);
   const body = (
     <>
       <span className="grow"><b>{t("today.today")}</b><small className="tn">{t("sidebar.doneOf", { done: finished, total })}</small></span>

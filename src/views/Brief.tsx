@@ -1,4 +1,6 @@
+import type { Schemas } from "../api/client";
 import { CalendarClock, Check, PlugZap, ShieldCheck, Sunrise } from "lucide-react";
+import { cronText } from "../cron";
 import { useAgentNames, useAgents, useBrief, useConnectors, useCosts, useMe, useReady, useRuns } from "../data";
 import { dayTime, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
 import { t, useLanguage } from "../i18n";
@@ -56,7 +58,7 @@ function ComingUp() {
             <time>{time(agent.next_run)}</time>
             <span className="grow">
               <b>{agent.name}</b>
-              <small>{sameDay ? t("today.today") : weekdayShort(when)} · {agent.schedule}</small>
+              <small>{sameDay ? t("today.today") : weekdayShort(when)} · {cronText(agent.schedule)}</small>
             </span>
           </button>
         );
@@ -89,26 +91,44 @@ function Connections() {
   );
 }
 
+type Run = Schemas["RunRecord"];
+
+/** Runs of the same agent ending the same way, next to each other, become one line with a count. */
+export function groupRuns<T extends Pick<Run, "agent_id" | "status">>(runs: T[]): { run: T; count: number }[] {
+  const groups: { run: T; count: number }[] = [];
+  for (const run of runs) {
+    const last = groups[groups.length - 1];
+    if (last && last.run.agent_id === run.agent_id && last.run.status === run.status) last.count++;
+    else groups.push({ run, count: 1 });
+  }
+  return groups;
+}
+
 function Activity() {
-  const runs = useRuns(12);
+  const runs = useRuns(40);
   const names = useAgentNames();
   // Questions and drafts were asked for a moment ago, so they are not news.
-  const list = (runs.data ?? []).filter((run) => !["agent-draft", "brain-ask"].includes(run.agent_id)).slice(0, 9);
+  const groups = groupRuns((runs.data ?? []).filter((run) => !["agent-draft", "brain-ask"].includes(run.agent_id))).slice(0, 8);
   return (
-    <Sec title={t("today.activity")} hint={list.length || undefined}>
+    <Sec title={t("today.activity")} hint={groups.length || undefined}>
       {runs.isPending && <Skeleton count={4} height={40} />}
-      {!runs.isPending && list.length === 0 && <div className="bf-ok">{t("today.noActivity")}</div>}
-      {list.map((run) => (
-        <button type="button" key={run.id} className="bf-f" onClick={() => openRun(run.id)}>
-          <span className="ic" style={{ width: 20, display: "grid", placeItems: "center" }}><RunDot status={run.status} /></span>
-          <span className="grow">
-            {runSentence(run, names)}
-            {run.status === "running" && run.activity && <span className="faint"> · {t("run.activity", { step: toolName(run.activity) })}</span>}
-          </span>
-          <span className="faint tn" style={{ fontSize: 12 }}>{time(run.started_at)}</span>
-        </button>
-      ))}
-      {list.length > 0 && (
+      {!runs.isPending && groups.length === 0 && <div className="bf-ok">{t("today.noActivity")}</div>}
+      {groups.map(({ run, count }) => {
+        // What it is at: the step it waits on or runs, or why it stopped.
+        const detail = run.activity ? toolName(run.activity) : run.status === "failed" ? run.reason : null;
+        return (
+          <button type="button" key={run.id} className="bf-f" onClick={() => (count > 1 ? go("log") : openRun(run.id))}>
+            <span className="ic" style={{ width: 20, display: "grid", placeItems: "center" }}><RunDot status={run.status} /></span>
+            <span className="grow">
+              {runSentence(run, names)}
+              {count > 1 && <b className="tn"> {t("today.times", { count })}</b>}
+              {detail && <span className="faint"> · {run.status === "waiting" ? t("today.waitsFor", { step: detail }) : detail}</span>}
+            </span>
+            <span className="faint tn" style={{ fontSize: 12 }}>{time(run.started_at)}</span>
+          </button>
+        );
+      })}
+      {groups.length > 0 && (
         <div className="bf-more">
           <Btn size="sm" onClick={() => go("log")}>{t("today.allRuns")}</Btn>
         </div>

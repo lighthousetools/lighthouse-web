@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { cronText } from "../cron";
 import {
   ArrowDown, ArrowLeft, ArrowUp, Bell, Bot, CalendarClock, Clock, FileCode, GitBranch, Hand, Maximize2, Minus,
   FlaskConical, MousePointerClick, Play, Plus, Save, Search, Sparkles, Trash2, Webhook, Wrench, X, Zap, type LucideIcon,
@@ -40,7 +41,7 @@ const TRIGGER_ICON: Record<Trigger["kind"], LucideIcon> = { cron: CalendarClock,
 const runsOf = (runs: Schemas["RunRecord"][], id: string) => runs.filter((run) => run.agent_id === `automation:${id}`);
 
 export function triggerSummary(trigger: { kind: string; cron?: string | null; event?: string | null }) {
-  if (trigger.kind === "cron") return t("automations.trigger.cronAt", { cron: trigger.cron ?? "" });
+  if (trigger.kind === "cron") return t("automations.trigger.cronAt", { cron: cronText(trigger.cron) });
   if (trigger.kind === "event") return t("automations.trigger.eventOn", { event: trigger.event ?? "" });
   if (trigger.kind === "webhook") return t("automations.trigger.webhook");
   return t("automations.trigger.manual");
@@ -334,6 +335,7 @@ function StepInspector({ model, path, onChange, onMove, agents }: {
         {trigger.kind === "cron" && (
           <Field label={t("automations.cron")}>
             <input className="au-in mono" value={trigger.cron} onChange={(event) => set({ ...trigger, cron: event.target.value })} />
+            <span className="au-hint">{cronText(trigger.cron)}</span>
           </Field>
         )}
         {trigger.kind === "event" && (
