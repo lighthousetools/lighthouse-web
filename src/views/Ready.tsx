@@ -13,6 +13,7 @@ import { createStore } from "../store";
 import { Badge, Btn, Card, Empty, Failure, Menu, Progress, Seg, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { plainFields } from "./Decisions";
 import { LaterMenu } from "./later";
+import { pillarName, usePillars } from "./publishing";
 import "./ready.css";
 
 type ReadyItem = Schemas["ReadyItem"];
@@ -83,6 +84,7 @@ function Fields({ input }: { input: unknown }) {
   const fields = plainFields(input);
   const short = fields.filter((field) => !LONG_FIELDS.has(field.key));
   const long = fields.filter((field) => LONG_FIELDS.has(field.key));
+  if (!fields.length) return <p className="faint" style={{ fontSize: "var(--t-13)" }}>{t("approvals.noInput")}</p>;
   return (
     <>
       {short.length > 0 && (
@@ -212,6 +214,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
     : kind === "permission" ? `Claude Code · ${String(detail.project ?? "")}`
     : item.agent_id ? t("ready.from", { agent: agentName(item.agent_id, names) })
     : t("app.name");
+  const pillars = usePillars();
   const taskSource = kind === "task" ? (detail.source as Schemas["SourceLink"] | null) : null;
   const factSource = kind === "fact" ? (detail.source as Schemas["FactSource"] | null) : null;
   return (
@@ -271,7 +274,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
             <div className="rea-dh"><span>{t("ready.postLead")}</span></div>
             <div className="ta body" style={{ marginTop: 0, whiteSpace: "pre-wrap" }}>{String(detail.body ?? item.title)}</div>
             {Boolean(detail.pillar) && (
-              <div className="rd-evd"><span className="faint">{t("posts.pillar")}</span><span className="rea-srcchip">{String(detail.pillar)}{detail.topic ? ` · ${String(detail.topic)}` : ""}</span></div>
+              <div className="rd-evd"><span className="faint">{t("posts.pillar")}</span><span className="rea-srcchip">{pillarName(pillars.data, String(detail.pillar))}{detail.topic ? ` · ${String(detail.topic)}` : ""}</span></div>
             )}
           </>
         )}

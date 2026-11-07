@@ -1630,6 +1630,7 @@ export const en = {
   "stocks.thesisPlaceholder": "Steady cloud growth",
   "stocks.thesisSaved": "Thesis saved in the Brain",
   "stocks.thesisTitle": "Thesis",
+  "approvals.noInput": "The agent passed no details for this step.",
 } as const;
 
 export type Key = keyof typeof en;

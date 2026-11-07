@@ -1632,4 +1632,5 @@ export const de: Record<Key, string> = {
   "stocks.thesisPlaceholder": "Stetiges Cloud-Wachstum",
   "stocks.thesisSaved": "These im Brain gespeichert",
   "stocks.thesisTitle": "These",
+  "approvals.noInput": "Der Agent hat für diesen Schritt keine Angaben übergeben.",
 };
