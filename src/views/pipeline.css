@@ -21,3 +21,9 @@
 .dps { display: flex; gap: 2px; } .dps button { flex: 1 1 auto; min-width: 0; font-size: var(--t-11); color: var(--ink3); display: grid; gap: 4px; padding: 2px 0; } .dps span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .dps i { display: block; height: 6px; border-radius: 2px; background: var(--surface2); transition: background var(--fast); } .dps .past i { background: var(--accent-soft); } .dps .on i { background: var(--chart); } .dps .on { color: var(--ink); } .dps button:hover { color: var(--ink); } .dps button:hover i { background: var(--active); } .dps button.on:hover i { background: var(--chart); }
 .dpa { display: flex; gap: var(--s1); margin-top: 6px; font-size: var(--t-12); }
 @media (max-width: 1340px) { .pfc { grid-template-columns: 150px 200px minmax(0,1fr); }  }
+.pl-sug { margin-top: var(--s3); padding: var(--s3); border-radius: var(--r-md); background: var(--wash); display: grid; gap: 6px; font-size: var(--t-13); }
+.pl-sug .h { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.pl-sug p { color: var(--ink2); font-size: var(--t-12); }
+.pl-sug ul { display: grid; gap: 2px; font-size: var(--t-12); }
+.pl-sug li { display: flex; gap: var(--s2); justify-content: space-between; min-width: 0; }
+.pl-sug .btn { justify-self: start; }

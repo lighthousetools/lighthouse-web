@@ -1,10 +1,13 @@
-import { AlertTriangle, Columns3, ExternalLink, Plus, Search, Table2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, Columns3, ExternalLink, ListTodo, Plus, Search, Sparkles, Table2 } from "lucide-react";
+import { api, must } from "../api/client";
+import { toast } from "../shell/state";
 import { useMemo, useState, type DragEvent } from "react";
 import { t, useLanguage } from "../i18n";
 import { Avatar, Badge, Btn, Empty, Failure, Modal, Seg, Skeleton } from "../ui";
 import { InspectorPanel } from "../shell/Inspector";
 import { inspect } from "../shell/state";
-import { Freshness, NoSource, canDo, field, has, money, openItem, short, useAction, useDomains, useItems, useNumbers, useSources, type Item } from "./connected";
+import { Freshness, NoSource, canDo, field, has, money, openItem, short, useAction, useDomains, useItems, useNumbers, useOrg, useSources, type Item } from "./connected";
 import { age } from "./Ready";
 import "./pipeline.css";
 
@@ -24,6 +27,31 @@ export function stageOrder(deals: Pick<Item, "state" | "data">[], known: string[
   return seen;
 }
 
+/** A value from won deals like this one: their median, with the basis and up to five examples. */
+function Suggestion({ deal }: { deal: Item }) {
+  const sources = useSources();
+  const action = useAction();
+  const suggestion = useQuery({ queryKey: ["connected", "deals", deal.id, "suggestion"], queryFn: () => must(api.GET("/deals/{id}/suggestion", { params: { path: { id: deal.id } } })) });
+  const data = suggestion.data;
+  if (suggestion.isPending) return <Skeleton count={1} height={60} />;
+  if (!data) return null;
+  const canUpdate = canDo(sources.data, "deals", "update", deal.source);
+  return (
+    <div className="pl-sug">
+      <div className="h"><Sparkles size={14} />{t("pipeline.suggested")}<span className="grow" />{data.suggested != null && <b className="tn">{money(data.suggested, data.currency)}</b>}</div>
+      <p>{data.explanation}</p>
+      {data.examples.length > 0 && (
+        <ul>
+          {data.examples.map((example) => <li key={example.id}><span className="clip">{example.title ?? example.id}</span><span className="tn faint">{money(example.amount, data.currency)}</span></li>)}
+        </ul>
+      )}
+      {data.suggested != null && canUpdate && (
+        <Btn size="sm" disabled={action.isPending} onClick={() => action.mutate({ item: deal.id, action: "update", input: { amount: data.suggested } })}>{t("pipeline.useValue")}</Btn>
+      )}
+    </div>
+  );
+}
+
 function DealPanel({ deal }: { deal: Item }) {
   return (
     <InspectorPanel
@@ -38,7 +66,9 @@ function DealPanel({ deal }: { deal: Item }) {
         ...(nextStep(deal) ? [[t("pipeline.next"), nextStep(deal)!] as [string, string]] : []),
       ]}
       actions={deal.url ? <Btn onClick={() => openItem(deal)}><ExternalLink />{t("connected.openIn")}</Btn> : undefined}
-    />
+    >
+      <Suggestion deal={deal} />
+    </InspectorPanel>
   );
 }
 
@@ -90,8 +120,23 @@ function Card({ deal, onDrag }: { deal: Item; onDrag?: (event: DragEvent) => voi
   );
 }
 
+/** Proposes a task for each of the top open deals; each lands in Ready to accept or reject. */
+function useTopTasks() {
+  const client = useQueryClient();
+  const org = useOrg()?.id;
+  return useMutation({
+    mutationFn: () => must(api.POST("/deals/top-tasks", { body: { limit: 5, org: org ?? null } })),
+    onSuccess: (result) => {
+      toast(result.proposed.length ? t("pipeline.topTasksDone", { count: result.proposed.length, skipped: result.skipped }) : t("pipeline.topTasksNone"));
+      for (const key of ["ready", "tasks"]) void client.invalidateQueries({ queryKey: [key] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+}
+
 export function Pipeline() {
   useLanguage();
+  const topTasks = useTopTasks();
   const domains = useDomains();
   const sources = useSources();
   const numbers = useNumbers();
@@ -137,6 +182,7 @@ export function Pipeline() {
           </div>
           <div className="acts">
             <Freshness domain="deals" />
+            <Btn disabled={topTasks.isPending} title={t("pipeline.topTasksHint")} onClick={() => topTasks.mutate()}><ListTodo />{t("pipeline.topTasks")}</Btn>
             {sourceName && <Btn variant="primary" onClick={() => setCreating(true)}><Plus />{t("pipeline.new")}</Btn>}
           </div>
         </header>
