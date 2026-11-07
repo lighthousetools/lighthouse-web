@@ -1,12 +1,11 @@
+import { readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 const server = process.env.LIGHTHOUSE_URL ?? "http://127.0.0.1:8080";
-const api = [
-  "/health", "/openapi.json", "/auth", "/me", "/events", "/runs", "/agents", "/approvals", "/brain", "/credentials",
-  "/tasks", "/ready", "/rules", "/memory", "/alerts", "/briefs", "/recaps", "/documents", "/automations",
-  "/connectors", "/skills", "/costs", "/nodes", "/sessions", "/permissions",
-];
+// Every first path segment of the API goes to the server, so new endpoints work in development without a list here.
+const spec = JSON.parse(readFileSync(new URL("./openapi.json", import.meta.url), "utf8")) as { paths: Record<string, unknown> };
+const api = [...new Set(Object.keys(spec.paths).map((path) => `/${path.split("/")[1]}`))];
 
 export default defineConfig({
   plugins: [react()],
