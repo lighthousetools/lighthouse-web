@@ -26,3 +26,10 @@
 @container (max-width: 1000px) { .al-g { grid-template-columns: minmax(0,1fr); } .al-tl { height: auto; min-height: 0; max-height: 220px; } .al-l { width: 272px; } .al-p { grid-template-columns: minmax(0,1fr); } .al-n { width: 138px; } }
 @container (max-width: 1000px) { .al-pt .n { display: none; } }
 .al-r .sp .tn { font-size: var(--t-11); color: var(--ink3); } .al-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--s3); } .al-d .empty { height: 100%; }
+.al-ch .ch { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s3) 0; font-weight: 500; font-size: var(--t-13); }
+.al-ch .ch small { font-weight: 400; color: var(--ink3); font-size: var(--t-12); }
+.al-bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding: var(--s3) var(--s3) 0; }
+.al-bars .b { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.al-bars i { position: relative; display: flex; align-items: flex-end; width: 100%; min-height: 2px; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--chart) 70%, transparent); overflow: hidden; }
+.al-bars u { display: block; width: 100%; background: var(--bad); }
+.al-bl { display: flex; justify-content: space-between; padding: 6px var(--s3) var(--s3); font-size: var(--t-11); color: var(--ink3); }

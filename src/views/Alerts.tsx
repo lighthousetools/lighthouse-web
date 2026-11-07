@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellOff, Check, CheckCheck, Clock, ExternalLink, Eye, ShieldCheck, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, must, type Schemas } from "../api/client";
 import { useAlerts } from "../data";
 import { dateTime, dayTime, humanize } from "../format";
-import { t, useLanguage } from "../i18n";
+import { language, t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
@@ -40,6 +40,46 @@ function serviceOf(alert: Alert) {
   if (alert.source?.kind) return alert.source.kind;
   const [, subject] = alert.key.split(/:(.*)/);
   return alert.kind === "connector" ? subject : alert.kind === "node_offline" ? "claude" : "lighthouse";
+}
+
+type Point = Schemas["SeriesPoint"];
+
+/** Failed share of a day, for the bar's red part. */
+export const failedShare = (point: Pick<Point, "total" | "failed">) => (point.total ? Math.min(1, point.failed / point.total) : 0);
+
+/** Daily runs or refreshes behind the alert, failed ones in red, over 7, 14 or 30 days. */
+function SeriesChart({ alert }: { alert: Alert }) {
+  const [days, setDays] = useState("14");
+  const series = useQuery({
+    queryKey: ["alerts", alert.id, "series", days],
+    queryFn: () => must(api.GET("/alerts/{id}/series", { params: { path: { id: alert.id }, query: { days: Number(days) } } })),
+  });
+  if (series.isPending) return <div className="card al-ch"><Skeleton count={1} height={120} /></div>;
+  if (!series.data || series.data.metric === "none" || !series.data.points.length) return null;
+  const points = series.data.points;
+  const max = Math.max(1, ...points.map((point) => point.total));
+  const failed = points.reduce((sum, point) => sum + point.failed, 0);
+  const total = points.reduce((sum, point) => sum + point.total, 0);
+  const locale = language() === "de" ? "de-DE" : "en-GB";
+  const label = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "numeric" });
+  return (
+    <div className="card al-ch">
+      <div className="ch">
+        {t(`alerts.metric.${series.data.metric as "runs"}`)}
+        <small className="tn">{t("alerts.failedOf", { failed, total })}</small>
+        <span className="grow" />
+        <Seg label={t("alerts.range")} value={days} onChange={setDays} options={["7", "14", "30"].map((value) => [value, t("alerts.days", { count: value })] as [string, string])} />
+      </div>
+      <div className="al-bars" role="img" aria-label={t("alerts.failedOf", { failed, total })}>
+        {points.map((point) => (
+          <div key={point.day} className="b" title={`${label(point.day)} · ${point.total} · ${t("alerts.failedCount", { count: point.failed })}`}>
+            <i style={{ height: `${(point.total / max) * 100}%` }}><u style={{ height: `${failedShare(point) * 100}%` }} /></i>
+          </div>
+        ))}
+      </div>
+      <div className="al-bl tn"><span>{label(points[0]!.day)}</span><span>{label(points[points.length - 1]!.day)}</span></div>
+    </div>
+  );
 }
 
 function Detail({ alert }: { alert: Alert }) {
@@ -113,6 +153,7 @@ function Detail({ alert }: { alert: Alert }) {
             <Stat label={t("alerts.firstSeen")} value={<span style={{ fontSize: 15 }}>{dayTime(alert.first_seen_at)}</span>} />
             <Stat label={t("alerts.lastSeen")} value={<span style={{ fontSize: 15 }}>{dayTime(alert.last_seen_at)}</span>} />
           </div>
+          <SeriesChart alert={alert} />
           <div className="card">
             <div className="al-nd">
               <ShieldCheck size={16} className="faint" />
