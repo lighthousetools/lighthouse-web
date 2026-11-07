@@ -62,6 +62,7 @@ function DealPanel({ deal }: { deal: Item }) {
         [t("pipeline.value"), money(deal.amount, deal.currency)],
         ...(field(deal, "probability") ? [[t("pipeline.probability"), `${field(deal, "probability")} %`] as [string, string]] : []),
         [t("pipeline.owner"), deal.assignee ?? "–"],
+        ...(field(deal, "contact") ? [[t("pipeline.contact"), field(deal, "contact")!] as [string, string]] : []),
         [t("pipeline.lastActivity"), deal.occurred_at ? age(deal.occurred_at) : "–"],
         ...(nextStep(deal) ? [[t("pipeline.next"), nextStep(deal)!] as [string, string]] : []),
       ]}
@@ -112,8 +113,8 @@ function Card({ deal, onDrag }: { deal: Item; onDrag?: (event: DragEvent) => voi
       <div className="t"><b className="grow">{deal.title}</b>{has(deal, "cold") && <Badge tone="warn">{t("pipeline.cold")}</Badge>}</div>
       <div className={`n ${next ? "" : "bz-miss"}`}>{next ?? t("pipeline.noNext")}</div>
       <div className="m">
-        {deal.assignee && <Avatar name={deal.assignee} size={16} />}
-        <span className="grow clip">{deal.occurred_at ? t("pipeline.ago", { age: age(deal.occurred_at) }) : ""}</span>
+        {(field(deal, "contact") ?? deal.assignee) && <Avatar name={(field(deal, "contact") ?? deal.assignee)!} size={16} />}
+        <span className="grow clip">{[field(deal, "contact"), deal.occurred_at ? t("pipeline.ago", { age: age(deal.occurred_at) }) : ""].filter(Boolean).join(" · ")}</span>
         <span className={`v tn ${deal.amount ? "" : "no"}`}>{deal.amount ? money(deal.amount, deal.currency) : t("pipeline.noValue")}</span>
       </div>
     </div>

@@ -44,7 +44,8 @@ function InvoicePanel({ item }: { item: Item }) {
         [t("invoices.amount"), money(item.amount, item.currency, true)],
         [t("invoices.due"), item.ends_at ? shortDate(item.ends_at) : "–"],
         [t("invoices.issued"), item.starts_at || item.occurred_at ? shortDate((item.starts_at ?? item.occurred_at)!) : "–"],
-        ...(field(item, "einvoice") ? [[t("invoices.einvoice"), field(item, "einvoice")!] as [string, string]] : []),
+        ...(einvoiceOf(item) ? [[t("invoices.einvoice"), einvoiceOf(item)!] as [string, string]] : []),
+        ...(field(item, "blocked_by") ? [[t("invoices.blockedBy"), field(item, "blocked_by")!] as [string, string]] : []),
       ]}
       actions={
         <>
@@ -59,6 +60,9 @@ function InvoicePanel({ item }: { item: Item }) {
     </InspectorPanel>
   );
 }
+
+/** The e-invoice format, such as XRechnung or ZUGFeRD 2.3. */
+const einvoiceOf = (item: Item) => field(item, "einvoice_format") ?? field(item, "einvoice");
 
 export function Invoices() {
   useLanguage();
@@ -115,7 +119,7 @@ export function Invoices() {
                     <i className={`dot ${state === "overdue" ? "bad" : "warn"}`} />
                     <span className="grow" style={{ minWidth: 0 }}>
                       <span className="clip" style={{ display: "block" }}>{party(item)}</span>
-                      <span className="st clip" style={{ display: "block" }}>{number(item)} · {state === "overdue" ? t("invoices.lateDays", { count: daysLate(item) }) : t("invoices.state.draft")}</span>
+                      <span className="st clip" style={{ display: "block" }}>{number(item)} · {field(item, "blocked_by") ? t("invoices.blocked", { reason: field(item, "blocked_by")! }) : state === "overdue" ? t("invoices.lateDays", { count: daysLate(item) }) : t("invoices.state.draft")}</span>
                     </span>
                     <span className="am tn">{money(item.amount, item.currency)}</span>
                     <Btn size="sm">{t("invoices.look")}</Btn>
@@ -142,7 +146,7 @@ export function Invoices() {
         ) : (
           <div className="card" style={{ overflow: "hidden" }}>
             <table className="table itable">
-              <thead><tr><th>{t("invoices.number")}</th><th>{t("invoices.party")}</th><th>{t("invoices.state")}</th><th>{t("invoices.due")}</th><th className="r">{t("invoices.amount")}</th></tr></thead>
+              <thead><tr><th>{t("invoices.number")}</th><th>{t("invoices.party")}</th><th>{t("invoices.state")}</th><th>{t("invoices.einvoice")}</th><th>{t("invoices.due")}</th><th className="r">{t("invoices.amount")}</th></tr></thead>
               <tbody>
                 {shown.map((item) => {
                   const state = invoiceState(item);
@@ -151,6 +155,7 @@ export function Invoices() {
                       <td className="mono">{number(item)}</td>
                       <td>{party(item)}</td>
                       <td><Badge tone={TONE[state]}>{t(`invoices.state.${state}`)}</Badge></td>
+                      <td>{einvoiceOf(item) ? <span className="ftag"><i className="dot ok" style={{ marginRight: 5 }} />{einvoiceOf(item)}</span> : <span className="faint">–</span>}</td>
                       <td className="muted tn">{item.ends_at ? shortDate(item.ends_at) : t("invoices.noDue")}</td>
                       <td className="r">{money(item.amount, item.currency, true)}</td>
                     </tr>
