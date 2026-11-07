@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDown, ArrowLeft, ArrowUp, Bell, Bot, CalendarClock, Clock, FileCode, GitBranch, Hand, Maximize2, Minus,
-  MousePointerClick, Play, Plus, Save, Search, Sparkles, Trash2, Webhook, Wrench, X, Zap, type LucideIcon,
+  FlaskConical, MousePointerClick, Play, Plus, Save, Search, Sparkles, Trash2, Webhook, Wrench, X, Zap, type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
 import { api, must, type Schemas } from "../api/client";
@@ -11,13 +11,14 @@ import { t, useLanguage, type Key } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
 import { createStore } from "../store";
-import { Badge, Btn, Confirm, Empty, Failure, Seg, Skeleton, Toggle, smoothPath, sparkPoints, type Tone } from "../ui";
+import { Badge, Btn, Confirm, Empty, Failure, Seg, Skeleton, Toggle, sparkPoints, type Tone } from "../ui";
 import { useNow } from "../ui/live";
 import { RunDot, RunStatus, openRun, runSeconds, seconds } from "./runs";
 import {
-  cronHours, draftAutomation, emptyStep, emptyTrigger, parseAutomation, serializeAutomation,
-  type Automation, type Step, type Trigger,
+  countSteps, cronHours, draftAutomation, emptyStep, emptyTrigger, insertStep, isBranch, moveStepBy, parseAutomation, removeStep, replaceStep,
+  serializeAutomation, stepAt, type Automation, type Step, type StepPath, type Trigger,
 } from "./automation";
+import { layoutFlow, NODE_H, NODE_W, type FlowNode } from "./flow";
 import "./automations.css";
 
 type Info = Schemas["AutomationInfo"];
@@ -67,7 +68,7 @@ function stepWell(step: Step) {
     case "notify":
       return `→ ${step.to}`;
     default:
-      return t("automations.well.if");
+      return isBranch(step) ? `${t("automations.side.then")}: ${step.then?.length ?? 0} · ${t("automations.side.else")}: ${step.else?.length ?? 0}` : t("automations.well.if");
   }
 }
 
@@ -138,11 +139,21 @@ function List() {
       return mine.filter((run) => new Date(run.started_at).toDateString() === day).length;
     });
   };
+  const draft = useMutation({
+    mutationFn: (description: string) => must(api.POST("/automations/draft", { body: { description } })),
+    onSuccess: (result, description) => {
+      try {
+        pendingStore.set(parseAutomation(result.source));
+      } catch {
+        pendingStore.set(draftAutomation(description, agents.data?.[0]?.id ?? ""));
+      }
+      setSentence("");
+      go("automations", "new");
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
   const build = () => {
-    if (!sentence.trim()) return;
-    pendingStore.set(draftAutomation(sentence, agents.data?.[0]?.id ?? ""));
-    setSentence("");
-    go("automations", "new");
+    if (sentence.trim()) draft.mutate(sentence.trim());
   };
   return (
     <div className="au-list">
@@ -169,7 +180,7 @@ function List() {
         >
           <Sparkles size={16} />
           <input aria-label={t("automations.describe")} placeholder={t("automations.describePlaceholder")} value={sentence} onChange={(event) => setSentence(event.target.value)} />
-          <Btn size="sm" variant="primary" type="submit" disabled={!sentence.trim()}>{t("automations.build")}</Btn>
+          <Btn size="sm" variant="primary" type="submit" disabled={!sentence.trim() || draft.isPending}>{draft.isPending ? t("automations.drafting") : t("automations.build")}</Btn>
         </form>
       </div>
       <div className="au-sec">
@@ -239,19 +250,14 @@ function List() {
   );
 }
 
-const NODE_W = 260;
-const NODE_H = 104;
-const GAP = 64;
-
-function NodeCard({ kind, title, sub, well, icon: Icon, selected, index, onSelect, onRemove, onAdd, last }: {
-  kind: NodeKind; title: string; sub: string; well: string; icon: LucideIcon; selected: boolean; index: number;
-  onSelect: () => void; onRemove?: () => void; onAdd?: () => void; last: boolean;
+function NodeCard({ node, title, sub, well, icon: Icon, selected, onSelect, onRemove }: {
+  node: FlowNode; title: string; sub: string; well: string; icon: LucideIcon; selected: boolean; onSelect: () => void; onRemove?: () => void;
 }) {
-  const meta = KIND[kind];
+  const meta = KIND[node.kind];
   return (
     <div
       className={`au-node ${selected ? "sel" : ""}`}
-      style={{ left: 0, top: index * (NODE_H + GAP), height: NODE_H }}
+      style={{ left: node.x, top: node.y, height: NODE_H, width: NODE_W }}
       role="button"
       tabIndex={0}
       aria-pressed={selected}
@@ -259,8 +265,8 @@ function NodeCard({ kind, title, sub, well, icon: Icon, selected, index, onSelec
       onClick={onSelect}
       onKeyDown={(event) => event.key === "Enter" && onSelect()}
     >
-      <span className={`kt ${meta.tone}`}>{t(meta.label)}</span>
-      {index > 0 && <span className="port in" />}
+      <span className={`kt ${meta.tone}`}>{node.side ? `${t(meta.label)} · ${t(`automations.side.${node.side}`)}` : t(meta.label)}</span>
+      {node.path && <span className="port in" />}
       <div className="h">
         <span className="autx-tile"><Icon size={14} /></span>
         <b className="clip">{title}</b>
@@ -270,16 +276,6 @@ function NodeCard({ kind, title, sub, well, icon: Icon, selected, index, onSelec
       {onRemove && (
         <span className="x">
           <Btn icon size="xs" variant="ghost" aria-label={t("automations.removeStep")} onClick={onRemove}><X /></Btn>
-        </span>
-      )}
-      {last && onAdd && (
-        <span className="autx-pw">
-          <button type="button" className="plus" aria-label={t("automations.addStep")} onClick={(event) => {
-            event.stopPropagation();
-            onAdd();
-          }}>
-            <Plus size={11} />
-          </button>
         </span>
       )}
     </div>
@@ -310,10 +306,10 @@ function MatchEditor({ match, onChange }: { match: Record<string, string>; onCha
   );
 }
 
-function StepInspector({ model, index, onChange, onMove, agents }: {
-  model: Automation; index: number; onChange: (model: Automation) => void; onMove: (step: number) => void; agents: Schemas["AgentInfo"][];
+function StepInspector({ model, path, onChange, onMove, agents }: {
+  model: Automation; path: StepPath | null; onChange: (model: Automation) => void; onMove: (step: number) => void; agents: Schemas["AgentInfo"][];
 }) {
-  if (index === 0) {
+  if (!path) {
     const trigger = model.trigger;
     const Icon = TRIGGER_ICON[trigger.kind];
     const set = (next: Trigger) => onChange({ ...model, trigger: next });
@@ -359,16 +355,18 @@ function StepInspector({ model, index, onChange, onMove, agents }: {
       </>
     );
   }
-  const step = model.steps[index - 1]!;
+  const step = stepAt(model.steps, path);
+  if (!step) return null;
   const meta = KIND[step.kind];
-  const set = (next: Step) => onChange({ ...model, steps: model.steps.map((item, n) => (n === index - 1 ? next : item)) });
+  const set = (next: Step) => onChange({ ...model, steps: replaceStep(model.steps, path, next) });
+  const depth = (path.length - 1) / 2;
   return (
     <>
       <div className="nh">
         <span className="autx-tile"><meta.icon size={15} /></span>
         <div className="grow">
           <div className="ti">{t(meta.label)}</div>
-          <div className="ty"><span className={`k ${meta.tone}`}>{t("automations.stepOf", { index, count: model.steps.length })}</span></div>
+          <div className="ty"><span className={`k ${meta.tone}`}>{depth ? t("automations.inBranch", { side: t(`automations.side.${path[path.length - 2] as "then"}`) }) : t("automations.stepOf", { index: (path[0] as number) + 1, count: model.steps.length })}</span></div>
         </div>
       </div>
       {step.kind === "agent" && (
@@ -379,6 +377,7 @@ function StepInspector({ model, index, onChange, onMove, agents }: {
             ))}
           </div>
           {agents.length === 0 && <input className="au-in mono" value={step.agent} onChange={(event) => set({ ...step, agent: event.target.value })} />}
+          <div className="au-note" style={{ marginTop: 8 }}><Hand size={13} />{t("automations.agentWaits")}</div>
         </Field>
       )}
       {step.kind === "tool" && (
@@ -438,13 +437,20 @@ function StepInspector({ model, index, onChange, onMove, agents }: {
               <input className="au-in" value={step.value} onChange={(event) => set({ ...step, value: event.target.value })} />
             </Field>
           )}
+          <Field label={t("automations.whenNot")}>
+            <div className="au-opts">
+              <button type="button" className={!isBranch(step) ? "on" : ""} onClick={() => set({ kind: "if", test: step.test, value: step.value })}>{t("automations.ifStops")}</button>
+              <button type="button" className={isBranch(step) ? "on" : ""} onClick={() => step.then === undefined && step.else === undefined && set({ ...step, then: [], else: [] })}>{t("automations.ifBranches")}</button>
+            </div>
+          </Field>
+          <p className="au-hint">{isBranch(step) ? t("automations.branchHint") : t("automations.gateHint")}</p>
         </>
       )}
       <p className="au-cap">{t("automations.placeholders")}</p>
       <div className="au-mono">{"{{output}} {{status}} {{automation}} {{event}} {{event.<field>}}"}</div>
       <div className="mv">
-        <Btn size="sm" disabled={index <= 1} onClick={() => onMove(-1)}><ArrowUp />{t("automations.up")}</Btn>
-        <Btn size="sm" disabled={index >= model.steps.length} onClick={() => onMove(1)}><ArrowDown />{t("automations.down")}</Btn>
+        <Btn size="sm" onClick={() => onMove(-1)}><ArrowUp />{t("automations.up")}</Btn>
+        <Btn size="sm" onClick={() => onMove(1)}><ArrowDown />{t("automations.down")}</Btn>
       </div>
     </>
   );
@@ -471,6 +477,53 @@ const PALETTE: { group: Key; items: { kind: NodeKind; trigger?: Trigger["kind"];
   { group: "automations.palette.actions", items: [{ kind: "notify", label: "automations.kind.notify", icon: Bell }] },
 ];
 
+/** Shows what the automation would do with a sample payload. Nothing runs and nothing is sent. */
+function DryRun({ source, trigger }: { source: string; trigger: Trigger }) {
+  const [payload, setPayload] = useState(trigger.kind === "event" ? '{\n  "agent_id": "morning-brief",\n  "status": "failed"\n}' : trigger.kind === "webhook" ? '{\n  "text": "urgent: the shop is down"\n}' : "{}");
+  const dry = useMutation({
+    mutationFn: () => {
+      let parsed: unknown = {};
+      try {
+        parsed = JSON.parse(payload || "{}");
+      } catch {
+        throw new Error(t("approvals.invalidJson"));
+      }
+      return must(api.POST("/automations/dry-run", { body: { source, payload: parsed } }));
+    },
+  });
+  const result = dry.data;
+  return (
+    <>
+      <p className="au-hint">{t("automations.tryHint")}</p>
+      {(trigger.kind === "event" || trigger.kind === "webhook") && (
+        <Field label={t("automations.payload")}>
+          <textarea className="au-in ta2 mono" rows={5} value={payload} onChange={(event) => setPayload(event.target.value)} />
+        </Field>
+      )}
+      <div className="mv"><Btn size="sm" variant="primary" disabled={dry.isPending} onClick={() => dry.mutate()}><FlaskConical />{t("automations.tryIt")}</Btn></div>
+      <Failure error={dry.error} />
+      {result && (
+        <div className="au-dry">
+          {result.trigger_matches != null && (
+            <p className="au-note"><Badge tone={result.trigger_matches ? "ok" : "warn"}>{result.trigger_matches ? t("automations.matches") : t("automations.noMatch")}</Badge></p>
+          )}
+          {result.steps.map((step) => (
+            <div key={step.path} className="au-dstep" style={{ paddingLeft: (step.path.split(".").length - 1) * 6 }}>
+              <div className="h">
+                <span className="tn faint">{step.path}</span>
+                <b className="clip">{step.summary}</b>
+                {step.needs_approval && <Badge tone="warn">{t("automations.needsApproval")}</Badge>}
+              </div>
+              {step.message && <div className="au-mono">{step.message}</div>}
+              {step.input != null && typeof step.input === "object" && Object.keys(step.input as object).length > 0 && <pre className="au-mono">{JSON.stringify(step.input, null, 2)}</pre>}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function Builder({ info, initial }: { info?: Info; initial: Automation }) {
   const client = useQueryClient();
   const agentsQuery = useAgents();
@@ -478,13 +531,13 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
   const names = Object.fromEntries(agents.map((agent) => [agent.id, agent.name]));
   const [model, setModel] = useState(initial);
   const [saved, setSaved] = useState(info ? serializeAutomation(initial) : "");
-  const [selected, setSelected] = useState(0);
-  const [tab, setTab] = useState<"step" | "runs" | "file">("step");
+  const [selected, setSelected] = useState<StepPath | null>(null);
+  const [tab, setTab] = useState<"step" | "try" | "runs" | "file">("step");
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 40 });
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [paletteQuery, setPaletteQuery] = useState("");
-  const [quick, setQuick] = useState(false);
+  const [quick, setQuick] = useState<StepPath | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [source, setSource] = useState<string | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
@@ -496,15 +549,15 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
   });
   const file = serializeAutomation(model);
   const dirty = file !== saved;
-  const count = model.steps.length + 1;
+  const flow = useMemo(() => layoutFlow(model.steps), [model.steps]);
+  const key = (path: StepPath | null) => (path ? path.join(".") : "trigger");
 
   const fit = () => {
     const box = canvas.current?.getBoundingClientRect();
     if (!box) return;
-    const height = count * (NODE_H + GAP);
-    const scale = Math.min(1, Math.max(0.4, (box.height - 80) / height));
+    const scale = Math.min(1, Math.max(0.4, Math.min((box.height - 80) / flow.height, (box.width - 40) / flow.width)));
     setZoom(scale);
-    setPan({ x: (box.width - NODE_W * scale) / 2, y: 40 });
+    setPan({ x: (box.width - flow.width * scale) / 2, y: 40 });
   };
   useEffect(fit, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -545,30 +598,29 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
   const insert = (kind: NodeKind, trigger?: Trigger["kind"]) => {
     if (kind === "trigger") {
       setModel({ ...model, trigger: emptyTrigger(trigger ?? "manual") });
-      setSelected(0);
+      setSelected(null);
       return;
     }
-    if (model.steps.length >= 20) return toast(t("automations.tooMany"), "bad");
-    const at = Math.max(0, selected);
-    const steps = [...model.steps];
-    steps.splice(at, 0, emptyStep(kind));
-    setModel({ ...model, steps });
-    setSelected(at + 1);
+    // A new step goes after the selected one, in the same lane, or first when the trigger is selected.
+    addAt(selected ? [...selected.slice(0, -1), (selected[selected.length - 1] as number) + 1] : [0], kind as Step["kind"]);
+  };
+  const addAt = (path: StepPath, kind: Step["kind"]) => {
+    if (countSteps(model.steps) >= 20) return toast(t("automations.tooMany"), "bad");
+    setModel({ ...model, steps: insertStep(model.steps, path, emptyStep(kind)) });
+    setSelected(path);
+    setQuick(null);
     setTab("step");
   };
-  const removeStep = (index: number) => {
-    if (model.steps.length <= 1) return toast(t("automations.needsStep"), "bad");
-    setModel({ ...model, steps: model.steps.filter((_, n) => n !== index - 1) });
-    setSelected(Math.min(index, model.steps.length - 1));
+  const removeAt = (path: StepPath) => {
+    if (path.length === 1 && model.steps.length <= 1) return toast(t("automations.needsStep"), "bad");
+    setModel({ ...model, steps: removeStep(model.steps, path) });
+    setSelected(null);
   };
-  const moveStep = (step: number) => {
-    const from = selected - 1;
-    const to = from + step;
-    if (to < 0 || to >= model.steps.length) return;
-    const steps = [...model.steps];
-    [steps[from], steps[to]] = [steps[to]!, steps[from]!];
+  const moveStep = (by: number) => {
+    if (!selected) return;
+    const [steps, path] = moveStepBy(model.steps, selected, by);
     setModel({ ...model, steps });
-    setSelected(to + 1);
+    setSelected(path);
   };
 
   useEffect(() => {
@@ -582,16 +634,16 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
     return () => removeEventListener("keydown", key);
   });
 
-  const nodes = [
-    { kind: "trigger" as NodeKind, title: triggerSummary({ kind: model.trigger.kind, cron: model.trigger.kind === "cron" ? model.trigger.cron : null, event: model.trigger.kind === "event" ? model.trigger.event : null }), sub: t(`automations.triggerHint.${model.trigger.kind}`), well: model.trigger.kind === "cron" ? model.trigger.cron : model.trigger.kind === "event" ? model.trigger.event : model.trigger.kind === "webhook" ? `POST /automations/${info?.id ?? "…"}/webhook` : t("automations.trigger.manual"), icon: TRIGGER_ICON[model.trigger.kind] },
-    ...model.steps.map((step) => ({ kind: step.kind as NodeKind, title: stepTitle(step, names), sub: t(`automations.sub.${step.kind}`), well: stepWell(step), icon: KIND[step.kind].icon })),
-  ];
-  const wires = nodes.slice(1).map((_, index) => {
-    const x = NODE_W / 2;
-    const y1 = index * (NODE_H + GAP) + NODE_H;
-    const y2 = (index + 1) * (NODE_H + GAP);
-    return smoothPath([[x, y1], [x, y2]]).replace(/C.*/, `C${x} ${y1 + 30},${x} ${y2 - 30},${x} ${y2}`);
-  });
+  const triggerCard = {
+    title: triggerSummary({ kind: model.trigger.kind, cron: model.trigger.kind === "cron" ? model.trigger.cron : null, event: model.trigger.kind === "event" ? model.trigger.event : null }),
+    sub: t(`automations.triggerHint.${model.trigger.kind}`),
+    well: model.trigger.kind === "cron" ? model.trigger.cron : model.trigger.kind === "event" ? model.trigger.event : model.trigger.kind === "webhook" ? `POST /automations/${info?.id ?? "…"}/webhook` : t("automations.trigger.manual"),
+    icon: TRIGGER_ICON[model.trigger.kind],
+  };
+  const cardOf = (node: FlowNode) =>
+    node.step
+      ? { title: stepTitle(node.step, names), sub: isBranch(node.step) ? t("automations.sub.branch") : t(`automations.sub.${node.step.kind}`), well: stepWell(node.step), icon: KIND[node.step.kind].icon }
+      : triggerCard;
   const filteredPalette = PALETTE.map((group) => ({ ...group, items: group.items.filter((item) => t(item.label).toLowerCase().includes(paletteQuery.trim().toLowerCase())) })).filter((group) => group.items.length);
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
@@ -678,44 +730,43 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
           onDrop={onDrop}
         >
           <div className="au-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
-            <svg className="au-wires" width={NODE_W} height={count * (NODE_H + GAP)}>
-              {wires.map((path, index) => <path key={index} className={`ln ${selected === index + 1 || selected === index ? "sel" : ""}`} d={path} />)}
+            <svg className="au-wires" width={flow.width} height={flow.height}>
+              {flow.wires.map((path, index) => <path key={index} className="ln" d={path} />)}
             </svg>
-            {nodes.map((node, index) => (
+            {flow.nodes.map((node) => (
               <NodeCard
-                key={index}
-                index={index}
-                {...node}
-                selected={selected === index}
-                last={index === nodes.length - 1}
+                key={key(node.path)}
+                node={node}
+                {...cardOf(node)}
+                selected={key(selected) === key(node.path)}
                 onSelect={() => {
-                  setSelected(index);
+                  setSelected(node.path);
                   setTab("step");
                 }}
-                onRemove={index > 0 ? () => removeStep(index) : undefined}
-                onAdd={() => setQuick(!quick)}
+                onRemove={node.path ? () => removeAt(node.path!) : undefined}
               />
             ))}
-            {quick && (
-              <div className="au-quick" style={{ left: NODE_W / 2 + 14, top: nodes.length * (NODE_H + GAP) - GAP + 8 }} onPointerDown={(event) => event.stopPropagation()}>
-                {PALETTE.slice(1).flatMap((group) => group.items).map((item) => (
-                  <button
-                    type="button"
-                    key={item.label}
-                    onClick={() => {
-                      setSelected(model.steps.length);
-                      setQuick(false);
-                      const steps = [...model.steps, emptyStep(item.kind as Step["kind"])];
-                      setModel({ ...model, steps });
-                      setSelected(steps.length);
-                    }}
-                  >
-                    <span className="ic"><item.icon size={14} /></span>
-                    {t(item.label)}
-                  </button>
-                ))}
-              </div>
-            )}
+            {flow.adds.map((slot) => (
+              <span key={`add-${key(slot.path)}`} className="autx-pw" style={{ position: "absolute", left: slot.x - 11, top: slot.y }} onPointerDown={(event) => event.stopPropagation()}>
+                <button type="button" className="plus" aria-label={t("automations.addStep")} title={t("automations.addStep")} onClick={() => setQuick(quick && key(quick) === key(slot.path) ? null : slot.path)}>
+                  <Plus size={11} />
+                </button>
+              </span>
+            ))}
+            {quick && (() => {
+              const slot = flow.adds.find((item) => key(item.path) === key(quick));
+              if (!slot) return null;
+              return (
+                <div className="au-quick" style={{ left: slot.x + 14, top: slot.y }} onPointerDown={(event) => event.stopPropagation()}>
+                  {PALETTE.slice(1).flatMap((group) => group.items).map((item) => (
+                    <button type="button" key={item.label} onClick={() => addAt(quick, item.kind as Step["kind"])}>
+                      <span className="ic"><item.icon size={14} /></span>
+                      {t(item.label)}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           <div className="au-bar" onPointerDown={(event) => event.stopPropagation()}>
             <Btn icon size="xs" variant="ghost" aria-label={t("automations.zoomOut")} onClick={() => setZoom((value) => Math.max(0.4, value - 0.1))}><Minus /></Btn>
@@ -731,11 +782,12 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
         <aside className="au-ins">
           <div className="au-itabs" role="tablist">
             <button type="button" role="tab" aria-selected={tab === "step"} className={tab === "step" ? "on" : ""} onClick={() => setTab("step")}>{t("automations.tab.step")}</button>
+            <button type="button" role="tab" aria-selected={tab === "try"} className={tab === "try" ? "on" : ""} onClick={() => setTab("try")}>{t("automations.tab.try")}</button>
             <button type="button" role="tab" aria-selected={tab === "runs"} className={tab === "runs" ? "on" : ""} onClick={() => setTab("runs")}>{t("automations.tab.runs")}<em>{history.length}</em></button>
             <button type="button" role="tab" aria-selected={tab === "file"} className={tab === "file" ? "on" : ""} onClick={() => setTab("file")}>{t("automations.tab.file")}</button>
           </div>
           <div className="b">
-            {tab === "step" && <StepInspector model={model} index={selected} onChange={setModel} onMove={moveStep} agents={agents} />}
+            {tab === "step" && <StepInspector model={model} path={selected} onChange={setModel} onMove={moveStep} agents={agents} />}
             {tab === "step" && (
               <>
                 <p className="au-cap">{t("automations.description")}</p>
@@ -750,6 +802,7 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
                 )}
               </>
             )}
+            {tab === "try" && <DryRun source={file} trigger={model.trigger} />}
             {tab === "runs" && (
               <>
                 {!info && <p className="au-hint">{t("automations.noRunsDraft")}</p>}

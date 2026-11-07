@@ -12,7 +12,10 @@ export type Step =
   | { kind: "agent"; agent: string }
   | { kind: "tool"; name: string; input: Record<string, unknown> }
   | { kind: "notify"; to: string; subject: string; message: string }
-  | { kind: "if"; test: "contains" | "not_contains" | "status"; value: string };
+  | { kind: "if"; test: "contains" | "not_contains" | "status"; value: string; then?: Step[]; else?: Step[] };
+
+/** Where a step sits: indexes, with `then` or `else` to step into a branch, such as `[1, "then", 0]`. */
+export type StepPath = (number | "then" | "else")[];
 
 export type Automation = { name: string; id?: string; enabled?: boolean; trigger: Trigger; steps: Step[]; description: string };
 
@@ -43,9 +46,12 @@ function readStep(value: unknown): Step {
     return { kind: "notify", to: String(notify.to ?? "owner"), subject: String(notify.subject ?? ""), message: String(notify.message ?? "") };
   }
   const condition = (step.if ?? {}) as Record<string, unknown>;
-  if ("not_contains" in condition) return { kind: "if", test: "not_contains", value: String(condition.not_contains) };
-  if ("status" in condition) return { kind: "if", test: "status", value: String(condition.status) };
-  return { kind: "if", test: "contains", value: String(condition.contains ?? "") };
+  const branches = Array.isArray(condition.then) || Array.isArray(condition.else)
+    ? { then: Array.isArray(condition.then) ? condition.then.map(readStep) : [], else: Array.isArray(condition.else) ? condition.else.map(readStep) : [] }
+    : {};
+  if ("not_contains" in condition) return { kind: "if", test: "not_contains", value: String(condition.not_contains), ...branches };
+  if ("status" in condition) return { kind: "if", test: "status", value: String(condition.status), ...branches };
+  return { kind: "if", test: "contains", value: String(condition.contains ?? ""), ...branches };
 }
 
 /** Reads an automation file. Throws when the frontmatter is missing or not YAML. */
@@ -78,7 +84,7 @@ function writeTrigger(trigger: Trigger) {
   }
 }
 
-function writeStep(step: Step) {
+function writeStep(step: Step): Record<string, unknown> {
   switch (step.kind) {
     case "agent":
       return { agent: step.agent };
@@ -87,8 +93,59 @@ function writeStep(step: Step) {
     case "notify":
       return { notify: { to: step.to, subject: step.subject, message: step.message } };
     default:
-      return { if: { [step.test]: step.value } };
+      return step.then !== undefined || step.else !== undefined
+        ? { if: { [step.test]: step.value, then: (step.then ?? []).map(writeStep), else: (step.else ?? []).map(writeStep) } }
+        : { if: { [step.test]: step.value } };
   }
+}
+
+/** An `if` with `then` or `else` takes one of two ways; without, it stops when the condition does not hold. */
+export const isBranch = (step: Step): step is Extract<Step, { kind: "if" }> => step.kind === "if" && (step.then !== undefined || step.else !== undefined);
+
+/** All steps, branches included, as the server counts them against its limit of 20. */
+export const countSteps = (steps: Step[]): number =>
+  steps.reduce((sum, step) => sum + 1 + (isBranch(step) ? countSteps(step.then ?? []) + countSteps(step.else ?? []) : 0), 0);
+
+/** The list a path points into and the index in it. */
+function locate(steps: Step[], path: StepPath): [Step[], number] | null {
+  let list = steps;
+  for (let at = 0; at < path.length - 1; at += 2) {
+    const step = list[path[at] as number];
+    const side = path[at + 1] as "then" | "else";
+    if (!step || step.kind !== "if") return null;
+    list = step[side] ?? [];
+  }
+  return [list, path[path.length - 1] as number];
+}
+
+export function stepAt(steps: Step[], path: StepPath): Step | undefined {
+  const found = locate(steps, path);
+  return found ? found[0][found[1]] : undefined;
+}
+
+/** A copy of the steps with the list at `path` changed by `change`. */
+function editList(steps: Step[], path: StepPath, change: (list: Step[], index: number) => Step[]): Step[] {
+  if (path.length === 1) return change(steps, path[0] as number);
+  const [head, side, ...rest] = path as [number, "then" | "else", ...StepPath];
+  return steps.map((step, index) => (index === head && step.kind === "if" ? { ...step, [side]: editList(step[side] ?? [], rest, change) } : step));
+}
+
+export const replaceStep = (steps: Step[], path: StepPath, next: Step) => editList(steps, path, (list, index) => list.map((step, at) => (at === index ? next : step)));
+export const removeStep = (steps: Step[], path: StepPath) => editList(steps, path, (list, index) => list.filter((_, at) => at !== index));
+/** Puts a step at `path`, moving what was there one down. */
+export const insertStep = (steps: Step[], path: StepPath, step: Step) => editList(steps, path, (list, index) => [...list.slice(0, index), step, ...list.slice(index)]);
+export function moveStepBy(steps: Step[], path: StepPath, by: number): [Step[], StepPath] {
+  const found = locate(steps, path);
+  if (!found) return [steps, path];
+  const [list, index] = found;
+  const to = index + by;
+  if (to < 0 || to >= list.length) return [steps, path];
+  const next = editList(steps, path, (items) => {
+    const copy = [...items];
+    [copy[index], copy[to]] = [copy[to]!, copy[index]!];
+    return copy;
+  });
+  return [next, [...path.slice(0, -1), to]];
 }
 
 /** Writes an automation file with only the fields the server knows. */

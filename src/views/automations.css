@@ -36,3 +36,8 @@
 .au-ins .mv { display: flex; gap: 4px; margin-top: var(--s4); }
 .au-src { width: 100%; min-height: 360px; font: 12px/18px var(--mono); padding: 8px 10px; border-radius: var(--r); background: var(--wash); box-shadow: var(--ring-in); resize: vertical; }
 .au-crumb .badge { margin-left: 2px; }
+.au-dry { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.au-dstep { border-radius: var(--r); background: var(--wash); padding: var(--s2); display: grid; gap: 6px; }
+.au-dstep .h { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-12); }
+.au-dstep .h b { font-weight: 500; flex: 1; min-width: 0; }
+.au-dstep pre.au-mono { white-space: pre-wrap; margin: 0; }
