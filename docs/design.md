@@ -37,6 +37,20 @@ action waits for approval in Ready for you, a `200` that it ran, for example as 
 command palette. The Claude Code page shows a session's plan, todos, timeline and changed files, and queues messages that
 the session receives at its next stop.
 
+## Companies
+
+When `/organizations` lists organizations, the menu bar shows a company selector: All, or one organization with its color.
+The choice is remembered per device. Every connected list passes `org=` (the inbox filters by the item's `org`), key
+numbers come from `/numbers?org=`, and the navigation counts only that organization's sources.
+
+## Business pages
+
+Pipeline, Numbers, Rooms, Contracts, Invoices, Account and Stocks read deals, key numbers, deal rooms, contracts,
+invoices, bank accounts and transactions, and holdings. Each appears only when a source of its domain exists. Moving a
+deal, creating one, reminding, sending, releasing a payment or signing all go through actions, so they wait for an
+approval: nothing pays, signs or sends by itself. Stocks only shows data, with no advice and no trading. Mission control
+combines the key numbers, the ready feed, sessions, alerts, runs and source health.
+
 ## Pages not ported yet
 
 The navigation shows only pages with real data behind them. These pages of the design wait for the API:
@@ -44,9 +58,8 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Design page | Missing in the API |
 |---|---|
 | Assistant conversation | A chat endpoint with history |
-| Pipeline, Numbers, Rooms, Contracts, Invoices, Account, Stocks | Business data |
-| Posts, Personal branding, Decks | Content and publishing data |
-| Mission control | A combined live view of all work |
+| Posts, Personal branding, Decks | Planned for the next stage |
+| Pipeline: suggested values, top deals as tasks; Numbers: export and comparison periods; Contracts: templates and composer; Rooms: publishing, next steps and milestones; Stocks: theses, own metrics and questions | Not in the API yet |
 | Mail: splits, snooze, bulk actions, context column | Labels, snooze and related records in the mail source |
 | Calendar: drag to move, focus blocks, scheduling assistant | Moving goes through an approval; drag and focus planning need more API |
 | Issues: board, bulk edit, new issue form | Board columns and bulk actions in the issue source |
@@ -55,4 +68,3 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Alert detail: metric chart and cause tree | Metrics and root-cause analysis for alerts |
 | Automation builder: branches, dry run over past days | Branching steps and a dry-run endpoint |
 | Tasks: hand a task to Lighthouse | Delegating a task to an agent |
-| Workspace or account filter | Accounts |
