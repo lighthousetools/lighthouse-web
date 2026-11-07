@@ -1,28 +1,29 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, Check, ChevronDown, PencilLine, Sparkles, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle, ArrowRight, Brain, Check, ChevronDown, ListTodo, PencilLine, Sparkles, X,
+} from "lucide-react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, must, type Schemas } from "../api/client";
-import { useAgentNames, useNeedsYou } from "../data";
-import { agentName, dateTime, toolName } from "../format";
+import { useAgentNames, useMe, useReady } from "../data";
+import { agentName, dateTime, greeting, toolName } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
 import { createStore } from "../store";
 import { Badge, Btn, Card, Empty, Failure, Menu, Progress, Seg, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { plainFields } from "./Decisions";
-import "./approvals.css";
+import "./ready.css";
 
-type Item =
-  | { key: string; kind: "approval"; created: string; approval: Schemas["Approval"] }
-  | { key: string; kind: "permission"; created: string; permission: Schemas["Permission"] };
-
+type ReadyItem = Schemas["ReadyItem"];
+type Kind = "approval" | "permission" | "draft" | "task" | "fact";
+type Filter = "all" | "decisions" | "drafts" | "suggestions";
 type Decided = { key: string; title: string; stamp: string };
+type Action = { label: string; icon: ReactNode; kbd: string; run: () => Promise<unknown>; stamp: string; primary?: boolean };
 
 /** What was decided in this visit, so the queue can show it and the empty state can list it. */
 const decidedStore = createStore<Decided[]>([]);
-type Filter = "all" | "agents" | "claude";
-
 const LONG_FIELDS = new Set(["body", "text", "message", "content", "description", "comment"]);
+export const keyOf = (item: Pick<ReadyItem, "kind" | "id">) => `${item.kind}:${item.id}`;
 
 /** 2 h, 3 d: how long something has waited. */
 export function age(iso: string | undefined, now = Date.now()) {
@@ -34,15 +35,46 @@ export function age(iso: string | undefined, now = Date.now()) {
   return t("age.days", { count: Math.round(hours / 24) });
 }
 
-function titleOf(item: Item) {
-  return item.kind === "approval" ? toolName(item.approval.tool) : t("approvals.claudeWants", { tool: item.permission.tool });
+/** A draft's arguments arrive as JSON text. */
+function draftInput(item: ReadyItem): unknown {
+  const text = (item.detail as { detail?: string | null })?.detail;
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { text };
+  }
 }
+
+export function titleOf(item: ReadyItem, names: Record<string, string> = {}) {
+  const detail = item.detail as Record<string, unknown>;
+  switch (item.kind as Kind) {
+    case "approval":
+      return toolName(String(detail.tool ?? item.title));
+    case "permission":
+      return t("approvals.claudeWants", { tool: String(detail.tool ?? "") });
+    case "draft":
+      return t("ready.draftOf", { tool: toolName(String(detail.tool ?? "")), agent: agentName(item.agent_id ?? "", names) });
+    default:
+      return item.title;
+  }
+}
+
+/** The service an item came from, for its icon. */
+function sourceOf(item: ReadyItem) {
+  const detail = item.detail as Record<string, unknown>;
+  if (item.kind === "permission") return "claude";
+  if (item.kind === "approval" || item.kind === "draft") return String(detail.tool ?? "").split(".")[0];
+  if (item.kind === "task") return (detail.source as { kind?: string } | null)?.kind ?? "lighthouse";
+  return "lighthouse";
+}
+
+const kindLabel = (kind: string) => t(`ready.kind.${kind as Kind}`);
 
 function useRefresh() {
   const client = useQueryClient();
   return () => {
-    void client.invalidateQueries({ queryKey: ["approvals"] });
-    void client.invalidateQueries({ queryKey: ["permissions"] });
+    for (const key of ["ready", "approvals", "permissions", "tasks", "memory"]) void client.invalidateQueries({ queryKey: [key] });
   };
 }
 
@@ -81,30 +113,52 @@ function Details({ input }: { input: unknown }) {
   );
 }
 
-function DecisionCard({ item, names, onDecided }: { item: Item; names: Record<string, string>; onDecided: (stamp: string) => void }) {
+function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<string, string>; onDecided: (stamp: string) => void }) {
   const refresh = useRefresh();
-  const initial = item.kind === "approval" ? JSON.stringify(item.approval.input, null, 2) : "";
+  const kind = item.kind as Kind;
+  const detail = item.detail as Record<string, unknown>;
+  const initial = kind === "approval" ? JSON.stringify(detail.input, null, 2) : "";
   const [text, setText] = useState(initial);
   const [editing, setEditing] = useState(false);
+  const post = (call: Promise<{ data?: unknown; error?: unknown; response: Response }>) => must(call);
+
+  const approve = async () => {
+    let input: unknown;
+    if (editing) {
+      try {
+        input = JSON.parse(text);
+      } catch {
+        throw new Error(t("approvals.invalidJson"));
+      }
+    }
+    return post(api.POST("/approvals/{id}/decision", { params: { path: { id: item.id } }, body: { approve: true, input } }));
+  };
+  const actions: Action[] = {
+    approval: [
+      { label: t("approvals.approve"), icon: <Check />, kbd: "↵", run: approve, stamp: t("status.approved"), primary: true },
+      { label: t("approvals.deny"), icon: <X />, kbd: "R", stamp: t("status.denied"), run: () => post(api.POST("/approvals/{id}/decision", { params: { path: { id: item.id } }, body: { approve: false } })) },
+    ],
+    permission: [
+      { label: t("approvals.allow"), icon: <Check />, kbd: "↵", primary: true, stamp: t("status.allowed"), run: () => post(api.POST("/permissions/{id}/decision", { params: { path: { id: item.id } }, body: { allow: true } })) },
+      { label: t("approvals.deny"), icon: <X />, kbd: "R", stamp: t("status.denied"), run: () => post(api.POST("/permissions/{id}/decision", { params: { path: { id: item.id } }, body: { allow: false } })) },
+    ],
+    draft: [
+      { label: t("ready.seen"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampSeen"), run: () => post(api.POST("/ready/drafts/{id}/dismiss", { params: { path: { id: item.id } } })) },
+    ],
+    task: [
+      { label: t("ready.accept"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampAccepted"), run: () => post(api.POST("/tasks/{id}/accept", { params: { path: { id: item.id } } })) },
+      { label: t("ready.reject"), icon: <X />, kbd: "R", stamp: t("ready.stampRejected"), run: () => post(api.DELETE("/tasks/{id}", { params: { path: { id: item.id } } })) },
+    ],
+    fact: [
+      { label: t("ready.confirm"), icon: <Check />, kbd: "↵", primary: true, stamp: t("ready.stampConfirmed"), run: () => post(api.POST("/memory/{id}/confirm", { params: { path: { id: item.id } } })) },
+      { label: t("ready.forget"), icon: <X />, kbd: "R", stamp: t("ready.stampForgotten"), run: () => post(api.DELETE("/memory/{id}", { params: { path: { id: item.id } } })) },
+    ],
+  }[kind] ?? [];
   const decide = useMutation({
-    mutationFn: async (approve: boolean): Promise<unknown> => {
-      if (item.kind === "permission") {
-        return must(api.POST("/permissions/{id}/decision", { params: { path: { id: item.permission.id } }, body: { allow: approve } }));
-      }
-      let input: unknown;
-      if (editing && approve) {
-        try {
-          input = JSON.parse(text);
-        } catch {
-          throw new Error(t("approvals.invalidJson"));
-        }
-      }
-      return must(api.POST("/approvals/{id}/decision", { params: { path: { id: item.approval.id } }, body: { approve, input } }));
-    },
-    onSuccess: (_, approve) => {
-      const stamp = approve ? (item.kind === "permission" ? t("status.allowed") : t("status.approved")) : t("status.denied");
-      onDecided(stamp);
-      toast(`${stamp}: ${titleOf(item)}`);
+    mutationFn: (action: Action) => action.run(),
+    onSuccess: (_, action) => {
+      onDecided(action.stamp);
+      toast(`${action.stamp}: ${titleOf(item, names)}`);
       refresh();
     },
   });
@@ -117,14 +171,16 @@ function DecisionCard({ item, names, onDecided }: { item: Item; names: Record<st
         return;
       }
       if (event.metaKey || event.ctrlKey || event.altKey || document.querySelector(".modalbg, .palbg, .menu, .insp")) return;
-      const press = event.key.toLowerCase();
       if (decide.isPending) return;
-      if ((press === "enter" && target.tagName !== "BUTTON") || press === "a") {
+      const press = event.key.toLowerCase();
+      const primary = actions.find((action) => action.primary);
+      const reject = actions.find((action) => action.kbd === "R");
+      if (((press === "enter" && target.tagName !== "BUTTON") || press === "a") && primary) {
         event.preventDefault();
-        decide.mutate(true);
+        decide.mutate(primary);
       }
-      if (press === "r") decide.mutate(false);
-      if (press === "e" && item.kind === "approval") {
+      if (press === "r" && reject) decide.mutate(reject);
+      if (press === "e" && kind === "approval") {
         event.preventDefault();
         setEditing((value) => !value);
       }
@@ -133,49 +189,84 @@ function DecisionCard({ item, names, onDecided }: { item: Item; names: Record<st
     return () => removeEventListener("keydown", key);
   });
 
-  const approval = item.kind === "approval" ? item.approval : null;
-  const permission = item.kind === "permission" ? item.permission : null;
-  const source = approval ? approval.tool.split(".")[0] : "claude";
+  const source = sourceOf(item);
   const changed = editing && text !== initial;
+  const consulted = kind === "approval" ? ((detail.consulted as string[]) ?? []) : [];
+  const head =
+    kind === "approval" ? t("approvals.proposes", { agent: agentName(item.agent_id ?? "", names) })
+    : kind === "permission" ? `Claude Code · ${String(detail.project ?? "")}`
+    : item.agent_id ? t("ready.from", { agent: agentName(item.agent_id, names) })
+    : t("app.name");
+  const taskSource = kind === "task" ? (detail.source as Schemas["SourceLink"] | null) : null;
+  const factSource = kind === "fact" ? (detail.source as Schemas["FactSource"] | null) : null;
   return (
     <Card style={{ height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div className="rdc">
         <div className="rd-hd">
           <ServiceIcon name={brandOf(source)} fallback={source} size={20} />
-          <span className="grow clip">
-            {approval ? t("approvals.proposes", { agent: agentName(approval.agent_id, names) }) : `Claude Code · ${permission!.project}`}
-          </span>
-          <Badge tone="warn">{approval ? t("approvals.agent") : "Claude Code"}</Badge>
+          <span className="grow clip">{head}</span>
+          <Badge tone={item.group === "decisions" ? "warn" : item.group === "drafts" ? "info" : "vio"}>{kindLabel(kind)}</Badge>
         </div>
-        <h2>{titleOf(item)}</h2>
-        {approval?.reason && (
+        <h2>{titleOf(item, names)}</h2>
+        {item.summary && kind !== "task" && (
           <p className="rd-why">
-            <b>{t("approvals.why")}</b> {approval.reason}
+            <b>{t("approvals.why")}</b> {item.summary}
           </p>
         )}
-        {approval?.quotes_external && (
+        {kind === "approval" && Boolean(detail.quotes_external) && (
           <p className="note-box rd-ext">
             <AlertTriangle size={14} />
             <span>{t("approvals.external")}</span>
           </p>
         )}
-        <div className="rea-dh">
-          <span>{approval ? t("approvals.whatHappens") : t("approvals.request")}</span>
-          {changed && <Badge>{t("approvals.changed")}</Badge>}
-        </div>
-        {editing ? (
-          <label>
-            <span className="lbl" style={{ marginTop: 0 }}>{t("approvals.arguments")}</span>
-            <textarea className="ta mono" rows={12} spellCheck={false} value={text} onChange={(event) => setText(event.target.value)} />
-          </label>
-        ) : (
-          <Fields input={approval ? approval.input : permission!.input} />
+        {(kind === "approval" || kind === "permission" || kind === "draft") && (
+          <>
+            <div className="rea-dh">
+              <span>{kind === "approval" ? t("approvals.whatHappens") : kind === "draft" ? t("ready.whatItPrepared") : t("approvals.request")}</span>
+              {changed && <Badge>{t("approvals.changed")}</Badge>}
+            </div>
+            {editing ? (
+              <label>
+                <span className="lbl" style={{ marginTop: 0 }}>{t("approvals.arguments")}</span>
+                <textarea className="ta mono" rows={12} spellCheck={false} value={text} onChange={(event) => setText(event.target.value)} />
+              </label>
+            ) : (
+              <Fields input={kind === "draft" ? draftInput(item) : detail.input} />
+            )}
+            <Details input={kind === "draft" ? draftInput(item) : detail.input} />
+          </>
         )}
-        <Details input={approval ? approval.input : permission!.input} />
-        {approval && approval.consulted.length > 0 && (
+        {kind === "task" && (
+          <>
+            <div className="rea-dh"><span>{t("ready.taskLead")}</span></div>
+            {item.summary ? <div className="ta body" style={{ marginTop: 0 }}>{item.summary}</div> : <p className="faint">{t("ready.noNotes")}</p>}
+            {taskSource && (
+              <div className="rd-evd">
+                <span className="faint">{t("ready.source")}</span>
+                <span className="rea-srcchip">
+                  <ServiceIcon name={brandOf(taskSource.kind)} fallback={taskSource.kind} size={14} />
+                  {taskSource.label ?? taskSource.reference}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+        {kind === "fact" && (
+          <>
+            <div className="rea-dh"><span>{t("ready.factLead")}</span></div>
+            <div className="ta body" style={{ marginTop: 0 }}>{String(detail.text ?? item.title)}</div>
+            {factSource?.label && (
+              <div className="rd-evd">
+                <span className="faint">{t("ready.learnedFrom")}</span>
+                <span className="rea-srcchip"><Brain size={13} />{factSource.label}</span>
+              </div>
+            )}
+          </>
+        )}
+        {consulted.length > 0 && (
           <div className="rd-evd">
             <span className="faint">{t("approvals.consulted")}</span>
-            {approval.consulted.map((tool) => (
+            {consulted.map((tool) => (
               <span key={tool} className="rea-srcchip">
                 <ServiceIcon name={brandOf(tool.split(".")[0])} fallback={tool} size={14} />
                 {toolName(tool)}
@@ -185,35 +276,39 @@ function DecisionCard({ item, names, onDecided }: { item: Item; names: Record<st
         )}
       </div>
       <div className="rd-ft">
-        <Btn variant="primary" kbd="↵" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
-          <Check />
-          {approval ? t("approvals.approve") : t("approvals.allow")}
-        </Btn>
-        {approval && (
-          <Btn kbd="E" onClick={() => setEditing(!editing)}>
-            <PencilLine />
-            {editing ? t("approvals.stopEdit") : t("approvals.edit")}
+        {actions.map((action, index) => (
+          <Fragment key={action.label}>
+            <Btn variant={action.primary ? "primary" : ""} kbd={action.kbd} disabled={decide.isPending} onClick={() => decide.mutate(action)}>
+              {action.icon}
+              {action.label}
+            </Btn>
+            {index === 0 && kind === "approval" && (
+              <Btn kbd="E" onClick={() => setEditing(!editing)}>
+                <PencilLine />
+                {editing ? t("approvals.stopEdit") : t("approvals.edit")}
+              </Btn>
+            )}
+          </Fragment>
+        ))}
+        {kind === "task" && (
+          <Btn onClick={() => go("tasks")}>
+            <ListTodo />
+            {t("nav.tasks")}
           </Btn>
         )}
-        <Btn kbd="R" disabled={decide.isPending} onClick={() => decide.mutate(false)}>
-          <X />
-          {t("approvals.deny")}
-        </Btn>
         <span className="grow" />
-        {decide.error ? <Failure error={decide.error} /> : (
-          <span className="exp tn">{t("common.expires", { time: dateTime((approval ?? permission)!.expires_at) })}</span>
-        )}
+        {decide.error ? <Failure error={decide.error} /> : item.expires_at ? (
+          <span className="exp tn">{t("common.expires", { time: dateTime(item.expires_at) })}</span>
+        ) : null}
       </div>
     </Card>
   );
 }
 
-function BatchMenu({ count }: { count: number }) {
+function BatchMenu({ ids }: { ids: string[] }) {
   const refresh = useRefresh();
-  const needs = useNeedsYou();
   const batch = useMutation({
-    mutationFn: (approve: boolean) =>
-      must(api.POST("/approvals/decisions", { body: { approve, ids: needs.approvals.map((item) => item.id) } })),
+    mutationFn: (approve: boolean) => must(api.POST("/approvals/decisions", { body: { approve, ids } })),
     onSuccess: (result, approve) => {
       toast(approve ? t("approvals.approvedMany", { count: result.decided.length }) : t("approvals.deniedMany", { count: result.decided.length }));
       refresh();
@@ -224,7 +319,7 @@ function BatchMenu({ count }: { count: number }) {
     <Menu
       label={t("approvals.all")}
       items={[
-        { label: t("approvals.approveAll", { count }), icon: <Check size={14} />, run: () => batch.mutate(true) },
+        { label: t("approvals.approveAll", { count: ids.length }), icon: <Check size={14} />, run: () => batch.mutate(true) },
         { label: t("approvals.denyAll"), icon: <X size={14} />, run: () => batch.mutate(false), danger: true },
       ]}
       trigger={(open, isOpen) => (
@@ -237,29 +332,23 @@ function BatchMenu({ count }: { count: number }) {
   );
 }
 
-export function Approvals() {
+export function Ready() {
   useLanguage();
   const route = useRoute();
-  const needs = useNeedsYou();
+  const ready = useReady();
+  const me = useMe();
   const names = useAgentNames();
   const decided = decidedStore.use();
   const [filter, setFilter] = useState<Filter>("all");
-  const items = useMemo<Item[]>(
-    () =>
-      [
-        ...needs.permissions.map((permission) => ({ key: `permission:${permission.id}`, kind: "permission" as const, created: permission.created_at, permission })),
-        ...needs.approvals.map((approval) => ({ key: `approval:${approval.id}`, kind: "approval" as const, created: approval.created_at, approval })),
-      ].sort((a, b) => (a.created ?? "").localeCompare(b.created ?? "")),
-    [needs.permissions, needs.approvals],
-  );
-  const shown = items.filter((item) => filter === "all" || (filter === "agents" ? item.kind === "approval" : item.kind === "permission"));
-  // Links may name a decision with its kind (`approval:<id>`) or by its bare id, as the Mac app does.
-  const current = shown.find((item) => item.key === route.param || item.key.endsWith(`:${route.param}`)) ?? shown[0];
-  const select = (key: string) => go("approvals", key);
+  const items = useMemo(() => ready.data?.items ?? [], [ready.data]);
+  const shown = items.filter((item) => filter === "all" || item.group === filter);
+  // Links may name an item with its kind (`approval:<id>`) or by its bare id, as notifications do.
+  const current = shown.find((item) => keyOf(item) === route.param || item.id === route.param) ?? shown[0];
+  const select = (key: string) => go("ready", key);
   const move = (step: number) => {
-    const index = shown.findIndex((item) => item.key === current?.key);
+    const index = shown.findIndex((item) => keyOf(item) === (current && keyOf(current)));
     const next = shown[(index + step + shown.length) % shown.length];
-    if (next) select(next.key);
+    if (next) select(keyOf(next));
   };
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -277,28 +366,31 @@ export function Approvals() {
     addEventListener("keydown", key);
     return () => removeEventListener("keydown", key);
   });
-  const onDecided = (item: Item) => (stamp: string) => {
-    decidedStore.set((list) => [{ key: item.key, title: titleOf(item), stamp }, ...list.filter((entry) => entry.key !== item.key)].slice(0, 20));
-    const index = shown.findIndex((entry) => entry.key === item.key);
+  const onDecided = (item: ReadyItem) => (stamp: string) => {
+    decidedStore.set((list) => [{ key: keyOf(item), title: titleOf(item, names), stamp }, ...list.filter((entry) => entry.key !== keyOf(item))].slice(0, 20));
+    const index = shown.findIndex((entry) => keyOf(entry) === keyOf(item));
     const next = shown[index + 1] ?? shown[index - 1];
-    if (next) select(next.key);
+    if (next) select(keyOf(next));
   };
   const total = items.length + decided.length;
-  const oldest = items[0]?.created;
+  const oldest = [...items].sort((a, b) => a.created_at.localeCompare(b.created_at))[0]?.created_at;
   const minutes = Math.max(1, Math.ceil(items.length * 0.7));
+  const first = me.data?.name.split(" ")[0];
+  const hello = greeting(new Date().getHours());
+  const approvalIds = items.filter((item) => item.kind === "approval").map((item) => item.id);
   const header = (
     <header className="rd-h">
       <div className="grow">
-        <h1>{t("nav.approvals")}</h1>
+        <h1>{first ? t("ready.greeting", { greeting: hello, name: first }) : hello}</h1>
         <p className="lead">
-          {items.length ? (items.length === 1 ? t("approvals.leadOne") : t("approvals.leadMany", { count: items.length, minutes })) : t("approvals.lead")}
+          {items.length ? (items.length === 1 ? t("ready.leadOne") : t("ready.leadMany", { count: items.length, minutes })) : t("ready.leadNone")}
         </p>
       </div>
-      {needs.approvals.length > 1 && <BatchMenu count={needs.approvals.length} />}
+      {approvalIds.length > 1 && <BatchMenu ids={approvalIds} />}
     </header>
   );
 
-  if (needs.loading) {
+  if (ready.isPending) {
     return (
       <div className="page">
         <div className="rdy">
@@ -314,14 +406,15 @@ export function Approvals() {
       <div className="page">
         <div className="rdy rd-empty">
           {header}
+          <Failure error={ready.error} />
           <div className="rdy-done">
             <div>
               <Sparkles size={28} className="warnc" />
-              <h1 style={{ marginTop: 12 }}>{t("approvals.clear")}</h1>
-              <p className="muted" style={{ marginTop: 8 }}>{t("approvals.empty")} {t("approvals.emptyHint")}</p>
+              <h1 style={{ marginTop: 12 }}>{t("ready.clear")}</h1>
+              <p className="muted" style={{ marginTop: 8 }}>{t("ready.clearHint")}</p>
               <div className="rd-acts">
-                <Btn variant="primary" onClick={() => go("today")}>{t("approvals.backToday")}</Btn>
-                <Btn onClick={() => go("log")}>{t("today.allRuns")}</Btn>
+                <Btn variant="primary" onClick={() => go("tasks")}>{t("nav.tasks")}</Btn>
+                <Btn onClick={() => go("brief")}>{t("nav.brief")}</Btn>
               </div>
               {decided.length > 0 && (
                 <div className="rd-log">
@@ -341,7 +434,7 @@ export function Approvals() {
     );
   }
 
-  const count = (kind?: Item["kind"]) => items.filter((item) => !kind || item.kind === kind).length;
+  const count = (group?: string) => items.filter((item) => !group || item.group === group).length;
   const last = decided[0];
   return (
     <div className="page">
@@ -367,23 +460,26 @@ export function Approvals() {
                 label={t("approvals.filter")}
                 value={filter}
                 onChange={setFilter}
-                options={[["all", t("approvals.filterAll"), count()], ["agents", t("approvals.filterAgents"), count("approval")], ["claude", "Claude Code", count("permission")]]}
+                options={[
+                  ["all", t("approvals.filterAll"), count()],
+                  ["decisions", t("ready.decisions"), count("decisions")],
+                  ["drafts", t("ready.drafts"), count("drafts")],
+                  ["suggestions", t("ready.suggestions"), count("suggestions")],
+                ]}
               />
             </div>
             <div className="rd-ql">
               {shown.map((item) => {
-                const on = item.key === current?.key;
-                const source = item.kind === "approval" ? item.approval.tool.split(".")[0] : "claude";
+                const on = current && keyOf(item) === keyOf(current);
+                const source = sourceOf(item);
                 return (
-                  <button type="button" key={item.key} className={`rd-i ${on ? "on" : ""}`} aria-current={on || undefined} onClick={() => select(item.key)}>
+                  <button type="button" key={keyOf(item)} className={`rd-i ${on ? "on" : ""}`} aria-current={on || undefined} onClick={() => select(keyOf(item))}>
                     <span className="ic"><ServiceIcon name={brandOf(source)} fallback={source} size={20} /></span>
                     <span className="grow">
-                      <span className="t clip">{titleOf(item)}</span>
-                      <span className="s clip">
-                        {item.kind === "approval" ? agentName(item.approval.agent_id, names) : item.permission.project}
-                      </span>
+                      <span className="t clip">{titleOf(item, names)}</span>
+                      <span className="s clip">{kindLabel(item.kind)}{item.agent_id ? ` · ${agentName(item.agent_id, names)}` : ""}</span>
                     </span>
-                    <span className="ag tn">{age(item.created)}</span>
+                    <span className="ag tn">{age(item.created_at)}</span>
                   </button>
                 );
               })}
@@ -399,8 +495,8 @@ export function Approvals() {
           </div>
           <div className="rd-item">
             {current ? (
-              <div className="rd-mo" key={current.key}>
-                <DecisionCard item={current} names={names} onDecided={onDecided(current)} />
+              <div className="rd-mo" key={keyOf(current)}>
+                <ItemCard item={current} names={names} onDecided={onDecided(current)} />
               </div>
             ) : (
               <Empty title={t("approvals.nothingHere")} action={<Btn onClick={() => setFilter("all")}>{t("approvals.filterAll")}<ArrowRight /></Btn>} />

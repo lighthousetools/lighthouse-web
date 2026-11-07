@@ -32,3 +32,4 @@
 .rd-ft .exp { font-size: var(--t-12); color: var(--ink3); white-space: nowrap; }
 .rd-ft .fail { margin: 0; flex: 1; }
 @media (max-width: 1000px) { .rd-grid { grid-template-columns: minmax(0,1fr); } .rd-q { max-height: 240px; } }
+.rd-grid { grid-template-columns: 300px minmax(0,1fr); } .rd-qh .seg { max-width: 100%; overflow-x: auto; }
