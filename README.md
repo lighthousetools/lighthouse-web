@@ -29,15 +29,22 @@ API change, replace `openapi.json` and run `pnpm types`.
 Strings live in `src/i18n`, one file per language, and a test checks that both cover every key. Viewers pick a language on
 the sign-in page or in the settings. By default the app follows the browser.
 
+## Design
+
+The app has two looks, Glass and Light, and follows the system by default. The background follows the time of day.
+[docs/design.md](docs/design.md) describes the design system, the Mac app bridge, and which pages of the design still wait
+for the API.
+
 ## Keyboard
 
-`Cmd/Ctrl+K` opens the command palette, which also searches the Brain. `1` to `8` switch views while no field has focus.
+`Cmd/Ctrl+K` opens the command palette, which also searches the Brain. `1` to `9` switch views while no field has focus.
+In Approvals, `↑` and `↓` move through the queue, `Enter` approves, `E` edits and `R` denies.
 In the Brain, `/` at the start of a line offers blocks, and `[[Title]]` links entries.
 
 ## Security
 
 The device token lives in the browser's local storage. A strict Content Security Policy limits scripts and fonts to this
-origin, and Markdown from models and files passes through DOMPurify before it renders.
+origin. Markdown from models and files renders as React elements, never as HTML, so it cannot inject markup.
 
 ## License
 

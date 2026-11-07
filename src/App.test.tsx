@@ -4,9 +4,9 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { askStream, storeToken, type Schemas } from "./api/client";
-import { App } from "./App";
+import { App } from "./shell/App";
 import { setLanguage } from "./i18n";
-import { Markdown, renderMarkdown } from "./ui";
+import { Markdown } from "./ui/markdown";
 import { Approvals } from "./views/Approvals";
 import { plainFields } from "./views/Decisions";
 
@@ -90,7 +90,7 @@ describe("sign-in", () => {
   it("offers the language before sign-in and switches everything", async () => {
     serve({ "GET /auth/status": () => ({ setup_required: false }) });
     show(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Language"), "de");
+    await userEvent.click(await screen.findByRole("button", { name: "Deutsch" }));
     expect(await screen.findByRole("button", { name: "Anmelden" })).toBeTruthy();
     setLanguage("en");
   });
@@ -154,15 +154,15 @@ describe("approvals", () => {
       "POST /approvals/a1/decision": () => ({ ...approval, status: "approved" }),
     });
     show(<Approvals />);
-    await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Edit/ }));
     const editor = screen.getByLabelText("Arguments as JSON");
     await userEvent.clear(editor);
     await userEvent.type(editor, "{{broken");
-    await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Approve/ }));
     expect((await screen.findByRole("alert")).textContent).toContain("not valid JSON");
     await userEvent.clear(editor);
     await userEvent.type(editor, '{{"to": "b"}');
-    await userEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Approve/ }));
     await waitFor(() => expect(calls.some((call) => call.url.endsWith("/decision"))).toBe(true));
     const decision = calls.find((call) => call.url.endsWith("/decision"));
     expect(await decision?.json()).toEqual({ approve: true, input: { to: "b" } });
@@ -175,14 +175,14 @@ describe("approvals", () => {
     });
     show(<Approvals />);
     expect(await screen.findByText("Command")).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Allow" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Allow/ }));
     await waitFor(() => expect(calls.some((call) => call.url.endsWith("/decision"))).toBe(true));
   });
 
   it("says when nothing waits", async () => {
     serve({});
     show(<Approvals />);
-    expect(await screen.findByText("Nothing is waiting for you.")).toBeTruthy();
+    expect(await screen.findByText(/Nothing is waiting for you/)).toBeTruthy();
   });
 });
 
@@ -208,18 +208,30 @@ describe("streamed answers", () => {
 });
 
 describe("markdown", () => {
-  it("removes scripts from untrusted reports", () => {
-    const { container } = render(<Markdown text={'# Hi\n<img src=x onerror="alert(1)"><script>x</script>'} />);
+  it("shows markup from untrusted reports as text", () => {
+    const { container } = render(<Markdown source={'# Hi\n<img src=x onerror="alert(1)"><script>x</script>'} />);
     expect(container.querySelector("h1")?.textContent).toBe("Hi");
-    expect(container.innerHTML).not.toContain("onerror");
+    expect(container.querySelector("img")).toBeNull();
     expect(container.querySelector("script")).toBeNull();
+    expect(container.textContent).toContain("<script>");
   });
 
-  it("turns wiki links into safe links that report their title", async () => {
-    expect(renderMarkdown('[[A "b" <c>]]')).not.toContain("<c>");
+  it("turns wiki links into buttons that report their title", async () => {
     const follow = vi.fn();
-    render(<Markdown text="See [[Tax logic]]" onWikiLink={follow} />);
-    await userEvent.click(screen.getByRole("link", { name: "Tax logic" }));
+    render(<Markdown source="See [[Tax logic]]" onWiki={follow} />);
+    await userEvent.click(screen.getByRole("button", { name: "Tax logic" }));
     expect(follow).toHaveBeenCalledWith("Tax logic");
+  });
+
+  it("opens web links in a new tab and renders tasks, tables and callouts", () => {
+    const { container } = render(
+      <Markdown source={"[Docs](https://example.com)\n\n- [x] Done\n- [ ] Open\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n> [!warn] Careful"} />,
+    );
+    const link = container.querySelector("a")!;
+    expect(link.getAttribute("href")).toBe("https://example.com");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(screen.getAllByRole("checkbox").map((box) => box.getAttribute("aria-checked"))).toEqual(["true", "false"]);
+    expect(container.querySelectorAll("td")).toHaveLength(2);
+    expect(container.querySelector("blockquote.md-call.warn")?.textContent).toBe("Careful");
   });
 });
