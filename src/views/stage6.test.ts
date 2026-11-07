@@ -70,3 +70,25 @@ describe("feel polish", () => {
     expect(consultedOf([{ tool: "x.y", label: "Superhuman", service: "superhuman" }])[0]).toMatchObject({ label: "Superhuman", service: "superhuman" });
   });
 });
+
+import { futureOf, categoryLabel } from "./Finance";
+import { modelName } from "./Agents";
+
+describe("closing the data gaps", () => {
+  it("draws the cash forecast to each month's closing, with or without the pipeline", () => {
+    const months = [{ period: "2026-11", opening: 100, closing: 120, invoices_in: 30, payables_out: 5, pipeline_weighted: 10, burn: 15 }, { period: "2026-12", opening: 120, closing: 130, invoices_in: 0, payables_out: 0, pipeline_weighted: 20, burn: 10 }];
+    const withPipeline = futureOf(months, 8, "pipeline");
+    expect(withPipeline).toHaveLength(4);
+    expect(withPipeline[1]).toBe(120);
+    expect(withPipeline[3]).toBe(130);
+    expect(futureOf(months, 8, "base")[3]).toBe(100);
+    expect(futureOf([], 8, "base")).toEqual([]);
+  });
+
+  it("names categories and models in plain words", () => {
+    expect(categoryLabel("payroll")).toBe("Payroll");
+    expect(categoryLabel("Coffee")).toBe("Coffee");
+    expect(modelName({ model: { task: "text", provider: "anthropic", model: "claude-sonnet-4-5", fallback: null, fallback_model: null } })).toBe("Sonnet 4.5");
+    expect(modelName({ model: null })).toBe("–");
+  });
+});
