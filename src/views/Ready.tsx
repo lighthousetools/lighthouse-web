@@ -157,7 +157,8 @@ export function viewOf(item: ReadyItem, names: Record<string, string> = {}) {
     counterpart,
     org: item.counterpart?.org ?? null,
     agent: item.agent_id ? agentName(item.agent_id, names) : null,
-    title: subject ?? titleOf(item, names),
+    // A server with review fields titles every item itself; older ones only name the tool.
+    title: subject ?? (item.service !== undefined && item.title ? item.title : titleOf(item, names)),
     why: item.reason ?? (item.kind === "task" || item.kind === "fact" ? null : item.summary && item.summary !== item.title && item.summary !== subject ? item.summary : null) ?? null,
     draftKey: draft != null ? draftKey ?? null : null,
     draft,
@@ -221,10 +222,15 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
         throw new Error(t("approvals.invalidJson"));
       }
     } else if (view.draftKey && draft !== view.draft) {
-      input = { ...inputOf(item), [view.draftKey]: draft };
+      // The edited text is saved on the approval first, so the call sends exactly what was reviewed.
+      await saveText();
     }
     return post(api.POST("/approvals/{id}/decision", { params: { path: { id: item.id } }, body: { approve: true, input } }));
   };
+  const saveText = () =>
+    kind === "approval" && view.draftKey && draft !== view.draft
+      ? must(api.PUT("/ready/approval/{id}/text", { params: { path: { id: item.id } }, body: { text: draft } })).then(() => refresh())
+      : Promise.resolve();
   const rewrite = useMutation({
     mutationFn: (tone: "shorter" | "warmer") => must(api.POST("/ready/{kind}/{id}/rewrite", { params: { path: { kind, id: item.id } }, body: { tone } })),
     onSuccess: (result, tone) => {
@@ -359,6 +365,7 @@ function ItemCard({ item, names, onDecided }: { item: ReadyItem; names: Record<s
               readOnly={kind === "draft"}
               value={draft}
               onChange={(event) => { setDraft(event.target.value); setTone("edited"); }}
+              onBlur={() => void saveText().catch((error: Error) => toast(error.message, "bad"))}
             />
           </>
         )}
