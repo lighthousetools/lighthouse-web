@@ -1,10 +1,12 @@
+import { useQuery } from "@tanstack/react-query";
+import { api, must, type Schemas } from "../api/client";
 import { ArrowRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { shortDate, weekdayShort } from "../format";
 import { language, t, useLanguage } from "../i18n";
 import { go } from "../router";
 import { AreaChart, Badge, Btn, Card, Empty, Failure, Seg, ServiceIcon, Skeleton } from "../ui";
-import { Freshness, NoSource, canDo, field, has, money, useAction, useDomains, useItems, useNumbers, useOrganizations, useSources, type Item } from "./connected";
+import { Freshness, NoSource, canDo, useOrg, field, has, money, useAction, useDomains, useItems, useNumbers, useOrganizations, useSources, type Item } from "./connected";
 import "./finance.css";
 
 type Flow = "all" | "in" | "out";
@@ -30,6 +32,26 @@ export function balanceHistory(balance: number, transactions: Pick<Item, "amount
   return points;
 }
 
+type Scenario = "base" | "pipeline";
+type Month = Schemas["ForecastMonth"];
+
+/** The forecast as daily points after today, month by month to each closing; without deals the pipeline is taken out. */
+export function futureOf(months: Month[], historyDays: number, scenario: Scenario) {
+  if (!months.length) return [];
+  const step = Math.max(1, Math.round(historyDays / 4));
+  let pipeline = 0;
+  return months.flatMap((month) => {
+    pipeline += month.pipeline_weighted;
+    const closing = month.closing - (scenario === "base" ? pipeline : 0);
+    const opening = month.opening - (scenario === "base" ? pipeline - month.pipeline_weighted : 0);
+    return Array.from({ length: step }, (_, index) => opening + ((closing - opening) * (index + 1)) / step);
+  });
+}
+
+const CATEGORIES = ["payroll", "rent", "taxes", "software", "travel", "insurance", "fees", "revenue", "income", "expense"];
+export const categoryLabel = (category: string) => (CATEGORIES.includes(category) ? t(`finance.cat.${category as "rent"}`) : category);
+const monthLabel = (period: string) => new Date(`${period.slice(0, 7)}-15T12:00:00`).toLocaleDateString(language() === "de" ? "de-DE" : "en-GB", { month: "short" });
+
 export function Finance() {
   useLanguage();
   const domains = useDomains();
@@ -41,12 +63,20 @@ export function Finance() {
   const transactions = useItems("/bank/transactions", { limit: 500 }, domains.has("bank"));
   const payables = useItems("/invoices", { flags: "payable", limit: 100 }, domains.has("invoices"));
   const [flow, setFlow] = useState<Flow>("all");
+  const [scenario, setScenario] = useState<Scenario>("pipeline");
+  const org = useOrg()?.id;
+  const forecast = useQuery({
+    queryKey: ["connected", "forecast", org ?? ""],
+    enabled: domains.has("bank"),
+    queryFn: () => must(api.GET("/bank/forecast", { params: { query: org ? { org, months: 3 } : { months: 3 } } })),
+  });
   const [query, setQuery] = useState("");
   const accountList = (accounts.data?.items ?? []).filter((item) => item.kind === "account");
   const moves = useMemo(() => (transactions.data?.items ?? []).filter((item) => item.kind === "transaction"), [transactions.data]);
   const first = numbers.data?.currencies[0];
   const currency = first?.currency ?? accountList[0]?.currency;
   const cash = first?.cash ?? accountList.reduce((sum, item) => sum + (item.amount ?? 0), 0);
+  const months = (forecast.data ?? []).find((entry) => entry.currency === currency)?.months ?? [];
   const history = balanceHistory(cash, moves.filter((item) => !item.currency || item.currency === currency), 120);
   const upcoming = (payables.data?.items ?? []).filter((item) => item.kind === "invoice" && item.state !== "paid").sort((a, b) => (a.ends_at ?? "9").localeCompare(b.ends_at ?? "9"));
   const needle = query.trim().toLowerCase();
@@ -86,8 +116,13 @@ export function Finance() {
         <div className="bz-fg">
           <Card>
             <div className="fch">
+              {months.length > 0 && (
+                <span style={{ float: "right" }}>
+                  <Seg<Scenario> label={t("finance.scenario")} value={scenario} onChange={setScenario} options={[["base", t("finance.withoutDeals")], ["pipeline", t("finance.withPipeline")]]} />
+                </span>
+              )}
               <div>
-                <div className="l">{t("finance.balance")}</div>
+                <div className="l">{months.length ? t("finance.balanceForecast", { count: months.length }) : t("finance.balance")}</div>
                 <div className="vv">
                   <b className="tn">{money(cash, currency)}</b>
                   {first && first.monthly_burn > 0 && <span className="down tn">−{money(first.monthly_burn, currency)} {t("finance.perMonth")}</span>}
@@ -96,7 +131,15 @@ export function Finance() {
               </div>
             </div>
             <div style={{ padding: "12px 16px" }}>
-              {transactions.isPending ? <Skeleton count={1} height={240} /> : <AreaChart data={history} height={250} format={(value) => money(value, currency)} labels={[t("finance.daysAgo", { count: 120 }), t("finance.daysAgo", { count: 60 }), t("today.today")]} />}
+              {transactions.isPending ? <Skeleton count={1} height={240} /> : (
+                <AreaChart
+                  data={history}
+                  future={futureOf(months, history.length, scenario)}
+                  height={250}
+                  format={(value) => money(value, currency)}
+                  labels={[t("finance.daysAgo", { count: 120 }), t("finance.daysAgo", { count: 60 }), t("today.today"), ...(months.length ? [monthLabel(months[months.length - 1]!.period)] : [])]}
+                />
+              )}
             </div>
           </Card>
           <Card>
@@ -143,7 +186,7 @@ export function Finance() {
                     <td className="muted">{item.occurred_at ? (Date.now() - Date.parse(item.occurred_at) < 6 * 86_400_000 ? weekdayShort(item.occurred_at) : new Date(item.occurred_at).toLocaleDateString(locale, { day: "numeric", month: "short" })) : "–"}</td>
                     <td><span className="clip" style={{ display: "block", maxWidth: 320 }}>{item.title ?? item.author}</span></td>
                     <td className="muted">{accountName(item)}</td>
-                    <td>{field(item, "category") ? <span className="ftag">{field(item, "category")}</span> : <span className="faint">–</span>}</td>
+                    <td>{field(item, "category") ? <span className="ftag">{categoryLabel(field(item, "category")!)}</span> : <span className="faint">–</span>}</td>
                     <td className={`r ${(item.amount ?? 0) > 0 ? "up" : ""}`}>{(item.amount ?? 0) > 0 ? "+" : ""}{money(item.amount, item.currency ?? currency, true)}</td>
                   </tr>
                 ))}

@@ -439,8 +439,10 @@ export function smoothPath(points: [number, number][]) {
   return path;
 }
 
-export function AreaChart({ data, labels, height = 200, color = "var(--chart)", compare, format = String }: {
+export function AreaChart({ data, labels, height = 200, color = "var(--chart)", compare, format = String, future = [] }: {
   data: number[]; labels?: string[]; height?: number; color?: string; compare?: number[]; format?: (value: number) => string;
+  /** A forecast after the last value, drawn dashed from there. */
+  future?: number[];
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
@@ -456,11 +458,11 @@ export function AreaChart({ data, labels, height = 200, color = "var(--chart)", 
     return () => observer.disconnect();
   }, []);
   if (data.length === 0) return null;
-  const all = [...data, ...(compare ?? [])];
+  const all = [...data, ...(compare ?? []), ...future];
   const min = Math.min(...all) * 0.92;
   const max = Math.max(...all) * 1.04;
   const inner = height - 20;
-  const last = Math.max(data.length - 1, 1);
+  const last = Math.max(data.length + future.length - 1, 1);
   const x = (index: number) => (index / last) * width;
   const y = (value: number) => 6 + (1 - (value - min) / (max - min || 1)) * (inner - 6);
   const line = smoothPath(data.map((value, index) => [x(index), y(value)]));
@@ -486,6 +488,12 @@ export function AreaChart({ data, labels, height = 200, color = "var(--chart)", 
         ))}
         <path d={`${line} L${width} ${inner} L0 ${inner}Z`} fill={`url(#${id})`} />
         <path d={line} fill="none" stroke={color} strokeWidth="1.75" />
+        {future.length > 0 && (
+          <>
+            <path d={smoothPath([data[data.length - 1]!, ...future].map((value, index) => [x(data.length - 1 + index), y(value)]))} fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="5 4" opacity=".8" />
+            <circle cx={x(data.length - 1)} cy={y(data[data.length - 1]!)} r="3" fill={color} />
+          </>
+        )}
         {compare && (
           <path
             d={smoothPath(compare.map((value, index) => [x(index), y(value)]))}
