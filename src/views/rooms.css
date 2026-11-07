@@ -18,3 +18,8 @@
 @media (max-width: 1340px) { .rg { grid-template-columns: 236px minmax(0,1fr); } .rcols { grid-template-columns: minmax(0,1fr); } .rde { padding-inline: var(--s4); } }
 .rstep { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: var(--t-13); }
 .rstep + .rstep { border-top: 1px solid var(--line); }
+/* The list column is narrow: freshness wraps under the title instead of running into the detail. */
+.rlh { flex-wrap: wrap; gap: 0 var(--s2); min-width: 0; }
+.rlh .cn-fresh { min-width: 0; max-width: 100%; overflow: hidden; }
+.rlh .cn-fresh .tn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bz-rl { min-width: 0; overflow: hidden; }

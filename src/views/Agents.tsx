@@ -249,7 +249,7 @@ function RunningRow({ run, names }: { run: Schemas["RunRecord"]; names: Record<s
       <div className="pr"><Progress value={Math.min(95, (elapsed / 120_000) * 100)} color={run.status === "waiting" ? "var(--warn)" : undefined} /></div>
       <span className="tn m">{clock(elapsed)}</span>
       <span className="tn m">{euro(run.cost_eur)}</span>
-      <Btn size="xs">{t("agents.watch")}</Btn>
+      <Btn size="xs" onClick={() => openRun(run.id)}>{t("agents.watch")}</Btn>
     </div>
   );
 }
