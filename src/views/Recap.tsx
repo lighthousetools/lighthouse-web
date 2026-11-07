@@ -1,13 +1,18 @@
-import { Newspaper } from "lucide-react";
-import { useAgentNames, useCosts, useRuns } from "../data";
+import { Newspaper, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAgentNames, useCosts, useRecaps, useRuns } from "../data";
 import { agentName, dayTime, euro, isoWeek, plainSnippet, tokens, weekdayShort } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go } from "../router";
-import { Btn, Empty, Failure, Skeleton, Stat } from "../ui";
+import { openExternal } from "../shell/bridge";
+import { Btn, Empty, Failure, ServiceIcon, Skeleton, Stat, brandOf } from "../ui";
+import { Select } from "../ui/select";
 import { headingsOf, Markdown } from "../ui/markdown";
 import { Gauge, Linked, Sec, Thesis } from "./briefing";
 import { openRun } from "./runs";
-import { costsByDay } from "./Today";
+import { costsByDay } from "./briefing";
+import { change, columns, figures, formatNumber, thesis, weekOf, type DocItem } from "./document";
+import { Film } from "./Film";
 
 const DAY = 86_400_000;
 
@@ -38,8 +43,49 @@ export function withoutTitle(report: string) {
   return lines.join("\n").trim();
 }
 
-export function Weekly() {
+function DocItemRow({ item }: { item: DocItem }) {
+  const source = item.source;
+  const number = item.numbers?.[0];
+  const delta = number ? change(number) : null;
+  const body = (
+    <>
+      <ServiceIcon name={brandOf(source?.service)} fallback={source?.service ?? item.text} size={24} />
+      <span className="tx">
+        <b className="clip">{item.text}</b>
+        {(item.detail || source?.reference) && <small className="clip">{item.detail ?? source?.reference}</small>}
+      </span>
+      {number && (
+        <span className="end tn" title={number.label}>
+          {formatNumber(number)}
+          {delta != null && <span className={delta >= 0 ? "up" : "down"}> {delta >= 0 ? "+" : ""}{delta} %</span>}
+        </span>
+      )}
+    </>
+  );
+  return source?.url ? (
+    <button type="button" className="bf-r" onClick={() => openExternal(source.url!)}>{body}</button>
+  ) : (
+    <div className="bf-r static">{body}</div>
+  );
+}
+
+export function Recap() {
   useLanguage();
+  const recaps = useRecaps();
+  const [period, setPeriod] = useState<string | null>(null);
+  const [film, setFilm] = useState(false);
+  const recap = (recaps.data ?? []).find((item) => item.period === period) ?? recaps.data?.[0] ?? null;
+  const docParts = thesis(recap?.content.summary);
+  const figs = figures(recap);
+  const weekNumber = recap ? weekOf(recap.period)?.week : undefined;
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).closest("input, textarea") || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key.toLowerCase() === "f" && recap && !document.querySelector?.(".palbg")) setFilm(true);
+    };
+    addEventListener("keydown", key);
+    return () => removeEventListener("keydown", key);
+  });
   const runs = useRuns(200);
   const costs = useCosts(7);
   const names = useAgentNames();
@@ -71,14 +117,18 @@ export function Weekly() {
   const parts = report?.report ? reportParts(report.report) : null;
   const weekdays = Array.from({ length: 7 }, (_, index) => weekdayShort(new Date(2024, 0, 1 + index)));
 
-  if (runs.isPending) return <div className="page"><Skeleton count={6} /></div>;
+  if (runs.isPending || recaps.isPending) return <div className="page"><Skeleton count={6} /></div>;
   return (
     <div className="page">
       <div className="bf">
         <Thesis
-          kicker={[t("today.week", { week: isoWeek(now) }), report ? t("weekly.written", { time: dayTime(report.finished_at) }) : null, report ? agentName(report.agent_id, names) : null].filter(Boolean).join(" · ")}
-          title={parts?.title ?? t("weekly.title", { week: isoWeek(now) })}
-          lead={parts?.lead ?? (report ? t("weekly.leadReport") : t("weekly.emptyHint"))}
+          kicker={
+            recap
+              ? [t("today.week", { week: weekNumber ?? recap.period }), t("weekly.written", { time: dayTime(recap.created_at) }), agentName(recap.agent_id, names)].join(" · ")
+              : [t("today.week", { week: isoWeek(now) }), report ? t("weekly.written", { time: dayTime(report.finished_at) }) : null, report ? agentName(report.agent_id, names) : null].filter(Boolean).join(" · ")
+          }
+          title={docParts.title || recap?.content.title || parts?.title || t("weekly.title", { week: isoWeek(now) })}
+          lead={docParts.lead || (recap ? recap.content.title : parts?.lead ?? (report ? t("weekly.leadReport") : t("weekly.emptyHint")))}
           side={
             <Gauge
               title={t("weekly.costsOpen")}
@@ -92,16 +142,55 @@ export function Weekly() {
             />
           }
         >
-          {report && <Btn onClick={() => openRun(report.id)}><Newspaper />{t("weekly.openRun")}</Btn>}
+          {recap && <Btn variant="primary" kbd="F" onClick={() => setFilm(true)}><Play />{t("recap.film")}</Btn>}
+          {(recap || report) && <Btn onClick={() => openRun(recap?.run_id ?? report!.id)}><Newspaper />{t("weekly.openRun")}</Btn>}
+          {(recaps.data?.length ?? 0) > 1 && (
+            <Select
+              label={t("recap.week")}
+              value={recap?.period ?? ""}
+              onChange={setPeriod}
+              options={(recaps.data ?? []).map((item) => [item.period, t("today.week", { week: weekOf(item.period)?.week ?? item.period })] as const)}
+            />
+          )}
         </Thesis>
         <Failure error={runs.error ?? costs.error} />
+        {figs.length > 0 ? (
+          <div className="g4 rc-k">
+            {figs.slice(0, 4).map(({ number, item }, index) => {
+              const delta = change(number);
+              return (
+                <Stat
+                  key={index}
+                  label={number.label}
+                  value={formatNumber(number)}
+                  delta={delta != null ? `${delta >= 0 ? "+" : ""}${delta} %` : item.text}
+                  tone={delta != null ? (delta >= 0 ? "up" : "down") : undefined}
+                />
+              );
+            })}
+            {figs.length < 4 && <Stat label={t("weekly.runs")} value={week.length} spark={perDay} delta={t("weekly.perDay", { count: (week.length / 7).toLocaleString(undefined, { maximumFractionDigits: 1 }) })} />}
+          </div>
+        ) : (
         <div className="g4 rc-k">
           <Stat label={t("weekly.runs")} value={week.length} spark={perDay} delta={t("weekly.perDay", { count: (week.length / 7).toLocaleString(undefined, { maximumFractionDigits: 1 }) })} />
           <Stat label={t("status.succeeded")} value={succeeded} delta={t("agents.failed", { count: failed })} tone={failed ? "down" : "up"} />
           <Stat label={t("log.tokens")} value={tokens(week.reduce((sum, run) => sum + run.input_tokens + run.output_tokens, 0))} delta={t("weekly.inOut")} />
           <Stat label={t("weekly.agents")} value={byAgent.length} delta={byAgent[0] ? t("weekly.mostActive", { name: agentName(byAgent[0][0], names) }) : undefined} />
         </div>
-        {report?.report ? (
+        )}
+        {recap ? (
+          <div className="bf-grid">
+            {columns(recap.content.sections, 3).map((column, index) => (
+              <div className="bf-col" key={index}>
+                {column.map((section, n) => (
+                  <Sec key={n} title={section.title} hint={section.items?.length || undefined}>
+                    {(section.items ?? []).map((item, m) => <DocItemRow key={m} item={item} />)}
+                  </Sec>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : report?.report ? (
           <Linked label={t("weekly.report")}>
             <div className="rc-rep"><Markdown source={withoutTitle(report.report)} /></div>
           </Linked>
@@ -151,6 +240,9 @@ export function Weekly() {
           </div>
         </div>
       </div>
+      {film && recap && (
+        <Film document={recap} label={`${t("nav.recap")} · ${t("today.week", { week: weekNumber ?? recap.period })}`} onClose={() => setFilm(false)} />
+      )}
     </div>
   );
 }

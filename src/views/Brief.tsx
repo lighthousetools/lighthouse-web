@@ -1,25 +1,17 @@
-import { CalendarClock, Check, PlugZap, ShieldCheck } from "lucide-react";
-import { useAgentNames, useAgents, useConnectors, useCosts, useMe, useNeedsYou, useRuns } from "../data";
-import { agentName, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
+import { CalendarClock, Check, PlugZap, ShieldCheck, Sunrise } from "lucide-react";
+import { useAgentNames, useAgents, useBrief, useConnectors, useCosts, useMe, useReady, useRuns } from "../data";
+import { dayTime, euro, greeting, isoWeek, longDate, time, toolName, weekdayShort } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go } from "../router";
-import { Btn, Dot, ServiceIcon, Skeleton, brandOf } from "../ui";
+import { openExternal } from "../shell/bridge";
+import { Btn, Empty, Failure, ServiceIcon, Skeleton, brandOf } from "../ui";
 import { useNow } from "../ui/live";
-import { Markdown } from "../ui/markdown";
 import { AskBox } from "./Ask";
-import { Gauge, Linked, Sec, Thesis } from "./briefing";
+import { Gauge, Sec, Thesis, costsByDay } from "./briefing";
+import { change, columns, formatNumber, thesis, type DocItem, type DocSection } from "./document";
 import { RunDot, openRun, runSentence } from "./runs";
 
-const DAY = 86_400_000;
 const isoDay = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-
-/** Costs per day for the last `days` days, oldest first, with zero for quiet days. */
-export function costsByDay(costs: { day: string; cost_eur: number }[], days: number, today = new Date()) {
-  return Array.from({ length: days }, (_, index) => {
-    const day = isoDay(new Date(today.getTime() - (days - 1 - index) * DAY));
-    return { day, cost: costs.filter((cost) => cost.day === day).reduce((sum, cost) => sum + cost.cost_eur, 0) };
-  });
-}
 
 function CostGauge() {
   const costs = useCosts(14);
@@ -38,21 +30,6 @@ function CostGauge() {
       foot={ranToday === 1 ? t("today.runsTodayOne") : t("today.runsToday", { count: ranToday })}
       onClick={() => go("log")}
     />
-  );
-}
-
-function Briefing() {
-  const runs = useRuns(50);
-  const brief = runs.data?.find((run) => run.agent_id.includes("brief") && run.report);
-  if (!brief?.report) return null;
-  return (
-    <Linked
-      label={t("today.summaryFrom", { time: time(brief.finished_at) })}
-      onClick={() => openRun(brief.id)}
-      action={<Btn size="sm" onClick={() => openRun(brief.id)}>{t("today.openBriefing")}</Btn>}
-    >
-      <Markdown source={brief.report} />
-    </Linked>
   );
 }
 
@@ -112,54 +89,6 @@ function Connections() {
   );
 }
 
-function NeedsYou() {
-  const needs = useNeedsYou();
-  const names = useAgentNames();
-  return (
-    <Sec title={t("today.needsYou")} hint={needs.total || undefined} label={t("today.needsYou")}>
-      {needs.loading && <Skeleton count={3} height={52} />}
-      {needs.permissions.map((request) => (
-        <button type="button" key={request.id} className="bf-r" onClick={() => go("approvals", `permission:${request.id}`)}>
-          <ServiceIcon name="claude" size={24} />
-          <span className="tx">
-            <b className="clip">{t("approvals.claudeWants", { tool: request.tool })}</b>
-            <small className="clip">{request.project}</small>
-          </span>
-        </button>
-      ))}
-      {needs.approvals.map((approval) => (
-        <button type="button" key={approval.id} className="bf-r" onClick={() => go("approvals", `approval:${approval.id}`)}>
-          <ServiceIcon name={brandOf(approval.tool.split(".")[0])} fallback={approval.tool} size={24} />
-          <span className="tx">
-            <b className="clip">{toolName(approval.tool)}</b>
-            <small className="clip">{t("approvals.proposes", { agent: agentName(approval.agent_id, names) })}</small>
-          </span>
-        </button>
-      ))}
-      {needs.waiting.map((session) => (
-        <button type="button" key={`${session.node_id}-${session.id}`} className="bf-r" onClick={() => go("sessions", `${session.node_id}:${session.id}`)}>
-          <ServiceIcon name="claude" size={24} />
-          <span className="tx">
-            <b className="clip">{session.project}</b>
-            <small className="clip">{session.summary ?? t("status.waiting")}</small>
-          </span>
-          <Dot tone="warn" />
-        </button>
-      ))}
-      {!needs.loading && needs.total === 0 && (
-        <div className="bf-ok"><Check size={16} className="up" />{t("today.nothing")}</div>
-      )}
-      {needs.decisions > 0 && (
-        <div className="bf-more">
-          <Btn variant="primary" onClick={() => go("approvals")}>
-            {needs.decisions === 1 ? t("today.goThroughOne") : t("today.goThrough", { count: needs.decisions })}
-          </Btn>
-        </div>
-      )}
-    </Sec>
-  );
-}
-
 function Activity() {
   const runs = useRuns(12);
   const names = useAgentNames();
@@ -188,41 +117,103 @@ function Activity() {
   );
 }
 
-export function Today() {
+function Item({ item }: { item: DocItem }) {
+  const source = item.source;
+  const number = item.numbers?.[0];
+  const delta = number ? change(number) : null;
+  const open = source?.url ? () => openExternal(source.url!) : undefined;
+  const body = (
+    <>
+      <ServiceIcon name={brandOf(source?.service)} fallback={source?.service ?? item.text} size={24} />
+      <span className="tx">
+        <b className="clip">{item.text}</b>
+        {(item.detail || source?.reference) && <small className="clip">{item.detail ?? source?.reference}</small>}
+      </span>
+      {number && (
+        <span className="end tn" title={number.label}>
+          {formatNumber(number)}
+          {delta != null && <span className={delta >= 0 ? "up" : "down"}> {delta >= 0 ? "+" : ""}{delta} %</span>}
+        </span>
+      )}
+    </>
+  );
+  return open ? (
+    <button type="button" className="bf-r" onClick={open} title={source?.url ?? undefined}>{body}</button>
+  ) : (
+    <div className="bf-r static">{body}</div>
+  );
+}
+
+function DocSec({ section }: { section: DocSection }) {
+  const items = section.items ?? [];
+  return (
+    <Sec title={section.title} hint={items.length || undefined}>
+      {items.length === 0 && <div className="bf-ok"><Check size={16} className="up" />{t("brief.sectionEmpty")}</div>}
+      {items.map((item, index) => <Item key={index} item={item} />)}
+    </Sec>
+  );
+}
+
+export function Brief() {
   useLanguage();
   const me = useMe();
-  const needs = useNeedsYou();
+  const brief = useBrief();
+  const ready = useReady();
   const now = new Date();
   const first = me.data?.name.split(" ")[0];
   const hello = greeting(now.getHours());
-  const lead =
-    needs.total === 0 ? t("today.nothing")
-    : needs.total === 1 ? t("today.needs.one")
-    : t("today.needs.other", { count: needs.total });
+  const document = brief.data;
+  const parts = thesis(document?.content.summary);
+  const isToday = document?.period === isoDay(now);
+  const sections = document?.content.sections ?? [];
+  const cols = columns(sections, 3);
+  const unavailable = document?.content.unavailable ?? [];
+  const count = ready.data?.total ?? 0;
   return (
     <div className="page">
       <div className="bf">
         <Thesis
-          kicker={`${longDate(now)} · ${t("today.week", { week: isoWeek(now) })}`}
-          title={first ? t("today.greeting", { greeting: hello, name: first }) : hello}
-          lead={lead}
+          kicker={[longDate(now), t("today.week", { week: isoWeek(now) }), document ? t("brief.from", { time: dayTime(document.created_at) }) : null].filter(Boolean).join(" · ")}
+          title={parts.title || (first ? t("today.greeting", { greeting: hello, name: first }) : hello)}
+          lead={parts.lead || (document ? document.content.title : t("brief.none"))}
           side={<CostGauge />}
         >
-          <AskBox />
+          {count > 0 && (
+            <Btn variant="primary" onClick={() => go("ready")}>
+              {count === 1 ? t("today.goThroughOne") : t("today.goThrough", { count })}
+            </Btn>
+          )}
+          {document && <Btn onClick={() => openRun(document.run_id)}>{t("brief.openRun")}</Btn>}
+          {document && !isToday && <span className="faint" style={{ fontSize: 12 }}>{t("brief.notToday")}</span>}
         </Thesis>
-        <Briefing />
+        <div style={{ marginTop: 20 }}><AskBox /></div>
+        <Failure error={brief.error} />
+        {brief.isPending && <div style={{ marginTop: 24 }}><Skeleton count={4} /></div>}
+        {!brief.isPending && !document && (
+          <div className="card" style={{ marginTop: 20 }}>
+            <Empty icon={<Sunrise />} title={t("brief.empty")} sub={t("brief.emptyHint")} action={<Btn onClick={() => go("agents")}>{t("nav.agents")}</Btn>} />
+          </div>
+        )}
         <div className="bf-grid">
           <div className="bf-col">
-            <NeedsYou />
+            {cols[0]!.map((section, index) => <DocSec key={index} section={section} />)}
+            <ComingUp />
           </div>
           <div className="bf-col">
-            <ComingUp />
+            {cols[1]!.map((section, index) => <DocSec key={index} section={section} />)}
             <Connections />
           </div>
           <div className="bf-col">
+            {cols[2]!.map((section, index) => <DocSec key={index} section={section} />)}
             <Activity />
           </div>
         </div>
+        {unavailable.length > 0 && (
+          <p className="bf-un faint">
+            <PlugZap size={14} />
+            {t("brief.unavailable", { services: unavailable.join(", ") })}
+          </p>
+        )}
       </div>
     </div>
   );

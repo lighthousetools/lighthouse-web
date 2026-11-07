@@ -4,6 +4,19 @@ import { t } from "../i18n";
 import { ServiceIcon } from "../ui";
 import "./briefing.css";
 
+const DAY = 86_400_000;
+const isoDay = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+
+/** Costs per day for the last `days` days, oldest first, with zero for quiet days. */
+export function costsByDay(costs: { day: string; cost_eur: number }[], days: number, today = new Date()) {
+  return Array.from({ length: days }, (_, index) => {
+    const day = isoDay(new Date(today.getTime() - (days - 1 - index) * DAY));
+    return { day, cost: costs.filter((cost) => cost.day === day).reduce((sum, cost) => sum + cost.cost_eur, 0) };
+  });
+}
+
+export const todayIso = () => isoDay(new Date());
+
 export type Link = { svc?: string; label: string; fallback?: string; run: () => void };
 
 export function Thesis({ kicker, title, lead, children, side }: {

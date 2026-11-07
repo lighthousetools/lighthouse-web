@@ -11,7 +11,7 @@ import {
   Badge, Btn, Confirm, Dot, Empty, Failure, PageHeader, Progress, Seg, ServiceIcon, Skeleton, Stat, brandOf, type Tone,
 } from "../ui";
 import { clock, useNow } from "../ui/live";
-import { costsByDay } from "./Today";
+import { costsByDay } from "./briefing";
 import { RunDot, RunStatus, openRun, runSeconds, seconds } from "./runs";
 import "./agents.css";
 
