@@ -1,42 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Check, ChevronRight, Search } from "lucide-react";
-import { Suspense, lazy, useEffect, useRef, useState, type JSX } from "react";
+import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type JSX } from "react";
 import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type LiveState } from "../api/client";
 import { queriesFor, sessionKey, useAlertCounts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
 import { Dot, Kbd, Logo, Menu, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
 import { useNow } from "../ui/live";
-import { Agents } from "../views/Agents";
-import { Alerts } from "../views/Alerts";
-import { Automations } from "../views/Automations";
-import { Brief } from "../views/Brief";
-import { Center } from "../views/Center";
-import { Contracts } from "../views/Contracts";
-import { Finance } from "../views/Finance";
-import { Invoices } from "../views/Invoices";
-import { Numbers } from "../views/Numbers";
-import { Pipeline } from "../views/Pipeline";
-import { Rooms } from "../views/Rooms";
-import { Stocks } from "../views/Stocks";
-import Posts from "../views/Posts";
-import Branding from "../views/Branding";
-import Decks from "../views/Decks";
-import { Calendar } from "../views/Calendar";
-import { Code } from "../views/Code";
-import { Inbox } from "../views/Inbox";
-import { Issues } from "../views/Issues";
-import { Mail } from "../views/Mail";
-import { Me } from "../views/Me";
 import { Ready } from "../views/Ready";
-import { Recap } from "../views/Recap";
-import { Rules } from "../views/Rules";
-import { Tasks } from "../views/Tasks";
-import { Connections } from "../views/Connections";
-import { Log } from "../views/Log";
 import { Login } from "../views/Login";
-import { Sessions } from "../views/Sessions";
-import { Settings } from "../views/Settings";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
@@ -47,10 +19,38 @@ import { orgStore, setOrg } from "./org";
 import { Palette } from "./Palette";
 import { closeInspector, inspector, palette, toasts } from "./state";
 
-// The editor is large, so it loads with the view that needs it.
+// Every page but the start page loads when it is first opened, so the first load stays small.
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
+const Agents = lazy(() => import("../views/Agents").then((module) => ({ default: module.Agents })));
+const Alerts = lazy(() => import("../views/Alerts").then((module) => ({ default: module.Alerts })));
+const Automations = lazy(() => import("../views/Automations").then((module) => ({ default: module.Automations })));
+const Brief = lazy(() => import("../views/Brief").then((module) => ({ default: module.Brief })));
+const Center = lazy(() => import("../views/Center").then((module) => ({ default: module.Center })));
+const Contracts = lazy(() => import("../views/Contracts").then((module) => ({ default: module.Contracts })));
+const Finance = lazy(() => import("../views/Finance").then((module) => ({ default: module.Finance })));
+const Invoices = lazy(() => import("../views/Invoices").then((module) => ({ default: module.Invoices })));
+const Numbers = lazy(() => import("../views/Numbers").then((module) => ({ default: module.Numbers })));
+const Pipeline = lazy(() => import("../views/Pipeline").then((module) => ({ default: module.Pipeline })));
+const Rooms = lazy(() => import("../views/Rooms").then((module) => ({ default: module.Rooms })));
+const Stocks = lazy(() => import("../views/Stocks").then((module) => ({ default: module.Stocks })));
+const Posts = lazy(() => import("../views/Posts"));
+const Branding = lazy(() => import("../views/Branding"));
+const Decks = lazy(() => import("../views/Decks"));
+const Calendar = lazy(() => import("../views/Calendar").then((module) => ({ default: module.Calendar })));
+const Code = lazy(() => import("../views/Code").then((module) => ({ default: module.Code })));
+const Inbox = lazy(() => import("../views/Inbox").then((module) => ({ default: module.Inbox })));
+const Issues = lazy(() => import("../views/Issues").then((module) => ({ default: module.Issues })));
+const Mail = lazy(() => import("../views/Mail").then((module) => ({ default: module.Mail })));
+const Me = lazy(() => import("../views/Me").then((module) => ({ default: module.Me })));
+const Recap = lazy(() => import("../views/Recap").then((module) => ({ default: module.Recap })));
+const Rules = lazy(() => import("../views/Rules").then((module) => ({ default: module.Rules })));
+const Tasks = lazy(() => import("../views/Tasks").then((module) => ({ default: module.Tasks })));
+const Connections = lazy(() => import("../views/Connections").then((module) => ({ default: module.Connections })));
+const Log = lazy(() => import("../views/Log").then((module) => ({ default: module.Log })));
+const Sessions = lazy(() => import("../views/Sessions").then((module) => ({ default: module.Sessions })));
+const Settings = lazy(() => import("../views/Settings").then((module) => ({ default: module.Settings })));
 
-const VIEW_COMPONENTS: Record<View, (() => JSX.Element) | typeof Brain> = {
+const VIEW_COMPONENTS: Record<View, ComponentType> = {
   ready: Ready, tasks: Tasks, brief: Brief, recap: Recap, inbox: Inbox, mail: Mail, calendar: Calendar, issues: Issues, code: Code, sessions: Sessions, pipeline: Pipeline, numbers: Numbers, rooms: Rooms, contracts: Contracts,
   invoices: Invoices, finance: Finance, stocks: Stocks, posts: Posts, branding: Branding, decks: Decks, center: Center, alerts: Alerts, brain: Brain,
   automations: Automations, rules: Rules, me: Me,

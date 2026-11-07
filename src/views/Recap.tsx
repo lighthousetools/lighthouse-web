@@ -1,5 +1,5 @@
 import { Newspaper, Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAgentNames, useCosts, useRecaps, useRuns } from "../data";
 import { agentName, dayTime, euro, isoWeek, plainSnippet, tokens, weekdayShort } from "../format";
 import { t, useLanguage } from "../i18n";
@@ -12,7 +12,9 @@ import { Gauge, Linked, Sec, Thesis } from "./briefing";
 import { openRun } from "./runs";
 import { costsByDay } from "./briefing";
 import { change, columns, figures, formatNumber, thesis, weekOf, type DocItem } from "./document";
-import { Film } from "./Film";
+
+// The film draws on a canvas and only plays on request, so it loads then.
+const Film = lazy(() => import("./Film").then((module) => ({ default: module.Film })));
 
 const DAY = 86_400_000;
 
@@ -241,7 +243,7 @@ export function Recap() {
         </div>
       </div>
       {film && recap && (
-        <Film document={recap} label={`${t("nav.recap")} · ${t("today.week", { week: weekNumber ?? recap.period })}`} onClose={() => setFilm(false)} />
+        <Suspense fallback={null}><Film document={recap} label={`${t("nav.recap")} · ${t("today.week", { week: weekNumber ?? recap.period })}`} onClose={() => setFilm(false)} /></Suspense>
       )}
     </div>
   );
