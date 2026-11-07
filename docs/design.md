@@ -51,6 +51,26 @@ deal, creating one, reminding, sending, releasing a payment or signing all go th
 approval: nothing pays, signs or sends by itself. Stocks only shows data, with no advice and no trading. Mission control
 combines the key numbers, the ready feed, sessions, alerts, runs and source health.
 
+## Publishing
+
+Posts, Personal branding and Presentations are the server's own data, so they show without a connected source.
+
+- **Posts** plan the week: a pool of ideas and drafts, a week and a month calendar per account, and the slots from
+  `/posts/slots` that turn into gaps when nothing is planned (`/posts/calendar`). Drag a post onto a day, or fill a gap
+  with the suggestion, which prefers the slot's pillar. The editor checks the text while you type (`/posts/check`), shows
+  how the feed cuts it after three lines, picks an image from the Brain, and sets pillar, topic and date. A date only
+  plans a post. Publish goes through `POST /posts/{id}/publish` on an explicit click and waits for approval in Ready;
+  nothing comments, connects or posts by itself. The Posts tab sums up what went out and imports CSV or JSON from
+  `/posts/import`. Topics edit the pillars and the posting rhythm.
+- **Personal branding** charts reach, reactions, followers and audience share from the posts' metrics, and edits the
+  profile in `/branding` that agents write in.
+- **Presentations** are Brain entries of the type `deck`. A line with only `---` starts a slide, the first heading is
+  its title, `-` lines are points, `>` a quote, and `Note:` lines are speaker notes that only the presenter shows. The
+  layout follows from the content. The presenter has a timer with pause, the next slide, notes, a black screen and an
+  audience view. Export downloads HTML or Markdown; print the HTML for a PDF.
+
+`posts.changed`, `decks.changed` and `branding.changed` reload the matching data.
+
 ## Pages not ported yet
 
 The navigation shows only pages with real data behind them. These pages of the design wait for the API:
@@ -58,7 +78,7 @@ The navigation shows only pages with real data behind them. These pages of the d
 | Design page | Missing in the API |
 |---|---|
 | Assistant conversation | A chat endpoint with history |
-| Posts, Personal branding, Decks | Planned for the next stage |
+| Posts: variants, first comment, rewrite suggestions, blocked days; Branding: post-to-meeting funnel, target-account reactions, comment briefing; Presentations: generated drafts, style choice, PDF and PPTX export, publishing to a room | Not in the API yet |
 | Pipeline: suggested values, top deals as tasks; Numbers: export and comparison periods; Contracts: templates and composer; Rooms: publishing, next steps and milestones; Stocks: theses, own metrics and questions | Not in the API yet |
 | Mail: splits, snooze, bulk actions, context column | Labels, snooze and related records in the mail source |
 | Calendar: drag to move, focus blocks, scheduling assistant | Moving goes through an approval; drag and focus planning need more API |
