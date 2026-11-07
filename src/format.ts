@@ -80,3 +80,37 @@ export function plainSnippet(text: string) {
     .replace(/[*`]/g, "")
     .replace(/\[\[|\]\]/g, "");
 }
+
+/** 980, 12.4k, 1.2M: token counts at a glance. */
+export function tokens(value: number) {
+  const format = (n: number, unit: string) =>
+    `${n.toLocaleString(locale(), { maximumFractionDigits: n < 10 ? 1 : 0 })}${unit}`;
+  if (value < 1000) return String(value);
+  if (value < 1_000_000) return format(value / 1000, "k");
+  return format(value / 1_000_000, "M");
+}
+
+export function number(value: number) {
+  return value.toLocaleString(locale());
+}
+
+export function weekdayShort(value: string | Date) {
+  return new Date(value).toLocaleDateString(locale(), { weekday: "short" });
+}
+
+/** Today, yesterday, or the date, followed by the time. */
+export function dayTime(value?: string | null, now = new Date()) {
+  if (!value) return t("common.none");
+  const date = new Date(value);
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  const clock = time(value);
+  if (days === 0) return t("time.today", { time: clock });
+  if (days === 1) return t("time.yesterday", { time: clock });
+  if (days === -1) return t("time.tomorrow", { time: clock });
+  if (Math.abs(days) < 7) return `${weekdayShort(date)} ${clock}`;
+  return dateTime(value);
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}

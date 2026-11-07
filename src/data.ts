@@ -22,6 +22,10 @@ export function useSessions() {
   });
 }
 
+export function useNodes() {
+  return useQuery({ queryKey: ["nodes"], queryFn: () => must(api.GET("/nodes")) });
+}
+
 export function useAgents() {
   return useQuery({ queryKey: ["agents"], queryFn: () => must(api.GET("/agents")) });
 }
@@ -30,6 +34,20 @@ export function useRuns(limit: number) {
   return useQuery({
     queryKey: ["runs", limit],
     queryFn: () => must(api.GET("/runs", { params: { query: { limit } } })),
+  });
+}
+
+export function useRun(id: string) {
+  return useQuery({
+    queryKey: ["runs", "detail", id],
+    queryFn: () => must(api.GET("/runs/{id}", { params: { path: { id } } })),
+  });
+}
+
+export function useCosts(days: number) {
+  return useQuery({
+    queryKey: ["costs", days],
+    queryFn: () => must(api.GET("/costs", { params: { query: { days } } })),
   });
 }
 
@@ -51,6 +69,9 @@ export function useAgentNames() {
   return Object.fromEntries((agents.data ?? []).map((agent) => [agent.id, agent.name]));
 }
 
+/** A stable key for a session, which is unique only per machine. */
+export const sessionKey = (session: { node_id: string; id: string }) => `${session.node_id}:${session.id}`;
+
 /** Everything that waits for the owner, counted the same way everywhere. */
 export function useNeedsYou() {
   const approvals = useApprovals();
@@ -63,7 +84,9 @@ export function useNeedsYou() {
     approvals: approvalList,
     permissions: permissionList,
     waiting,
+    running: (sessions.data ?? []).filter((session) => session.status === "running"),
     decisions: approvalList.length + permissionList.length,
     total: approvalList.length + permissionList.length + waiting.length,
+    loading: approvals.isPending || permissions.isPending || sessions.isPending,
   };
 }

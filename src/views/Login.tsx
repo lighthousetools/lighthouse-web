@@ -2,7 +2,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { api, must, storeToken } from "../api/client";
 import { t, useLanguage } from "../i18n";
-import { Failure, Logo } from "../ui";
+import { Light } from "../shell/Light";
+import { Btn, Failure, Field, Logo } from "../ui";
 import { LanguagePicker } from "./LanguagePicker";
 
 export function Login({ onDone }: { onDone: () => void }) {
@@ -22,38 +23,35 @@ export function Login({ onDone }: { onDone: () => void }) {
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    login.mutate();
+    if (password) login.mutate();
   };
   return (
-    <div className="login">
-      <div className="brand">
-        <Logo size={30} /> {t("app.name")}
-      </div>
-      <p className="sub" style={{ marginBottom: 20 }}>{t("login.title")}</p>
-      {status.data?.setup_required ? (
-        <p className="note">{t("login.setup")}</p>
-      ) : (
-        <form onSubmit={submit}>
-          <label className="lab">
-            {t("login.password")}
-            <input
-              className="field"
-              type="password"
-              autoComplete="current-password"
-              autoFocus
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          <Failure error={login.error} />
-          <button className="btn primary" disabled={login.isPending || !password}>
-            {t("login.submit")}
-          </button>
-        </form>
-      )}
-      <div style={{ marginTop: 28 }}>
-        <LanguagePicker />
-      </div>
+    <div className="os">
+      <Light />
+      <main className="signin">
+        <div className="signin-c">
+          <div className="brand">
+            <Logo size={22} /> {t("app.name")}
+          </div>
+          <h1>{t("login.title")}</h1>
+          <p>{t("login.lead")}</p>
+          {status.data?.setup_required ? (
+            <p className="note-box" style={{ marginTop: 20 }}>{t("login.setup")}</p>
+          ) : (
+            <form onSubmit={submit}>
+              <Field type="password" large autoFocus label={t("login.password")} placeholder={t("login.password")} value={password} onChange={setPassword} />
+              <Failure error={login.error} />
+              <Btn type="submit" variant="primary" size="lg" disabled={login.isPending || !password}>
+                {t("login.submit")}
+              </Btn>
+            </form>
+          )}
+          <div className="lang">
+            <span>{t("lang.label")}</span>
+            <LanguagePicker />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
