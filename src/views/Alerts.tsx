@@ -82,6 +82,10 @@ function SeriesChart({ alert }: { alert: Alert }) {
   );
 }
 
+const number = (value: number) => value.toLocaleString(language() === "de" ? "de-DE" : "en-GB", { maximumFractionDigits: 2 });
+/** `failures`, `minutes`, `EUR` as people read them. */
+export const unitLabel = (unit: string) => (["failures", "minutes"].includes(unit) ? t(`alerts.unit.${unit as "failures"}`) : unit === "EUR" ? "€" : unit);
+
 function Detail({ alert }: { alert: Alert }) {
   const client = useQueryClient();
   const act = useMutation({
@@ -105,7 +109,13 @@ function Detail({ alert }: { alert: Alert }) {
     return () => removeEventListener("keydown", key);
   });
   const next = nextStep(alert);
-  const history = [
+  // The cause timeline from the server when it has one, otherwise what the alert's own times tell.
+  const events = alert.events ?? [];
+  const history = events.length ? [...events].reverse().map((event) => ({
+    at: event.at,
+    text: [t(`alerts.event.${event.kind as "raised"}`), event.value != null ? `${number(event.value)}${alert.unit ? ` ${unitLabel(alert.unit)}` : ""}` : null, event.text].filter(Boolean).join(" · "),
+    tone: (event.kind === "resolved" ? "ok" : event.kind === "acknowledged" ? "" : event.kind === "escalated" ? "bad" : TONE[alert.severity]) as Tone,
+  })) : [
     { at: alert.first_seen_at, text: t("alerts.firstSeen"), tone: TONE[alert.severity] },
     ...(alert.count > 1 ? [{ at: alert.last_seen_at, text: t("alerts.again", { count: alert.count }), tone: TONE[alert.severity] }] : []),
     ...(alert.acknowledged_at ? [{ at: alert.acknowledged_at, text: t("alerts.acknowledged"), tone: "" as Tone }] : []),
@@ -149,7 +159,11 @@ function Detail({ alert }: { alert: Alert }) {
       <div className="al-g">
         <div className="col">
           <div className="al-stats">
-            <Stat label={t("alerts.count")} value={alert.count} delta={alert.count > 1 ? t("alerts.repeats") : t("alerts.once")} />
+            {alert.value != null ? (
+              <Stat label={t("alerts.current")} value={<>{number(alert.value)}<small className="faint" style={{ fontSize: 13, marginLeft: 4 }}>{alert.unit ? unitLabel(alert.unit) : ""}</small></>} delta={alert.count > 1 ? t("alerts.again", { count: alert.count }) : t("alerts.once")} />
+            ) : (
+              <Stat label={t("alerts.count")} value={alert.count} delta={alert.count > 1 ? t("alerts.repeats") : t("alerts.once")} />
+            )}
             <Stat label={t("alerts.firstSeen")} value={<span style={{ fontSize: 15 }}>{dayTime(alert.first_seen_at)}</span>} />
             <Stat label={t("alerts.lastSeen")} value={<span style={{ fontSize: 15 }}>{dayTime(alert.last_seen_at)}</span>} />
           </div>
