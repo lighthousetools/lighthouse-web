@@ -453,6 +453,56 @@
         ]
       }
     },
+    "/alerts/{id}/series": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Returns a daily series for an alert's chart: runs and failures of the agent\nfor run and cost alerts, failed runs that name the connector for connector\nalerts, and refreshes of the source for check alerts.",
+        "operationId": "alert_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Alert ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Days, default 14, at most 90",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertSeries"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown alert"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/approvals": {
       "get": {
         "tags": [
@@ -4981,6 +5031,34 @@
         ]
       }
     },
+    "/node/otel/v1/metrics": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Takes the OpenTelemetry metrics Claude Code exports, as OTLP over HTTP with\nJSON, and keeps cost and tokens per session. Set\n`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` to this address and send the node\ntoken as `Authorization` header.",
+        "operationId": "export_metrics",
+        "requestBody": {
+          "description": "OTLP metrics export in JSON",
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Stored"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/node/permissions": {
       "post": {
         "tags": [
@@ -7057,6 +7135,250 @@
         ]
       }
     },
+    "/talk/threads": {
+      "get": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Lists conversations, pinned ones first.",
+        "operationId": "list_threads",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TalkThread"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Starts a conversation.",
+        "operationId": "create_thread",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewThread"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalkThread"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/talk/threads/{id}": {
+      "get": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Returns a conversation with its messages.",
+        "operationId": "get_thread",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Thread ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThreadDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown thread"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Deletes a conversation.",
+        "operationId": "delete_thread",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Thread ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Unknown thread"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Renames or pins a conversation.",
+        "operationId": "update_thread",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Thread ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreadPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TalkThread"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown thread"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/talk/threads/{id}/messages": {
+      "post": {
+        "tags": [
+          "talk"
+        ],
+        "summary": "Sends a message and gets the answer.",
+        "description": "With a talk agent configured, a run of that agent answers with the thread as\ncontext: the answer is `pending` until the run ends, and the run shows the\ntool calls and approvals. Without one, the Second Brain answers at once.",
+        "operationId": "send_message",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Thread ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exchange"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exchange"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty message"
+          },
+          "404": {
+            "description": "Unknown thread"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/tasks": {
       "get": {
         "tags": [
@@ -7757,6 +8079,27 @@
             "type": "integer",
             "format": "int64",
             "description": "Warnings."
+          }
+        }
+      },
+      "AlertSeries": {
+        "type": "object",
+        "description": "The chart of an alert.",
+        "required": [
+          "metric",
+          "points"
+        ],
+        "properties": {
+          "metric": {
+            "type": "string",
+            "description": "`runs`, `syncs` or `none` when the alert has no history to chart."
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesPoint"
+            },
+            "description": "One point per day, oldest first."
           }
         }
       },
@@ -9019,6 +9362,24 @@
           }
         }
       },
+      "Exchange": {
+        "type": "object",
+        "description": "The owner's message and the answer, which may still be pending.",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/TalkMessage",
+            "description": "The answer. With a talk agent it is `pending` until its run ends."
+          },
+          "question": {
+            "$ref": "#/components/schemas/TalkMessage",
+            "description": "The owner's message."
+          }
+        }
+      },
       "ExternalEvent": {
         "type": "object",
         "description": "An event from outside, such as a new mail reported by a connector.",
@@ -9489,6 +9850,10 @@
           "name": {
             "type": "string",
             "description": "Display name."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone of the owner, such as `Europe/Berlin`. Dates such as\n\"today\" and the days of charts follow it."
           }
         }
       },
@@ -9571,6 +9936,19 @@
           "text": {
             "type": "string",
             "description": "The fact."
+          }
+        }
+      },
+      "NewMessage": {
+        "type": "object",
+        "description": "A message from the owner.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The text."
           }
         }
       },
@@ -9811,6 +10189,19 @@
           "title": {
             "type": "string",
             "description": "What to do."
+          }
+        }
+      },
+      "NewThread": {
+        "type": "object",
+        "description": "A new thread.",
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Title. Defaults to \"New conversation\"."
           }
         }
       },
@@ -10899,6 +11290,37 @@
           }
         }
       },
+      "SeriesPoint": {
+        "type": "object",
+        "description": "One day of an alert's chart.",
+        "required": [
+          "day",
+          "total",
+          "failed",
+          "cost_eur"
+        ],
+        "properties": {
+          "cost_eur": {
+            "type": "number",
+            "format": "double",
+            "description": "Cost of the runs in EUR. Zero for refreshes."
+          },
+          "day": {
+            "type": "string",
+            "description": "Day in UTC, as `YYYY-MM-DD`."
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Those that failed."
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Runs or refreshes that day."
+          }
+        }
+      },
       "Session": {
         "type": "object",
         "description": "A session with its machine.",
@@ -11009,6 +11431,17 @@
           },
           "todos": {
             "description": "The latest todo list of the session, as Claude Code wrote it."
+          },
+          "usage": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SessionUsage",
+                "description": "Costs and tokens, if Claude Code exports its OpenTelemetry metrics."
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -11165,6 +11598,52 @@
               "null"
             ],
             "description": "Latest status text."
+          }
+        }
+      },
+      "SessionUsage": {
+        "type": "object",
+        "description": "Costs and tokens of one session.",
+        "required": [
+          "cost_usd",
+          "input_tokens",
+          "output_tokens",
+          "cache_read_tokens",
+          "cache_creation_tokens"
+        ],
+        "properties": {
+          "cache_creation_tokens": {
+            "type": "number",
+            "format": "double",
+            "description": "Tokens written to the prompt cache."
+          },
+          "cache_read_tokens": {
+            "type": "number",
+            "format": "double",
+            "description": "Tokens read from the prompt cache."
+          },
+          "cost_usd": {
+            "type": "number",
+            "format": "double",
+            "description": "Cost in USD, as Claude Code reports it."
+          },
+          "input_tokens": {
+            "type": "number",
+            "format": "double",
+            "description": "Input tokens."
+          },
+          "output_tokens": {
+            "type": "number",
+            "format": "double",
+            "description": "Output tokens."
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Last report."
           }
         }
       },
@@ -11752,6 +12231,95 @@
           }
         }
       },
+      "TalkMessage": {
+        "type": "object",
+        "description": "A message of a thread.",
+        "required": [
+          "id",
+          "thread_id",
+          "role",
+          "text",
+          "status",
+          "sources",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was written."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Message ID."
+          },
+          "role": {
+            "type": "string",
+            "description": "`owner` or `assistant`."
+          },
+          "run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The run that answers it, with its tool calls and approvals."
+          },
+          "sources": {
+            "description": "Brain entries the answer used."
+          },
+          "status": {
+            "type": "string",
+            "description": "`done`, `pending` or `failed`."
+          },
+          "text": {
+            "type": "string",
+            "description": "The text. Empty while an answer is pending."
+          },
+          "thread_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Its thread."
+          }
+        }
+      },
+      "TalkThread": {
+        "type": "object",
+        "description": "A conversation.",
+        "required": [
+          "id",
+          "title",
+          "pinned",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation time."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Thread ID."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Whether the owner pinned it."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title, from the first message unless the owner names it."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last message."
+          }
+        }
+      },
       "Task": {
         "type": "object",
         "description": "A task.",
@@ -11981,6 +12549,47 @@
           "done",
           "proposed"
         ]
+      },
+      "ThreadDetail": {
+        "type": "object",
+        "description": "A thread with its messages.",
+        "required": [
+          "thread",
+          "messages"
+        ],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TalkMessage"
+            },
+            "description": "Its messages, oldest first."
+          },
+          "thread": {
+            "$ref": "#/components/schemas/TalkThread",
+            "description": "The thread."
+          }
+        }
+      },
+      "ThreadPatch": {
+        "type": "object",
+        "description": "Changes to a thread.",
+        "properties": {
+          "pinned": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Pin or unpin."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "New title."
+          }
+        }
       },
       "TokenIssued": {
         "type": "object",

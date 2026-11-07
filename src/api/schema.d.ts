@@ -176,6 +176,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/alerts/{id}/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Returns a daily series for an alert's chart: runs and failures of the agent
+         *     for run and cost alerts, failed runs that name the connector for connector
+         *     alerts, and refreshes of the source for check alerts.
+         */
+        get: operations["alert_series"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/approvals": {
         parameters: {
             query?: never;
@@ -1435,6 +1456,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/node/otel/v1/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Takes the OpenTelemetry metrics Claude Code exports, as OTLP over HTTP with
+         *     JSON, and keeps cost and tokens per session. Set
+         *     `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` to this address and send the node
+         *     token as `Authorization` header.
+         */
+        post: operations["export_metrics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/node/permissions": {
         parameters: {
             query?: never;
@@ -2077,6 +2120,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/talk/threads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists conversations, pinned ones first. */
+        get: operations["list_threads"];
+        put?: never;
+        /** Starts a conversation. */
+        post: operations["create_thread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/talk/threads/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns a conversation with its messages. */
+        get: operations["get_thread"];
+        put?: never;
+        post?: never;
+        /** Deletes a conversation. */
+        delete: operations["delete_thread"];
+        options?: never;
+        head?: never;
+        /** Renames or pins a conversation. */
+        patch: operations["update_thread"];
+        trace?: never;
+    };
+    "/talk/threads/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sends a message and gets the answer.
+         * @description With a talk agent configured, a run of that agent answers with the thread as
+         *     context: the answer is `pending` until the run ends, and the run shows the
+         *     tool calls and approvals. Without one, the Second Brain answers at once.
+         */
+        post: operations["send_message"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -2336,6 +2438,13 @@ export interface components {
              * @description Warnings.
              */
             warning: number;
+        };
+        /** @description The chart of an alert. */
+        AlertSeries: {
+            /** @description `runs`, `syncs` or `none` when the alert has no history to chart. */
+            metric: string;
+            /** @description One point per day, oldest first. */
+            points: components["schemas"]["SeriesPoint"][];
         };
         /**
          * @description Which alerts to list.
@@ -2900,6 +3009,13 @@ export interface components {
              */
             updated_at: string;
         };
+        /** @description The owner's message and the answer, which may still be pending. */
+        Exchange: {
+            /** @description The answer. With a talk agent it is `pending` until its run ends. */
+            answer: components["schemas"]["TalkMessage"];
+            /** @description The owner's message. */
+            question: components["schemas"]["TalkMessage"];
+        };
         /** @description An event from outside, such as a new mail reported by a connector. */
         ExternalEvent: {
             /** @description Event name like `mail.received`. Names starting with `run.` are reserved. */
@@ -3103,6 +3219,11 @@ export interface components {
         Me: {
             /** @description Display name. */
             name: string;
+            /**
+             * @description IANA time zone of the owner, such as `Europe/Berlin`. Dates such as
+             *     "today" and the days of charts follow it.
+             */
+            timezone?: string;
         };
         /** @description A new deck. */
         NewDeck: {
@@ -3131,6 +3252,11 @@ export interface components {
             /** @description Optional grouping. */
             category?: string | null;
             /** @description The fact. */
+            text: string;
+        };
+        /** @description A message from the owner. */
+        NewMessage: {
+            /** @description The text. */
             text: string;
         };
         /** @description A permission request from a session. */
@@ -3223,6 +3349,11 @@ export interface components {
             source?: components["schemas"]["SourceLink"] | null;
             /** @description What to do. */
             title: string;
+        };
+        /** @description A new thread. */
+        NewThread: {
+            /** @description Title. Defaults to "New conversation". */
+            title?: string | null;
         };
         /** @description A machine with a desktop agent. */
         Node: {
@@ -3695,6 +3826,26 @@ export interface components {
              */
             score: number;
         };
+        /** @description One day of an alert's chart. */
+        SeriesPoint: {
+            /**
+             * Format: double
+             * @description Cost of the runs in EUR. Zero for refreshes.
+             */
+            cost_eur: number;
+            /** @description Day in UTC, as `YYYY-MM-DD`. */
+            day: string;
+            /**
+             * Format: int64
+             * @description Those that failed.
+             */
+            failed: number;
+            /**
+             * Format: int64
+             * @description Runs or refreshes that day.
+             */
+            total: number;
+        };
         /** @description A session with its machine. */
         Session: {
             /** @description Git branch. */
@@ -3744,6 +3895,7 @@ export interface components {
             timeline: components["schemas"]["SessionEvent"][];
             /** @description The latest todo list of the session, as Claude Code wrote it. */
             todos?: unknown;
+            usage?: components["schemas"]["SessionUsage"] | null;
         };
         /** @description A stored event. */
         SessionEvent: {
@@ -3816,6 +3968,39 @@ export interface components {
             status: string;
             /** @description Latest status text. */
             summary?: string | null;
+        };
+        /** @description Costs and tokens of one session. */
+        SessionUsage: {
+            /**
+             * Format: double
+             * @description Tokens written to the prompt cache.
+             */
+            cache_creation_tokens: number;
+            /**
+             * Format: double
+             * @description Tokens read from the prompt cache.
+             */
+            cache_read_tokens: number;
+            /**
+             * Format: double
+             * @description Cost in USD, as Claude Code reports it.
+             */
+            cost_usd: number;
+            /**
+             * Format: double
+             * @description Input tokens.
+             */
+            input_tokens: number;
+            /**
+             * Format: double
+             * @description Output tokens.
+             */
+            output_tokens: number;
+            /**
+             * Format: date-time
+             * @description Last report.
+             */
+            updated_at?: string | null;
         };
         /** @description A new password. */
         SetupRequest: {
@@ -4106,6 +4291,59 @@ export interface components {
             /** @description Address to open it in the service. */
             url?: string | null;
         };
+        /** @description A message of a thread. */
+        TalkMessage: {
+            /**
+             * Format: date-time
+             * @description When it was written.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description Message ID.
+             */
+            id: string;
+            /** @description `owner` or `assistant`. */
+            role: string;
+            /**
+             * Format: uuid
+             * @description The run that answers it, with its tool calls and approvals.
+             */
+            run_id?: string | null;
+            /** @description Brain entries the answer used. */
+            sources: unknown;
+            /** @description `done`, `pending` or `failed`. */
+            status: string;
+            /** @description The text. Empty while an answer is pending. */
+            text: string;
+            /**
+             * Format: uuid
+             * @description Its thread.
+             */
+            thread_id: string;
+        };
+        /** @description A conversation. */
+        TalkThread: {
+            /**
+             * Format: date-time
+             * @description Creation time.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description Thread ID.
+             */
+            id: string;
+            /** @description Whether the owner pinned it. */
+            pinned: boolean;
+            /** @description Title, from the first message unless the owner names it. */
+            title: string;
+            /**
+             * Format: date-time
+             * @description Last message.
+             */
+            updated_at: string;
+        };
         /** @description A task. */
         Task: {
             /** @description The proposing agent. */
@@ -4212,6 +4450,20 @@ export interface components {
          * @enum {string}
          */
         TaskView: "all" | "today" | "upcoming" | "done" | "proposed";
+        /** @description A thread with its messages. */
+        ThreadDetail: {
+            /** @description Its messages, oldest first. */
+            messages: components["schemas"]["TalkMessage"][];
+            /** @description The thread. */
+            thread: components["schemas"]["TalkThread"];
+        };
+        /** @description Changes to a thread. */
+        ThreadPatch: {
+            /** @description Pin or unpin. */
+            pinned?: boolean | null;
+            /** @description New title. */
+            title?: string | null;
+        };
         /** @description A device token. It is shown only once. */
         TokenIssued: {
             /**
@@ -4578,6 +4830,38 @@ export interface operations {
             };
             /** @description Resolved already or unknown */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    alert_series: {
+        parameters: {
+            query?: {
+                /** @description Days, default 14, at most 90 */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Alert ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertSeries"];
+                };
+            };
+            /** @description Unknown alert */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7139,6 +7423,29 @@ export interface operations {
             };
         };
     };
+    export_metrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description OTLP metrics export in JSON */
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description Stored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     request_permission: {
         parameters: {
             query?: never;
@@ -8442,6 +8749,186 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SkillInfo"][];
                 };
+            };
+        };
+    };
+    list_threads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalkThread"][];
+                };
+            };
+        };
+    };
+    create_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewThread"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalkThread"];
+                };
+            };
+        };
+    };
+    get_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Thread ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadDetail"];
+                };
+            };
+            /** @description Unknown thread */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Thread ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown thread */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_thread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Thread ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThreadPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TalkThread"];
+                };
+            };
+            /** @description Unknown thread */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    send_message: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Thread ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewMessage"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exchange"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exchange"];
+                };
+            };
+            /** @description Empty message */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown thread */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
