@@ -1316,7 +1316,7 @@ export const de: Record<Key, string> = {
   "posts.removeTopic": "Thema entfernen",
   "posts.addTopic": "Thema hinzufügen",
   "posts.rhythm": "Rhythmus",
-  "posts.rhythmHint": "Wann du postest. Leere Slots werden im Kalender zu Lücken.",
+  "posts.rhythmHint": "Wann du postest, in der Zeitzone des Servers. Leere Slots werden im Kalender zu Lücken.",
   "posts.rhythmSaved": "Rhythmus gespeichert",
   "posts.weekday": "Wochentag",
   "posts.anyPillar": "Jede Säule",
@@ -1417,4 +1417,5 @@ export const de: Record<Key, string> = {
   "decks.layout.quote": "Zitat",
   "decks.layout.bullets": "Punkte",
   "decks.layout.text": "Text",
+  "decks.dragHint": "Ziehen zum Verschieben, oder Alt und die Pfeiltasten",
 };

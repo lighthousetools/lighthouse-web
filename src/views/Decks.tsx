@@ -1,50 +1,23 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, EyeOff, Maximize2, Pause, Pencil, Play, Plus, Printer, StickyNote, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { ArrowLeft, Download, Maximize2, Pencil, Plus, Printer, StickyNote } from "lucide-react";
+import { Suspense, lazy, useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { api, must } from "../api/client";
 import { language, t } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
-import { Btn, cx, Empty, Failure, Field, Modal, Page, SearchField, Seg, Skeleton } from "../ui";
-import { inline } from "../ui/markdown";
-import { joinSlides, minutesFor, slidesOf, splitSlides, type Slide as SlideData } from "./deck";
+import { Btn, cx, Empty, Failure, Field, Modal, Page, SearchField, Skeleton } from "../ui";
+import { joinSlides, minutesFor, moveSlide, slidesOf, splitSlides } from "./deck";
+import { Slide } from "./Slide";
+
+// The presenter goes full screen and is only needed on stage, so it loads on first use.
+const Presenter = lazy(() => import("./Presenter"));
 import "./decks.css";
 
 const locale = () => (language() === "de" ? "de-DE" : "en-GB");
-const text = (value: string) => inline(value, {});
 
 const useDecks = () => useQuery({ queryKey: ["decks"], queryFn: () => must(api.GET("/decks")) });
 const useDeck = (id: string | undefined) =>
   useQuery({ queryKey: ["decks", id], enabled: !!id, queryFn: () => must(api.GET("/brain/entries/{id}", { params: { path: { id: id! } } })) });
-
-/** One slide, drawn at any size: everything scales with its width. */
-export function Slide({ slide, index, count, name, dark }: { slide: SlideData; index: number; count: number; name: string; dark?: boolean }) {
-  const inverted = dark ?? (slide.layout === "cover" || slide.layout === "closing" || slide.layout === "quote");
-  return (
-    <div className={cx("dslide", `l-${slide.layout}`, inverted && "dk")}>
-      <div className="in">
-        {slide.layout === "number" ? (
-          <div className="nm"><span className="big">{slide.title}</span>{slide.sub && <p>{text(slide.sub)}</p>}</div>
-        ) : slide.layout === "quote" ? (
-          <div className="qu"><h1>{text(slide.title)}</h1>{slide.sub && <p>{text(slide.sub)}</p>}</div>
-        ) : (
-          <>
-            {slide.title && <h1>{text(slide.title)}</h1>}
-            {slide.sub && slide.layout !== "text" && <p className="ssb">{text(slide.sub)}</p>}
-          </>
-        )}
-        {slide.layout === "bullets" && <ul>{slide.items.map((item, at) => <li key={at}>{text(item)}</li>)}</ul>}
-        {slide.layout === "text" && (
-          <div className="ssb" style={{ marginTop: "2.4cqw", display: "grid", gap: "1.2cqw", fontSize: "2.2cqw", lineHeight: 1.45, maxWidth: "80%" }}>
-            {slide.body.split(/\n{2,}/).map((paragraph, at) => <p key={at}>{text(paragraph.replace(/\n/g, " "))}</p>)}
-          </div>
-        )}
-        <footer><span>{name}</span><em>{index + 1} / {count}</em></footer>
-      </div>
-    </div>
-  );
-}
 
 async function exportDeck(id: string, format: "html" | "markdown", title: string, print = false) {
   const body = await must(api.GET("/decks/{id}/export", { params: { path: { id }, query: { format } }, parseAs: "text" })) as unknown as string;
@@ -62,81 +35,50 @@ async function exportDeck(id: string, format: "html" | "markdown", title: string
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function Presenter({ slides, name, start, onClose }: { slides: SlideData[]; name: string; start: number; onClose: () => void }) {
-  const root = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(start);
-  const [view, setView] = useState<"speaker" | "audience">("speaker");
-  const [black, setBlack] = useState(false);
-  const [running, setRunning] = useState(true);
-  const [seconds, setSeconds] = useState(0);
-  const count = slides.length;
-  const goTo = (next: number) => {
-    setIndex(Math.max(0, Math.min(count - 1, next)));
-    setBlack(false);
-  };
-  const close = () => {
-    if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
-    onClose();
-  };
-  useEffect(() => {
-    void root.current?.requestFullscreen?.().catch(() => undefined);
-  }, []);
-  useEffect(() => {
-    if (!running) return;
-    const tick = setInterval(() => setSeconds((value) => value + 1), 1000);
-    return () => clearInterval(tick);
-  }, [running]);
-  useEffect(() => {
-    const key = (event: KeyboardEvent) => {
-      event.stopPropagation();
-      if (["ArrowRight", "ArrowDown", " ", "PageDown", "Enter"].includes(event.key)) { event.preventDefault(); goTo(index + 1); }
-      if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) { event.preventDefault(); goTo(index - 1); }
-      if (event.key === "Home") goTo(0);
-      if (event.key === "End") goTo(count - 1);
-      if (event.key === "Escape") close();
-      if (event.key.toLowerCase() === "b") setBlack((value) => !value);
-      if (event.key.toLowerCase() === "p") setView((value) => (value === "speaker" ? "audience" : "speaker"));
-    };
-    addEventListener("keydown", key, true);
-    return () => removeEventListener("keydown", key, true);
+const SLIDE = "application/x-lighthouse-slide";
+
+/** Drag a slide onto another to move it there; Alt with the arrow keys does the same from the keyboard. */
+function useSlideDrag(onMove: (from: number, to: number) => void) {
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  return (index: number) => ({
+    draggable: true,
+    className: cx(dragging === index && "ghost", over === index && dragging !== index && "over"),
+    onDragStart: (event: DragEvent) => {
+      event.dataTransfer.setData(SLIDE, String(index));
+      event.dataTransfer.effectAllowed = "move";
+      setDragging(index);
+    },
+    onDragEnd: () => { setDragging(null); setOver(null); },
+    onDragOver: (event: DragEvent) => {
+      if (!event.dataTransfer.types.includes(SLIDE)) return;
+      event.preventDefault();
+      setOver(index);
+    },
+    onDrop: (event: DragEvent) => {
+      event.preventDefault();
+      const from = Number(event.dataTransfer.getData(SLIDE));
+      setDragging(null);
+      setOver(null);
+      if (!Number.isNaN(from)) onMove(from, index);
+    },
+    onKeyDown: (event: KeyboardEvent) => {
+      if (!event.altKey) return;
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") { event.preventDefault(); onMove(index, index - 1); }
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") { event.preventDefault(); onMove(index, index + 1); }
+    },
   });
-  const slide = slides[index]!;
-  const next = slides[index + 1];
-  const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-  return createPortal(
-    <div ref={root} className={cx("prs", view === "audience" && "aud")} data-look="glass" role="dialog" aria-label={t("decks.presenting")} onClick={view === "audience" ? () => goTo(index + 1) : undefined}>
-      <div className="pstage">
-        <div className="pslide" key={index}><Slide slide={slide} index={index} count={count} name={name} /></div>
-        {black && <div className="pblk" />}
-      </div>
-      {view === "speaker" && (
-        <aside className="pside">
-          <div className="ptime">
-            <b className="tn">{clock}</b>
-            <span className="tn">{t("decks.slideOf", { index: index + 1, count })}</span>
-            <Btn icon size="xs" variant="ghost" aria-label={running ? t("decks.pause") : t("decks.resume")} title={running ? t("decks.pause") : t("decks.resume")} onClick={() => setRunning(!running)}>{running ? <Pause /> : <Play />}</Btn>
-          </div>
-          <div className="pnext"><span>{t("decks.upNext")}</span>{next ? <Slide slide={next} index={index + 1} count={count} name={name} /> : <div className="pend">{t("decks.end")}</div>}</div>
-          <div className="pnote"><span><StickyNote size={12} />{t("decks.note")}</span><p>{slide.note || t("decks.noNote")}</p></div>
-        </aside>
-      )}
-      <div className="prsbar"><i style={{ width: `${((index + 1) / count) * 100}%` }} /></div>
-      <div className="pctl" onClick={(event) => event.stopPropagation()}>
-        <Btn icon size="sm" variant="ghost" aria-label={t("decks.previous")} onClick={() => goTo(index - 1)}><ChevronLeft /></Btn>
-        <Btn icon size="sm" variant="ghost" aria-label={t("decks.next")} onClick={() => goTo(index + 1)}><ChevronRight /></Btn>
-        <Btn icon size="sm" variant="ghost" aria-label={t("decks.black")} title={t("decks.black")} onClick={() => setBlack(!black)}><EyeOff /></Btn>
-        <Seg label={t("decks.view")} value={view} onChange={setView} options={[["speaker", t("decks.speaker")], ["audience", t("decks.audience")]]} />
-        <Btn icon size="sm" variant="ghost" aria-label={t("decks.stop")} title={t("decks.stop")} onClick={close}><X /></Btn>
-      </div>
-    </div>,
-    document.body,
-  );
 }
 
 /** One slide large, with its Markdown and notes next to it. */
 function SlideEditor({ parts, name, index, onIndex, onChange, onClose }: { parts: string[]; name: string; index: number; onIndex: (index: number) => void; onChange: (parts: string[]) => void; onClose: () => void }) {
   const slides = slidesOf(joinSlides(parts));
   const slide = slides[index];
+  const drag = useSlideDrag((from, to) => {
+    if (to < 0 || to >= parts.length) return;
+    onChange(moveSlide(parts, from, to));
+    if (from === index) onIndex(to);
+  });
   if (!slide) return null;
   const set = (value: string) => onChange(parts.map((part, at) => (at === index ? value : part)));
   return (
@@ -149,7 +91,7 @@ function SlideEditor({ parts, name, index, onIndex, onChange, onClose }: { parts
       <div className="sedb">
         <div className="rail2">
           {slides.map((item, at) => (
-            <div key={at} className={cx("drli", at === index && "on")} onClick={() => onIndex(at)} role="button" tabIndex={0} onKeyDown={(event) => event.key === "Enter" && onIndex(at)}>
+            <div key={at} {...drag(at)} className={cx("drli", at === index && "on", drag(at).className)} onClick={() => onIndex(at)} role="button" tabIndex={0} aria-label={t("decks.slideOf", { index: at + 1, count: slides.length })} onKeyDown={(event) => { if (event.key === "Enter") onIndex(at); drag(at).onKeyDown(event); }}>
               <span className="tn">{at + 1}</span><div><Slide slide={item} index={at} count={slides.length} name={name} /></div>
             </div>
           ))}
@@ -227,6 +169,10 @@ export default function Decks() {
   }, [draft]);
 
   const markdown = draft ?? deck.data?.body ?? "";
+  const drag = useSlideDrag((from, to) => {
+    const current = splitSlides(markdown);
+    if (to >= 0 && to < current.length) setDraft(joinSlides(moveSlide(current, from, to)));
+  });
   const parts = splitSlides(markdown);
   const slides = slidesOf(markdown);
   const name = deck.data?.title ?? "";
@@ -266,7 +212,7 @@ export default function Decks() {
                   ) : slides.length ? (
                     <div className="sgrid">
                       {slides.map((slide, index) => (
-                        <div key={index} className="dsth" style={{ cursor: "pointer" }} onClick={() => setSlideAt(index)} onDoubleClick={() => setPresenting(index)} role="button" tabIndex={0} onKeyDown={(event) => event.key === "Enter" && setSlideAt(index)}>
+                        <div key={index} {...drag(index)} className={cx("dsth", drag(index).className)} title={t("decks.dragHint")} onClick={() => setSlideAt(index)} onDoubleClick={() => setPresenting(index)} role="button" tabIndex={0} aria-label={t("decks.slideOf", { index: index + 1, count: slides.length })} onKeyDown={(event) => { if (event.key === "Enter") setSlideAt(index); drag(index).onKeyDown(event); }}>
                           <Slide slide={slide} index={index} count={slides.length} name={name} />
                           <span className="no tn">{index + 1}</span>
                           {slide.note && <span className="fl" title={slide.note}><StickyNote size={10} /></span>}
@@ -317,7 +263,7 @@ export default function Decks() {
         </aside>
       </div>
       {creating && <NewDeck onClose={() => setCreating(false)} onCreated={(created) => go("decks", created)} />}
-      {presenting !== null && slides.length > 0 && <Presenter slides={slides} name={name} start={presenting} onClose={() => setPresenting(null)} />}
+      {presenting !== null && slides.length > 0 && <Suspense fallback={null}><Presenter slides={slides} name={name} start={presenting} onClose={() => setPresenting(null)} /></Suspense>}
     </Page>
   );
 }

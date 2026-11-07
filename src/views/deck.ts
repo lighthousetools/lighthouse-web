@@ -50,3 +50,12 @@ export const slidesOf = (markdown: string) => {
 
 /** Speaking time, about a minute and a half per slide. */
 export const minutesFor = (count: number) => Math.max(1, Math.round(count * 1.5));
+
+/** Moves a slide from one place to another. */
+export function moveSlide<T>(parts: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || from >= parts.length) return parts;
+  const next = [...parts];
+  const [moved] = next.splice(from, 1);
+  next.splice(Math.max(0, Math.min(next.length, to)), 0, moved!);
+  return next;
+}

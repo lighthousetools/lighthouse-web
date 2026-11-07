@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { heat, series, share } from "./Branding";
-import { joinSlides, minutesFor, parseSlide, slidesOf, splitSlides } from "./deck";
+import { joinSlides, minutesFor, moveSlide, parseSlide, slidesOf, splitSlides } from "./deck";
+import { t, type Key } from "../i18n";
 import { analytics } from "./Posts";
 import { assignGaps } from "./PostsCalendar";
 import { addDays, atTime, dayIso, isoWeek, monthDays, nearestTime, openGaps, suggestFor, weekStart, weekdayOf } from "./postdates";
@@ -109,5 +110,17 @@ describe("decks", () => {
     expect(slides[3]).toMatchObject({ title: "We order at night.", sub: "Head of sales" });
     expect(parseSlide("# Plain\n\nA paragraph.\n\nAnother paragraph that is long enough to be text.", 1, 3).layout).toBe("text");
     expect(minutesFor(12)).toBe(18);
+  });
+
+  it("moves a slide", () => {
+    expect(moveSlide(["a", "b", "c"], 0, 2)).toEqual(["b", "c", "a"]);
+    expect(moveSlide(["a", "b", "c"], 2, 0)).toEqual(["c", "a", "b"]);
+    expect(moveSlide(["a", "b"], 5, 0)).toEqual(["a", "b"]);
+  });
+});
+
+describe("translations", () => {
+  it("falls back for keys built from unknown server values", () => {
+    expect(t("ready.kind.somethingnew" as Key)).toBe("somethingnew");
   });
 });

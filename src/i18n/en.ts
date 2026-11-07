@@ -1314,7 +1314,7 @@ export const en = {
   "posts.removeTopic": "Remove topic",
   "posts.addTopic": "Add topic",
   "posts.rhythm": "Rhythm",
-  "posts.rhythmHint": "When you post. Empty slots become gaps in the calendar.",
+  "posts.rhythmHint": "When you post, in the server's time zone. Empty slots become gaps in the calendar.",
   "posts.rhythmSaved": "Rhythm saved",
   "posts.weekday": "Weekday",
   "posts.anyPillar": "Any pillar",
@@ -1415,6 +1415,7 @@ export const en = {
   "decks.layout.quote": "Quote",
   "decks.layout.bullets": "Points",
   "decks.layout.text": "Text",
+  "decks.dragHint": "Drag to move, or Alt and the arrow keys",
 } as const;
 
 export type Key = keyof typeof en;
