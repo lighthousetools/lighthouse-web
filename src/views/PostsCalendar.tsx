@@ -8,7 +8,8 @@ import { toast } from "../shell/state";
 import { Avatar, Badge, Btn, cx, Empty, SearchField, Seg } from "../ui";
 import { Select } from "../ui/select";
 import { useOrganizations } from "./connected";
-import { addDays, atTime, dayIso, hhmm, isoWeek, monthDays, nearestTime, openGaps, sameDay, startOfDay, suggestFor, weekStart, weekdayOf } from "./postdates";
+import { addDays, dayIso, isoWeek, monthDays, nearestTime, openGaps, sameDay, suggestFor, weekStart, weekdayOf } from "./postdates";
+import { fromZone, inZone } from "./zone";
 import { inPool, statusLabel, statusTone, Tile, titleOf, usePillars, usePostActions, usePosts, useSlots, type Pillar, type Post } from "./publishing";
 
 const locale = () => (language() === "de" ? "de-DE" : "en-GB");
@@ -49,7 +50,7 @@ function startDrag(event: DragEvent, id: string) {
   event.dataTransfer.effectAllowed = "move";
 }
 
-function Card({ post, color, onOpen, onUnplan }: { post: Post; color?: string | null; onOpen: () => void; onUnplan: () => void }) {
+function Card({ post, color, zone, onOpen, onUnplan }: { post: Post; color?: string | null; zone?: string; onOpen: () => void; onUnplan: () => void }) {
   const when = whenOf(post);
   const out = post.status === "published" || post.status === "publishing";
   return (
@@ -57,7 +58,7 @@ function Card({ post, color, onOpen, onUnplan }: { post: Post; color?: string | 
       <div className={cx("pcard", post.status === "published" && "done")}>
         <div className="pcth">
           <Tile post={post} color={color} />
-          {when && <span className="tm tn">{hhmm(new Date(when))}</span>}
+          {when && <span className="tm tn">{inZone(when, zone).time}</span>}
           {!out && (
             <button type="button" className="rm" aria-label={t("posts.unplan")} title={t("posts.unplan")} onClick={(event) => { event.stopPropagation(); onUnplan(); }}>
               <X size={12} />
@@ -138,7 +139,12 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const [offset, setOffset] = useState(0);
   const [showPool, setShowPool] = useState(true);
   const [over, setOver] = useState<string | null>(null);
-  const today = startOfDay(new Date());
+  // Days follow the owner's time zone, like the server's slots.
+  const zone = me.data?.timezone ?? undefined;
+  const [ty, tm, td] = inZone(new Date(), zone).day.split("-").map(Number);
+  const today = new Date(ty!, tm! - 1, td!);
+  const dayOf = (instant: string) => inZone(instant, zone).day;
+  const timeOf = (instant: string) => inZone(instant, zone).time;
   const start = mode === "week" ? addDays(weekStart(today), offset * 7) : new Date(today.getFullYear(), today.getMonth() + offset, 1);
   const days = mode === "week" ? Array.from({ length: 7 }, (_, index) => addDays(start, index)) : monthDays(start);
   const calendar = useCalendar(days[0]!, days.length);
@@ -148,13 +154,8 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
   const colorOf = (name?: string | null) => pillars.data?.find((item) => item.name === name)?.color;
   const gaps = openGaps(calendar.data ?? [], new Date());
 
-  // Slot times are in the server's time zone. The calendar gives each occurrence as an instant, so rows show the
-  // local time of that instant, and the slot's own time only when this range has no occurrence of it.
-  const localTime = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const entry of calendar.data ?? []) if (!map.has(entry.slot.id)) map.set(entry.slot.id, hhmm(new Date(entry.at)));
-    return (slot: { id?: string; time: string }) => (slot.id && map.get(slot.id)) || slot.time;
-  }, [calendar.data]);
+  // Slot times are in the server's time zone, which is the owner's zone the calendar shows.
+  const localTime = (slot: { time: string }) => slot.time;
   const lanes = useMemo<Lane[]>(() => {
     const map = new Map<string, Lane>();
     for (const slot of slots.data ?? []) {
@@ -169,7 +170,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
     }
     if (!map.size) map.set("", { org: "", times: ["09:00"], days: [] });
     return [...map.values()].map((lane) => ({ ...lane, times: lane.times.sort(), days: lane.days.sort() }));
-  }, [slots.data, all, localTime]);
+  }, [slots.data, all]);
 
   const laneName = (org: string) => (org ? orgs.data?.find((item) => item.id === org)?.name ?? org : me.data?.name ?? t("posts.personal"));
 
@@ -177,12 +178,12 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
     const post = byId.get(id);
     if (!post) return;
     void actions.patch(id, { scheduled_at: at, ...(org !== (post.org ?? "") ? { org: org || null } : {}) }).then((saved) => {
-      if (saved) toast(t("posts.planned", { when: new Date(at).toLocaleString(locale(), { weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) }));
+      if (saved) toast(t("posts.planned", { when: new Date(at).toLocaleString(locale(), { timeZone: zone, weekday: "short", day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) }));
     });
   };
   const unplan = (id: string) => void actions.patch(id, { scheduled_at: null }).then(() => toast(t("posts.backInPool")));
   const fill = (gap: CalendarSlot, post: Post) => schedule(post.id, gap.at, gap.slot.org ?? "");
-  const shown = gaps.filter((gap) => days.some((day) => sameDay(day, new Date(gap.at))));
+  const shown = gaps.filter((gap) => days.some((day) => dayOf(gap.at) === dayIso(day)));
   const assigned = assignGaps(shown, pool);
   const fillAll = () => {
     for (const gap of shown) {
@@ -204,15 +205,15 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
       setOver(null);
       const id = event.dataTransfer.getData(DRAG);
       // Prefer the slot's own instant, which the server computed in its time zone.
-      const slot = (calendar.data ?? []).find((entry) => (entry.slot.org ?? "") === org && localTime(entry.slot) === time && sameDay(new Date(entry.at), day));
-      if (id && day >= today) schedule(id, slot?.at ?? atTime(day, time), org);
+      const slot = (calendar.data ?? []).find((entry) => (entry.slot.org ?? "") === org && localTime(entry.slot) === time && dayOf(entry.at) === dayIso(day));
+      if (id && day >= today) schedule(id, slot?.at ?? fromZone(dayIso(day), time, zone), org);
     },
   });
 
   const postsOn = (day: Date, lane?: Lane) =>
     all.filter((post) => {
       const when = whenOf(post);
-      return when && sameDay(new Date(when), day) && (!lane || (post.org ?? "") === lane.org);
+      return when && dayOf(when) === dayIso(day) && (!lane || (post.org ?? "") === lane.org);
     });
 
   const header = mode === "week"
@@ -259,14 +260,14 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
                       <span className="ptl tn">{time}</span>
                       {days.map((day) => {
                         const key = `${lane.org}|${dayIso(day)}|${time}`;
-                        const here = postsOn(day, lane).filter((post) => nearestTime(lane.times, hhmm(new Date(whenOf(post)!))) === time);
-                        const gap = (calendar.data ?? []).find((slot) => (slot.slot.org ?? "") === lane.org && localTime(slot.slot) === time && sameDay(new Date(slot.at), day));
+                        const here = postsOn(day, lane).filter((post) => nearestTime(lane.times, timeOf(whenOf(post)!)) === time);
+                        const gap = (calendar.data ?? []).find((slot) => (slot.slot.org ?? "") === lane.org && localTime(slot.slot) === time && dayOf(slot.at) === dayIso(day));
                         const isGap = gap && !gap.posts.length && new Date(gap.at) > new Date();
                         const weekend = weekdayOf(day) > 5 && !lane.days.includes(weekdayOf(day));
                         const dragged = over === key;
                         return (
                           <div key={key} className={cx("pcell", weekend && "blk", day < today && "past", sameDay(day, today) && "td", dragged && "over")} {...dropProps(key, day, time, lane.org)}>
-                            {here.map((post) => <Card key={post.id} post={post} color={colorOf(post.pillar)} onOpen={() => onOpen(post.id)} onUnplan={() => unplan(post.id)} />)}
+                            {here.map((post) => <Card key={post.id} post={post} zone={zone} color={colorOf(post.pillar)} onOpen={() => onOpen(post.id)} onUnplan={() => unplan(post.id)} />)}
                             {!here.length && isGap && <GapCard gap={gap} pool={pool} first={assigned.get(gap.at + gap.slot.id)} onOpen={onOpen} onFill={(post) => fill(gap, post)} />}
                             {dragged && <span className="droptime tn">{time}</span>}
                           </div>
@@ -284,9 +285,9 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
             <div className="pmog">
               {days.map((day) => {
                 const key = `month|${dayIso(day)}`;
-                const dayGaps = gaps.filter((gap) => sameDay(new Date(gap.at), day));
-                const firstSlot = (calendar.data ?? []).find((slot) => sameDay(new Date(slot.at), day));
-                const time = firstSlot ? hhmm(new Date(firstSlot.at)) : "09:00";
+                const dayGaps = gaps.filter((gap) => dayOf(gap.at) === dayIso(day));
+                const firstSlot = (calendar.data ?? []).find((slot) => dayOf(slot.at) === dayIso(day));
+                const time = firstSlot ? timeOf(firstSlot.at) : "09:00";
                 return (
                   <div key={key} className={cx("pmd", day.getMonth() !== start.getMonth() && "out", sameDay(day, today) && "td", over === key && "over")} {...dropProps(key, day, time, firstSlot?.slot.org ?? "")}>
                     <button type="button" className="pmn" onClick={() => { setMode("week"); setOffset(Math.round((weekStart(day).getTime() - weekStart(today).getTime()) / (7 * 86_400_000))); }}>
@@ -297,7 +298,7 @@ export default function PostsCalendar({ onOpen }: { onOpen: (id: string) => void
                         <i className={cx("sd", statusTone(post.status))} /><span className="clip">{titleOf(post)}</span>
                       </button>
                     ))}
-                    {dayGaps.map((gap) => <span key={gap.at + gap.slot.id} className="mgap"><i />{t("posts.gap")} {hhmm(new Date(gap.at))}</span>)}
+                    {dayGaps.map((gap) => <span key={gap.at + gap.slot.id} className="mgap"><i />{t("posts.gap")} {timeOf(gap.at)}</span>)}
                   </div>
                 );
               })}
