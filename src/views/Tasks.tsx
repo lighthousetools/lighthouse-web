@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, Calendar, Check, ChevronDown, Flag, GripVertical, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowUpRight, Bot, Calendar, Check, ChevronDown, Flag, GripVertical, Plus, RotateCcw, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { api, must, type Schemas } from "../api/client";
-import { useAgentNames, useTasks } from "../data";
+import { useAgentNames, useAgents, useTasks } from "../data";
 import { agentName, shortDate, weekdayShort } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
@@ -10,6 +10,7 @@ import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
 import { createStore } from "../store";
 import { Badge, Btn, CheckBox, Empty, Failure, Menu, Seg, ServiceIcon, Skeleton, brandOf } from "../ui";
+import { Markdown } from "../ui/markdown";
 import { openRun } from "./runs";
 import { GROUPS, addDays, dayIso, dueFor, groupOf, nextWeekday, parseTask, type DueGroup } from "./taskdates";
 import "./tasks.css";
@@ -61,6 +62,7 @@ function useTaskActions() {
     reopen: (id: string) => call(api.POST("/tasks/{id}/reopen", { params: { path: { id } } })).catch(fail),
     accept: (id: string) => call(api.POST("/tasks/{id}/accept", { params: { path: { id } } })).catch(fail),
     remove: (id: string) => call(api.DELETE("/tasks/{id}", { params: { path: { id } } })).catch(fail),
+    delegate: (id: string, agentId: string) => call(api.POST("/tasks/{id}/delegate", { params: { path: { id } }, body: { agent_id: agentId } })).then(() => toast(t("tasks.delegated"))).catch(fail),
     order: (ids: string[]) => call(api.POST("/tasks/order", { body: { ids } })).catch(fail),
   };
 }
@@ -260,6 +262,7 @@ function Detail({ task, actions, names }: { task: Task; actions: Actions; names:
       ) : (
         <p className="hintp">{t("tasks.noSource")}</p>
       )}
+      <Delegate task={task} actions={actions} names={names} />
       <div className="sch">{t("tasks.notes")}</div>
       <textarea
         className="ta nt"
@@ -283,6 +286,49 @@ function Detail({ task, actions, names }: { task: Task; actions: Actions; names:
         <span className="grow" />
         <Btn icon variant="ghost" aria-label={t("common.delete")} title={t("common.delete")} onClick={() => void actions.remove(task.id)}><Trash2 /></Btn>
       </div>
+    </div>
+  );
+}
+
+/** Hand the task to an agent; its report comes back onto the task, and anything it sends still waits for approval. */
+function Delegate({ task, actions, names }: { task: Task; actions: Actions; names: Record<string, string> }) {
+  const agents = useAgents();
+  const list = agents.data ?? [];
+  if (task.status === "proposed" || task.status === "done") return task.result ? <Result task={task} names={names} /> : null;
+  return (
+    <div className="sc">
+      <div className="sch">{t("tasks.delegate")}</div>
+      {task.delegated_agent ? (
+        <>
+          <p className="hintp">
+            <Bot size={13} /> {task.result_status ? t("tasks.delegateDone", { agent: agentName(task.delegated_agent, names) }) : t("tasks.delegateRunning", { agent: agentName(task.delegated_agent, names) })}
+            {task.delegated_run && <> · <button type="button" className="lnk" onClick={() => openRun(task.delegated_run!)}>{t("tasks.openRun")}</button></>}
+          </p>
+          {task.result && <Result task={task} names={names} />}
+        </>
+      ) : list.length ? (
+        <Menu
+          label={t("tasks.delegate")}
+          items={list.map((agent) => ({ label: agent.name, icon: <Bot size={14} />, run: () => void actions.delegate(task.id, agent.id) }))}
+          trigger={(open, isOpen) => <Btn size="sm" onClick={open} aria-expanded={isOpen}><Bot />{t("tasks.delegateTo")}<ChevronDown /></Btn>}
+        />
+      ) : (
+        <p className="hintp">{t("tasks.noAgents")}</p>
+      )}
+      <p className="hintp">{t("tasks.delegateHint")}</p>
+    </div>
+  );
+}
+
+function Result({ task, names }: { task: Task; names: Record<string, string> }) {
+  return (
+    <div className="tas-dg">
+      <div className="dgh">
+        <Sparkles size={14} />
+        {t("tasks.resultFrom", { agent: agentName(task.delegated_agent ?? "", names) })}
+        {task.result_status && <Badge tone={task.result_status === "succeeded" ? "ok" : task.result_status === "failed" ? "bad" : ""}>{t(`tasks.result.${task.result_status as "succeeded"}`)}</Badge>}
+      </div>
+      <Markdown source={task.result ?? ""} />
     </div>
   );
 }
