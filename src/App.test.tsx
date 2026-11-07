@@ -127,8 +127,9 @@ describe("ready", () => {
     storeToken("lht_x");
     serve({ "GET /ready": () => feed([approval, { ...approval, id: "a2", tool: "slack.post" }]) });
     show(<App />);
-    expect(await screen.findByText(/2 things are ready for you/)).toBeTruthy();
-    expect(screen.getAllByText("Slack: Post").length).toBeGreaterThan(0);
+    expect(await screen.findByText(/2 things, about/)).toBeTruthy();
+    // Both items are in the queue, each under its subject.
+    expect(screen.getAllByText("Offer").length).toBeGreaterThan(1);
   });
 
   it("accepts a proposed task", async () => {
@@ -150,13 +151,14 @@ describe("approvals", () => {
   it("explains a proposal in plain language", async () => {
     serve({ "GET /ready": () => feed([approval]) });
     show(<Ready />);
-    expect(await screen.findByRole("heading", { name: "Mail: Send draft" })).toBeTruthy();
-    expect(screen.getByText("Subject")).toBeTruthy();
-    expect(screen.getByText("Offer")).toBeTruthy();
+    // A mail shows its subject as the heading, the recipient as the counterpart, and the rest under plain labels.
+    expect(await screen.findByRole("heading", { name: "Offer" })).toBeTruthy();
+    expect(screen.getAllByText("a@example.com").length).toBeGreaterThan(0);
+    expect(screen.getByText("Priority")).toBeTruthy();
     expect(screen.getByText(/The customer asked/)).toBeTruthy();
-    expect(screen.getByText(/external content/)).toBeTruthy();
+    expect(screen.getByText(/outside content/)).toBeTruthy();
     expect(screen.getByText(/Crm: Get deal/)).toBeTruthy();
-    expect(screen.getByText("Mail agent proposes", { exact: false })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Send/ })).toBeTruthy();
   });
 
   it("lists fields without raw values for known types", () => {
@@ -178,11 +180,11 @@ describe("approvals", () => {
     const editor = screen.getByLabelText("Arguments as JSON");
     await userEvent.clear(editor);
     await userEvent.type(editor, "{{broken");
-    await userEvent.click(screen.getByRole("button", { name: /^Approve/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Send/ }));
     expect((await screen.findByRole("alert")).textContent).toContain("not valid JSON");
     await userEvent.clear(editor);
     await userEvent.type(editor, '{{"to": "b"}');
-    await userEvent.click(screen.getByRole("button", { name: /^Approve/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Send/ }));
     await waitFor(() => expect(calls.some((call) => call.url.endsWith("/decision"))).toBe(true));
     const decision = calls.find((call) => call.url.endsWith("/decision"));
     expect(await decision?.json()).toEqual({ approve: true, input: { to: "b" } });

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plug, RefreshCw } from "lucide-react";
+import { ExternalLink, Plug, RefreshCw } from "lucide-react";
 import { api, must, type Schemas } from "../api/client";
 import { dayTime } from "../format";
 import { language, t } from "../i18n";
@@ -7,7 +7,9 @@ import { orgStore } from "../shell/org";
 import { go } from "../router";
 import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
-import { Btn, Empty } from "../ui";
+import { Btn, Empty, ServiceIcon, Skeleton, brandOf } from "../ui";
+import { Markdown } from "../ui/markdown";
+import { InspectorPanel } from "../shell/Inspector";
 import { age } from "./Ready";
 
 export type Item = Schemas["SyncedItem"];
@@ -235,6 +237,41 @@ export function NoSource({ domain }: { domain: Domain }) {
       sub={t("connected.howTo", { domain })}
       action={<Btn size="sm" onClick={() => go("connections")}>{t("nav.connections")}</Btn>}
     />
+  );
+}
+
+/** "Jane Doe <jane@example.com>" as Jane Doe. */
+export function personName(author: string | null | undefined) {
+  if (!author) return "";
+  const match = /^\s*"?([^"<]+?)"?\s*<[^>]+>\s*$/.exec(author);
+  return (match ? match[1]! : author).trim();
+}
+
+/** A connected item in the inspector: who, when, its text and its latest messages, with a link to the service. */
+export function ItemInspector({ id }: { id: string }) {
+  const detail = useItem(id);
+  const item = detail.data?.item;
+  if (!item) return <InspectorPanel kind={t("connected.item")} title="…">{detail.isPending ? <Skeleton count={3} /> : <Empty title={t("connected.gone")} />}</InspectorPanel>;
+  const messages = (detail.data?.children ?? []).filter((child) => child.kind === "message").slice(-3);
+  return (
+    <InspectorPanel
+      kind={t(`connected.domain.${item.domain as "mail"}`)}
+      icon={<ServiceIcon name={brandOf(item.source) ?? item.source} size={16} fallback={item.source} />}
+      title={item.title ?? item.external_id}
+      facts={[
+        ...(item.author ? [[t("connected.from"), personName(item.author)] as [string, string]] : []),
+        ...(item.occurred_at ? [[t("connected.when"), dayTime(item.occurred_at)] as [string, string]] : []),
+        ...(item.state ? [[t("connected.state"), item.state] as [string, string]] : []),
+      ]}
+      actions={item.url ? <Btn onClick={() => openItem(item)}><ExternalLink />{t("connected.openIn")}</Btn> : undefined}
+    >
+      {(messages.length ? messages : [item]).map((message) => (
+        <div key={message.id} className="insp-msg">
+          {messages.length > 0 && <b>{personName(message.author) || message.source}</b>}
+          <Markdown source={field(message, "body") ?? field(message, "text") ?? message.summary ?? ""} />
+        </div>
+      ))}
+    </InspectorPanel>
   );
 }
 

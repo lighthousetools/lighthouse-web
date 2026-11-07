@@ -20,6 +20,9 @@ let onSignedOut = () => {};
 
 export const isSignedIn = () => token !== null;
 
+/** The bearer header for calls that go around the typed client, such as endpoints newer than its spec. */
+export const authHeader = (): Record<string, string> => (token ? { Authorization: `Bearer ${token}` } : {});
+
 export function setSignedOutHandler(handler: () => void) {
   onSignedOut = handler;
 }

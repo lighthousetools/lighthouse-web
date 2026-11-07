@@ -36,3 +36,12 @@
 
 /* The queue's filters wrap instead of cutting off the last one in narrow windows. */
 .rd-qh .seg { overflow: visible; flex-wrap: wrap; height: auto; row-gap: 2px; }
+
+/* An item's icon when there is no service logo: what kind of item it is, on a quiet tile. */
+.rd-ic { display: inline-grid; place-items: center; flex: none; border-radius: 6px; background: var(--surface2); box-shadow: var(--ring-in); color: var(--ink2); }
+/* The draft is the card's main thing: a calm text box like the vision's. */
+.rd-draft { width: 100%; min-height: 168px; resize: vertical; margin-top: 0; font: inherit; line-height: 22px; display: block; }
+/* Untrusted content read by the run: one quiet line among the sources, not a banner. */
+.rd-ext2 { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-12); color: var(--ink3); }
+.rd-ext2 svg { color: var(--warn); }
+.insp-msg { margin-top: var(--s3); font-size: var(--t-13); } .insp-msg b { font-weight: 500; display: block; margin-bottom: 2px; }
