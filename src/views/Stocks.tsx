@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellPlus, ExternalLink, NotebookPen } from "lucide-react";
-import { api, must } from "../api/client";
+import { api, must, type Schemas } from "../api/client";
 import { go } from "../router";
 import { InspectorPanel } from "../shell/Inspector";
 import { inspect, toast } from "../shell/state";
 import { useMemo, useState } from "react";
 import { shortDate } from "../format";
 import { t, useLanguage } from "../i18n";
-import { Btn, Empty, Failure, Field, Skeleton, Spark, Tabs } from "../ui";
+import { Btn, Empty, Failure, Field, Seg, Skeleton, Spark, Tabs } from "../ui";
 import { Freshness, NoSource, field, money, openItem, useDomains, useItems, useNumbers, useSources, type Item } from "./connected";
 import "./stocks.css";
 
-type Tab = "overview" | "list" | "reports";
+type Tab = "overview" | "list" | "watch" | "reports";
 
 const symbolOf = (item: Item) => field(item, "symbol") ?? field(item, "ticker") ?? item.external_id;
 const changeOf = (item: Item) => {
@@ -28,33 +28,43 @@ export function quotesFor(holding: Pick<Item, "id" | "external_id">, quotes: Ite
     .map((quote) => quote.amount!);
 }
 
-/** Your own theses on a holding, kept as notes in the Brain. Lighthouse gives no advice and never trades. */
+type NoteKind = "thesis" | "metric" | "question";
+const NOTE_KINDS: NoteKind[] = ["thesis", "metric", "question"];
+
+/** Your own notes on a holding, kept in the Brain: theses, metrics you watch and open questions. No advice, no trading. */
 function Theses({ holding }: { holding: Item }) {
   const client = useQueryClient();
-  const theses = useQuery({ queryKey: ["holdings", holding.id, "theses"], queryFn: () => must(api.GET("/holdings/{id}/theses", { params: { path: { id: holding.id } } })) });
+  const notes = useQuery({ queryKey: ["holdings", holding.id, "notes"], queryFn: () => must(api.GET("/holdings/{id}/notes", { params: { path: { id: holding.id } } })) });
+  const [kind, setKind] = useState<NoteKind>("thesis");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const add = useMutation({
-    mutationFn: () => must(api.POST("/holdings/{id}/theses", { params: { path: { id: holding.id } }, body: { title: title.trim(), body } })),
+    mutationFn: () => must(api.POST("/holdings/{id}/theses", { params: { path: { id: holding.id } }, body: { title: title.trim(), body, kind } })),
     onSuccess: () => {
       setTitle("");
       setBody("");
       toast(t("stocks.thesisSaved"));
-      void client.invalidateQueries({ queryKey: ["holdings", holding.id, "theses"] });
+      void client.invalidateQueries({ queryKey: ["holdings", holding.id, "notes"] });
     },
     onError: (error) => toast(error.message, "bad"),
   });
+  const lists: Record<NoteKind, Schemas["EntrySummary"][]> = { thesis: notes.data?.theses ?? [], metric: notes.data?.metrics ?? [], question: notes.data?.questions ?? [] };
   return (
     <div className="st-th">
-      <div className="sect"><NotebookPen size={14} />{t("stocks.theses")}<small>{theses.data?.length ?? 0}</small></div>
-      {(theses.data ?? []).map((entry) => (
-        <button type="button" key={entry.id} className="st-thr" onClick={() => go("brain", entry.id)}>
-          <b className="clip">{entry.title}</b>
-          {entry.snippet && <span className="faint clip">{entry.snippet}</span>}
-        </button>
+      {NOTE_KINDS.map((key) => (
+        <div key={key} style={{ display: "grid", gap: 6 }}>
+          <div className="sect"><NotebookPen size={14} />{t(`stocks.notes.${key}`)}<small>{lists[key].length}</small></div>
+          {lists[key].map((entry) => (
+            <button type="button" key={entry.id} className="st-thr" onClick={() => go("brain", entry.id)}>
+              <b className="clip">{entry.title}</b>
+              {entry.snippet && <span className="faint clip">{entry.snippet}</span>}
+            </button>
+          ))}
+          {notes.data && lists[key].length === 0 && <p className="faint" style={{ fontSize: 12 }}>{t(`stocks.notes.${key}Empty`)}</p>}
+        </div>
       ))}
-      {theses.data?.length === 0 && <p className="faint" style={{ fontSize: 12 }}>{t("stocks.noTheses")}</p>}
-      <Field label={t("stocks.thesisTitle")} value={title} onChange={setTitle} placeholder={t("stocks.thesisPlaceholder")} />
+      <Seg<NoteKind> label={t("stocks.noteKind")} value={kind} onChange={setKind} options={NOTE_KINDS.map((key) => [key, t(`stocks.notes.${key}One`)] as [NoteKind, string])} />
+      <Field label={t(`stocks.notes.${kind}One`)} value={title} onChange={setTitle} placeholder={t(`stocks.notes.${kind}Placeholder`)} />
       <textarea className="ta" rows={3} aria-label={t("stocks.thesisBody")} placeholder={t("stocks.thesisBody")} value={body} onChange={(event) => setBody(event.target.value)} />
       <Btn size="sm" disabled={!title.trim() || add.isPending} onClick={() => add.mutate()}>{t("stocks.addThesis")}</Btn>
     </div>
@@ -96,6 +106,8 @@ export function Stocks() {
   const quotes = useItems("/holdings/quotes", { limit: 1000 }, domains.has("holdings"));
   const [tab, setTab] = useState<Tab>("overview");
   const reminders = useReminders();
+  const watch = useQuery({ queryKey: ["connected", "watchlist"], enabled: domains.has("holdings"), queryFn: () => must(api.GET("/holdings/watchlist")) });
+  const watched = watch.data ?? [];
   const list = useMemo(() => (holdings.data?.items ?? []).filter((item) => item.kind === "holding"), [holdings.data]);
   const quoteList = quotes.data?.items ?? [];
   const first = numbers.data?.currencies.find((item) => item.holdings) ?? numbers.data?.currencies[0];
@@ -120,7 +132,7 @@ export function Stocks() {
             <Btn size="sm" disabled={reminders.isPending} title={t("stocks.remindersHint")} onClick={() => reminders.mutate()}><BellPlus />{t("stocks.reminders")}</Btn>
           </div>
         </header>
-        <Tabs<Tab> value={tab} onChange={setTab} options={[["overview", t("stocks.overview")], ["list", t("stocks.list")], ["reports", t("stocks.reports")]]} />
+        <Tabs<Tab> value={tab} onChange={setTab} options={[["overview", t("stocks.overview")], ["list", t("stocks.list")], ...(watched.length ? [["watch", t("stocks.watchlist")] as [Tab, string]] : []), ["reports", t("stocks.reports")]]} />
         <Failure error={holdings.error} />
         {holdings.isPending ? (
           <Skeleton count={4} height={90} />
@@ -131,6 +143,7 @@ export function Stocks() {
             <div className="sst">
               <div className="card"><span>{t("stocks.value")}</span><b className="tn">{money(total, currency)}</b></div>
               <div className="card"><span>{t("stocks.positions")}</span><b className="tn">{list.length}</b></div>
+              {watched.length > 0 && <div className="card" role="button" tabIndex={0} onClick={() => setTab("watch")}><span>{t("stocks.watched")}</span><b className="tn">{watched.length}</b></div>}
               <div className="card"><span>{t("stocks.best")}</span><b className="clip">{withChange[0] ? symbolOf(withChange[0]) : "–"}</b>{withChange[0] && <small className="up tn">+{changeOf(withChange[0])!.toFixed(1)} %</small>}</div>
               <div className="card"><span>{t("stocks.nextReport")}</span><b className="clip">{reports[0] ? symbolOf(reports[0].item) : "–"}</b>{reports[0] && <small className="faint">{shortDate(reports[0].date)}</small>}</div>
             </div>
@@ -174,6 +187,25 @@ export function Stocks() {
               </div>
             </div>
           </>
+        ) : tab === "watch" ? (
+          <div className="card swrap">
+            <table className="table stab">
+              <thead><tr><th>{t("stocks.symbol")}</th><th>{t("stocks.name")}</th><th className="r">{t("stocks.price")}</th><th className="r">{t("stocks.change")}</th></tr></thead>
+              <tbody>
+                {watched.map((item) => {
+                  const change = changeOf(item);
+                  return (
+                    <tr key={item.id} style={{ cursor: item.url ? "pointer" : undefined }} onClick={() => openItem(item)}>
+                      <td className="mono">{symbolOf(item)}</td>
+                      <td>{item.title}</td>
+                      <td className="r">{field(item, "price") ?? (item.amount != null ? money(item.amount, item.currency, true) : "–")}</td>
+                      <td className={`r ${change != null ? (change >= 0 ? "up" : "down") : ""}`}>{change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(1)} %` : "–"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : tab === "list" ? (
           <div className="card swrap">
             <table className="table stab">
