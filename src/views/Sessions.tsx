@@ -1,13 +1,14 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Hand, LayoutGrid, Monitor, Pause, Play, Search, Terminal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowUp, Check, FileCode2, Hand, LayoutGrid, ListChecks, Monitor, Pause, Play, Search, Terminal, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api, must, type Schemas } from "../api/client";
 import { sessionKey, useNodes, usePermissions, useSessions } from "../data";
 import { dateTime, dayTime, euro, statusLabel, time } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { toast } from "../shell/state";
-import { Btn, Dot, Empty, Failure, ServiceIcon, Skeleton, type Tone } from "../ui";
+import { Btn, Dot, Empty, Failure, Progress, Seg, ServiceIcon, Skeleton, type Tone } from "../ui";
+import { DiffViewer, parseUnifiedDiff, type DiffFile } from "../ui/diff";
 import { Elapsed } from "../ui/live";
 import { Markdown } from "../ui/markdown";
 import { plainFields } from "./Decisions";
@@ -211,9 +212,117 @@ function Request({ request }: { request: Schemas["Permission"] }) {
   );
 }
 
+type Todo = { content?: string; status?: string; activeForm?: string };
+
+/** The todo list a session wrote, whatever shape the tool input had. */
+export function todosOf(value: unknown): Todo[] {
+  const list = Array.isArray(value) ? value : (value as { todos?: unknown } | null)?.todos;
+  return Array.isArray(list) ? (list as Todo[]).filter((todo) => todo && typeof todo === "object") : [];
+}
+
+/** A changed file's diff from the desktop agent, as hunks for the diff viewer. */
+export function sessionDiff(file: Schemas["ChangedFile"]): DiffFile {
+  const text = file.diff ?? "";
+  const parsed = text.includes("@@") ? parseUnifiedDiff(text.includes("+++ ") ? text : `+++ b/${file.path}\n${text}`)[0] : undefined;
+  return parsed ? { ...parsed, path: file.path } : { path: file.path, add: 0, del: 0, hunks: [] };
+}
+
+function useSessionDetail(session: Session) {
+  return useQuery({
+    queryKey: ["sessions", "detail", session.node_id, session.id],
+    queryFn: () => must(api.GET("/sessions/{node}/{id}", { params: { path: { node: session.node_id, id: session.id } } })),
+  });
+}
+
+function Composer({ session, pending }: { session: Session; pending: number }) {
+  const client = useQueryClient();
+  const [text, setText] = useState("");
+  const send = useMutation({
+    mutationFn: () => must(api.POST("/sessions/{node}/{id}/messages", { params: { path: { node: session.node_id, id: session.id } }, body: { text: text.trim() } })),
+    onSuccess: () => {
+      setText("");
+      toast(t("sessions.messageQueued"));
+      void client.invalidateQueries({ queryKey: ["sessions"] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const idle = session.status !== "running";
+  return (
+    <div className="cl-comp">
+      <div className="box">
+        <textarea
+          rows={2}
+          aria-label={t("sessions.message")}
+          placeholder={t("sessions.messagePlaceholder")}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey && text.trim()) {
+              event.preventDefault();
+              send.mutate();
+            }
+          }}
+        />
+        <div className="ft">
+          <span className="tag"><Monitor size={12} />{session.node_name}</span>
+          <span className="hint grow">{idle ? t("sessions.nextStopIdle") : t("sessions.nextStop")}{pending ? ` · ${t("sessions.pending", { count: pending })}` : ""}</span>
+          <Btn icon size="sm" variant="primary" aria-label={t("sessions.send")} disabled={!text.trim() || send.isPending} onClick={() => send.mutate()}><ArrowUp /></Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Timeline({ detail }: { detail: Schemas["SessionDetail"] }) {
+  const entries = [
+    ...detail.timeline.map((event) => ({ at: event.created_at, kind: "event" as const, event })),
+    ...detail.messages.map((message) => ({ at: message.created_at, kind: "message" as const, message })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  if (!entries.length) return <p className="cl-dim">{t("sessions.noTimeline")}</p>;
+  return (
+    <>
+      {entries.map((entry, index) =>
+        entry.kind === "message" ? (
+          <div key={`m${index}`} className="cl-me">
+            <div>
+              {entry.message.text}
+              <span className="cl-dim" style={{ display: "block", marginTop: 4 }}>
+                {entry.message.status === "pending" ? t("sessions.waitsForStop") : t("sessions.delivered", { time: time(entry.message.delivered_at ?? entry.message.created_at) })}
+              </span>
+            </div>
+          </div>
+        ) : entry.event.kind === "prompt" ? (
+          <div key={`e${index}`} className="cl-me"><div>{entry.event.summary}</div></div>
+        ) : entry.event.kind === "stop" ? (
+          <div key={`e${index}`} className="cl-say">{entry.event.summary ? <Markdown source={entry.event.summary} /> : <span className="cl-dim">{t("sessions.stopped", { time: time(entry.event.created_at) })}</span>}</div>
+        ) : (
+          <div key={`e${index}`} className="cl-asked">
+            {entry.event.file_path ? <FileCode2 size={13} className="faint" /> : <Terminal size={13} className="faint" />}
+            <span className="mono clip" style={{ fontSize: 12 }}>{entry.event.tool ?? entry.event.kind}</span>
+            <span className="clip faint" style={{ fontSize: 12 }}>{entry.event.summary ?? entry.event.file_path}</span>
+            <span className="grow" />
+            <span className="faint tn" style={{ fontSize: 11 }}>{time(entry.event.created_at)}</span>
+          </div>
+        ),
+      )}
+    </>
+  );
+}
+
 function Live({ session, nodes, requests }: { session: Session; nodes: Schemas["Node"][]; requests: Schemas["Permission"][] }) {
   const tone = PILL[session.status] ?? "";
   const running = session.status === "running";
+  const detail = useSessionDetail(session);
+  const [tab, setTab] = useState<"timeline" | "diff">("timeline");
+  const [split, setSplit] = useState(false);
+  const todos = todosOf(detail.data?.todos);
+  const files = detail.data?.files ?? [];
+  const pending = (detail.data?.messages ?? []).filter((message) => message.status === "pending").length;
+  const doneTodos = todos.filter((todo) => todo.status === "completed").length;
+  const stream = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    stream.current?.scrollTo?.({ top: stream.current.scrollHeight });
+  }, [detail.data?.timeline.length, detail.data?.messages.length]);
   return (
     <>
       <div className="cl-main">
@@ -228,6 +337,7 @@ function Live({ session, nodes, requests }: { session: Session; nodes: Schemas["
           <span className="repo">{session.node_name}</span>
         </div>
         <div className="cl-bar">
+          {todos.length > 0 && <div className="cl-prog"><Progress value={(doneTodos / todos.length) * 100} /></div>}
           <dl>
             <div>
               <dt>{t("sessions.project")}</dt>
@@ -238,46 +348,88 @@ function Live({ session, nodes, requests }: { session: Session; nodes: Schemas["
               <dd className="clip mono" style={{ fontSize: 12 }}>{session.branch ?? t("common.none")}</dd>
             </div>
             <div>
+              <dt>{t("sessions.steps")}</dt>
+              <dd className="tn">{todos.length ? `${doneTodos} / ${todos.length}` : t("common.none")}</dd>
+            </div>
+            <div>
               <dt>{t("sessions.time")}</dt>
-              <dd>
-                {running ? <Elapsed from={Date.parse(session.started_at)} /> : <span className="tn">{time(session.started_at)}</span>}
-              </dd>
+              <dd>{running ? <Elapsed from={Date.parse(session.started_at)} /> : <span className="tn">{time(session.started_at)}</span>}</dd>
             </div>
             <div>
-              <dt>{t("sessions.updated")}</dt>
-              <dd className="tn">{time(session.updated_at)}</dd>
-            </div>
-            <div>
-              <dt>{t("log.cost")}</dt>
-              <dd className="tn">{euro(session.cost_eur)}</dd>
+              <dt>{t("sessions.filesShort")}</dt>
+              <dd className="tn">{files.length}</dd>
             </div>
           </dl>
         </div>
+        <div className="cl-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={tab === "timeline"} className={tab === "timeline" ? "on" : ""} onClick={() => setTab("timeline")}>{t("sessions.timeline")}</button>
+          <button type="button" role="tab" aria-selected={tab === "diff"} className={tab === "diff" ? "on" : ""} onClick={() => setTab("diff")}>{t("sessions.diff")} <span className="faint">{files.length}</span></button>
+        </div>
         <div className="cl-sw">
-          <div className="cl-stream">
-            <div className="col">
-              <p className="cl-dim">{t("sessions.startedOn", { node: session.node_name, time: dateTime(session.started_at) })}</p>
-              {session.summary ? (
-                <div className="cl-say"><Markdown source={session.summary} /></div>
-              ) : (
-                <p className="cl-dim">{t("sessions.noSummary")}</p>
-              )}
-              {running && (
-                <div className="cl-think">
-                  <Terminal size={13} />
-                  <span className="cl-shim">{t("sessions.working")}</span>
-                </div>
-              )}
-              {session.status === "done" && <div className="cl-ok"><Check size={14} />{t("sessions.finished", { time: time(session.updated_at) })}</div>}
+          {tab === "timeline" ? (
+            <div className="cl-stream" ref={stream}>
+              <div className="col">
+                <p className="cl-dim">{t("sessions.startedOn", { node: session.node_name, time: dateTime(session.started_at) })}</p>
+                {detail.isPending && <Skeleton count={4} height={28} />}
+                <Failure error={detail.error} />
+                {detail.data && <Timeline detail={detail.data} />}
+                {session.summary && !detail.data?.timeline.length && <div className="cl-say"><Markdown source={session.summary} /></div>}
+                {running && (
+                  <div className="cl-think">
+                    <Terminal size={13} />
+                    <span className="cl-shim">{t("sessions.working")}</span>
+                  </div>
+                )}
+                {session.status === "done" && <div className="cl-ok"><Check size={14} />{t("sessions.finished", { time: time(session.updated_at) })}</div>}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="cl-diff">
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+                <Seg label={t("code.diffMode")} value={split ? "split" : "unified"} onChange={(value) => setSplit(value === "split")} options={[["unified", t("code.unified")], ["split", t("code.split")]]} />
+              </div>
+              {files.length ? <DiffViewer files={files.map(sessionDiff)} sideBySide={split} /> : <Empty title={t("sessions.noFiles")} sub={t("sessions.noFilesHint")} />}
+            </div>
+          )}
         </div>
         {requests.map((request) => (
           <Request key={request.id} request={request} />
         ))}
+        <Composer session={session} pending={pending} />
       </div>
       <aside className="cl-side">
         <div className="cl-sp">
+          <section>
+            <div className="sect"><ListChecks size={15} />{t("sessions.plan")}<small>{todos.length ? t("sessions.stepOf", { done: doneTodos, count: todos.length }) : ""}</small></div>
+            {todos.length > 0 ? (
+              <ul className="cl-plan">
+                {todos.map((todo, index) => (
+                  <li key={index} className={todo.status === "completed" ? "done" : todo.status === "in_progress" ? "now" : ""}>
+                    <i>{todo.status === "completed" ? <Check size={11} /> : index + 1}</i>
+                    <span className="clip">{todo.status === "in_progress" ? todo.activeForm ?? todo.content : todo.content}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="cl-none">{t("sessions.noTodos")}</p>
+            )}
+            {detail.data?.plan && <div style={{ marginTop: 10, fontSize: 13 }}><Markdown source={detail.data.plan} /></div>}
+          </section>
+          <section>
+            <div className="sect"><FileCode2 size={15} />{t("sessions.files")}<small>{files.length}</small></div>
+            <div className="cl-files">
+              {files.map((file) => {
+                const diff = sessionDiff(file);
+                return (
+                  <button type="button" key={file.path} onClick={() => setTab("diff")} title={file.path}>
+                    <span className="mono clip">{file.path.split("/").pop()}</span>
+                    <span className="dn"><b>+{diff.add}</b><i>−{diff.del}</i></span>
+                  </button>
+                );
+              })}
+              {files.length === 0 && <p className="cl-none">{t("sessions.noFiles")}</p>}
+            </div>
+          </section>
           <Machines nodes={nodes} />
           <section>
             <div className="sect">
