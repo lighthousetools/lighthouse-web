@@ -216,9 +216,9 @@ export function Stat({ label, value, delta, tone, spark, onClick }: {
   );
 }
 
-export function Field({ value, onChange, placeholder, icon, large, autoFocus, label, onEnter, type = "text" }: {
+export function Field({ value, onChange, placeholder, icon, large, autoFocus, label, onEnter, type = "text", autoComplete, disabled }: {
   value: string; onChange: (value: string) => void; placeholder?: string; icon?: ReactNode; large?: boolean;
-  autoFocus?: boolean; label?: string; onEnter?: () => void; type?: string;
+  autoFocus?: boolean; label?: string; onEnter?: () => void; type?: string; autoComplete?: string; disabled?: boolean;
 }) {
   return (
     <label className={cx("field", large && "lg")}>
@@ -226,6 +226,8 @@ export function Field({ value, onChange, placeholder, icon, large, autoFocus, la
       <input
         type={type}
         aria-label={label ?? placeholder}
+        autoComplete={autoComplete}
+        disabled={disabled}
         autoFocus={autoFocus}
         value={value}
         placeholder={placeholder}

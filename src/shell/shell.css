@@ -32,6 +32,10 @@
 .signin { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: var(--s4); }
 .signin-c { width: min(400px,100%); padding: var(--s6) var(--s6) var(--s5); border-radius: var(--r-xl); background: var(--pop); backdrop-filter: blur(40px) saturate(160%); -webkit-backdrop-filter: blur(40px) saturate(160%); box-shadow: var(--shadow); }
 .signin-c .brand { display: flex; align-items: center; gap: var(--s2); font: 500 var(--t-15)/20px var(--display); } .signin-c h1 { font: 500 var(--t-24)/32px var(--display); letter-spacing: -.02em; margin-top: var(--s5); } .signin-c > p { color: var(--ink2); margin-top: 2px; } .signin-c form { margin-top: var(--s5); display: flex; flex-direction: column; gap: var(--s3); } .signin-c .btn { width: 100%; } .signin-c .lang { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--line); font-size: var(--t-12); color: var(--ink3); }
+.signin-alt { margin-top: var(--s4); font-size: var(--t-13); color: var(--ink2); text-align: center; } .signin-link { color: var(--accent); font-size: inherit; } .signin-link:hover { text-decoration: underline; }
+.signin-h { margin-top: calc(-1 * var(--s2)); font-size: var(--t-12); color: var(--ink3); } .signin-c form > p, .signin-c .signin-who { font-size: var(--t-13); color: var(--ink2); }
+.signin-who { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s5); padding: var(--s3); border-radius: var(--r-md); background: var(--wash); box-shadow: var(--ring-in); } .signin-who b { display: block; font-weight: 500; color: var(--ink); } .signin-who small { display: block; font-size: var(--t-12); color: var(--ink3); }
+.signin-c .signin-row { display: flex; gap: var(--s2); } .signin-c .signin-row .btn { flex: 1; }
 /* Narrow windows */
 @media (max-width: 1100px) { .island { display: none; } }
 @media (max-width: 900px) { .window { inset: 28px 0 0; border-radius: 0; } .sidebar { display: none; } .content { margin: 0 0 0 0; border-radius: 0; } .menubar .mb.opt { display: none; } }
