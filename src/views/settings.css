@@ -30,3 +30,10 @@
 @media (max-width: 1000px) { .st-nav { width: 168px; } .st-main { padding: var(--s6) var(--s4) var(--s8); } }
 
 .st-model { display: grid; text-align: right; } .st-model b { font-weight: 500; font-size: var(--t-13); } .st-model small { color: var(--ink3); font-size: var(--t-12); }
+.st-ro { display: flex; align-items: center; gap: var(--s2); margin: calc(-1 * var(--s3)) 0 var(--s5); padding: var(--s2) var(--s3); border-radius: var(--r-md); background: var(--wash); box-shadow: var(--ring-in); font-size: var(--t-125); color: var(--ink2); }
+.st-form { display: grid; gap: var(--s2); padding: var(--s3) var(--s3) var(--s3) var(--s4); } .st-form .st-inline { justify-content: flex-end; } .card > * + .st-form { box-shadow: inset 0 .5px 0 var(--line2); }
+.st-me { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; margin-left: var(--s1); border-radius: 9px; font-size: var(--t-11); color: var(--ink2); background: var(--surface2); }
+.st-dg + .st-dg { margin-top: var(--s3); } .st-dgs { margin-top: var(--s6); }
+.st-cost { display: flex; align-items: center; gap: var(--s3); } .st-cost .st-bar { width: 140px; } .st-cost b { width: 72px; text-align: right; font-weight: 500; }
+.st-link-row { display: flex; gap: var(--s2); align-items: center; padding: var(--s3) var(--s3) var(--s3) var(--s4); background: var(--ok-soft); } .st-link-row .st-code { flex: 1; margin: 0; padding: var(--s2) var(--s3); }
+.st-chips { display: flex; gap: var(--s1); flex-wrap: wrap; padding: 0 var(--s3) var(--s3) var(--s4); }
