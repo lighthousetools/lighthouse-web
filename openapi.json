@@ -7,7 +7,7 @@
       "name": "MIT",
       "identifier": "MIT"
     },
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "paths": {
     "/agents": {
@@ -637,12 +637,51 @@
         ]
       }
     },
+    "/auth/accept": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Accepts an invitation with a new account and signs in its first device.",
+        "operationId": "accept_invitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssued"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token, name or password"
+          },
+          "403": {
+            "description": "Invitations are off"
+          },
+          "409": {
+            "description": "An account with this email address exists"
+          }
+        }
+      }
+    },
     "/auth/devices": {
       "get": {
         "tags": [
           "auth"
         ],
-        "summary": "Lists the signed-in devices.",
+        "summary": "Lists the signed-in devices of the user, in every tenant.",
         "operationId": "devices",
         "responses": {
           "200": {
@@ -670,7 +709,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Signs out a device.",
+        "summary": "Signs out a device of the user.",
         "operationId": "revoke_device",
         "parameters": [
           {
@@ -697,12 +736,45 @@
         ]
       }
     },
+    "/auth/invitation": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Shows the invitation behind a token.",
+        "operationId": "inspect_invitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "tags": [
           "auth"
         ],
-        "summary": "Signs in a new device.",
+        "summary": "Signs in a new device and binds its token to one tenant.",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -724,8 +796,14 @@
               }
             }
           },
+          "400": {
+            "description": "Email address required"
+          },
           "401": {
-            "description": "Wrong password"
+            "description": "Wrong email or password"
+          },
+          "403": {
+            "description": "Not a member of the requested tenant"
           },
           "429": {
             "description": "Too many failed attempts"
@@ -750,12 +828,45 @@
         ]
       }
     },
+    "/auth/password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Changes the password of the signed-in user. Every other device is signed out.",
+        "operationId": "change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "New password too short"
+          },
+          "401": {
+            "description": "Wrong current password"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/auth/setup": {
       "post": {
         "tags": [
           "auth"
         ],
-        "summary": "Sets the owner password. This signs out every device.",
+        "summary": "Sets the password of the first owner of the default tenant. This signs out\nall their devices.",
         "operationId": "setup",
         "requestBody": {
           "content": {
@@ -771,6 +882,9 @@
           "204": {},
           "400": {
             "description": "Password too short"
+          },
+          "404": {
+            "description": "The default tenant has no owner"
           }
         },
         "security": [
@@ -780,12 +894,57 @@
         ]
       }
     },
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Creates an account with its own tenant, while sign-up is open.",
+        "operationId": "signup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssued"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Nothing created yet, for example while the sign-up waits for approval"
+          },
+          "400": {
+            "description": "Invalid email, name or password"
+          },
+          "403": {
+            "description": "Sign-up is not open"
+          },
+          "409": {
+            "description": "Email address taken"
+          },
+          "429": {
+            "description": "Too many sign-ups from this address"
+          }
+        }
+      }
+    },
     "/auth/status": {
       "get": {
         "tags": [
           "auth"
         ],
-        "summary": "Reports whether the instance is set up.",
+        "summary": "Reports how people sign in to this instance.",
         "operationId": "auth_status",
         "responses": {
           "200": {
@@ -805,7 +964,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Issues a token for a desktop agent or a script.",
+        "summary": "Issues a token for a desktop agent or a script, for the caller's tenant.",
         "operationId": "issue_token",
         "requestBody": {
           "content": {
@@ -826,6 +985,51 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Confirms an email address with the token from the verification mail.",
+        "operationId": "verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/auth/verify/resend": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sends a new verification mail to the signed-in user.",
+        "operationId": "resend_verification",
+        "responses": {
+          "204": {},
+          "409": {
+            "description": "No mail is configured"
           }
         },
         "security": [
@@ -3472,6 +3676,49 @@
         ]
       }
     },
+    "/costs/users": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Sums the cost of runs per user of the tenant. Needs the owner or admin role.",
+        "operationId": "user_costs",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Days to look back",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserCost"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Needs the owner or admin role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/credentials": {
       "get": {
         "tags": [
@@ -3505,7 +3752,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Stores a credential, for example `anthropic`, `mcp:linear` or `smtp`.",
+        "summary": "Stores a credential of the tenant, for example a model provider key such as\n`anthropic`, `mcp:linear` or `slack:#weekly`. Needs the owner or admin role.",
         "operationId": "put_credential",
         "parameters": [
           {
@@ -3532,6 +3779,9 @@
           "204": {},
           "400": {
             "description": "Empty value"
+          },
+          "403": {
+            "description": "Needs the owner or admin role"
           }
         },
         "security": [
@@ -3544,7 +3794,7 @@
         "tags": [
           "auth"
         ],
-        "summary": "Deletes a credential.",
+        "summary": "Deletes a credential. Needs the owner or admin role.",
         "operationId": "delete_credential",
         "parameters": [
           {
@@ -3559,6 +3809,9 @@
         ],
         "responses": {
           "204": {},
+          "403": {
+            "description": "Needs the owner or admin role"
+          },
           "404": {
             "description": "Unknown credential"
           }
@@ -5248,8 +5501,10 @@
     },
     "/me": {
       "get": {
-        "tags": [],
-        "summary": "Returns the signed-in owner.",
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Returns the signed-in user and their tenant.",
         "operationId": "me",
         "responses": {
           "200": {
@@ -5260,6 +5515,65 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Deletes the account of the signed-in user. Tenants where they are the only\nmember are deleted with all their data. Repeat the email address in\n`confirm`.",
+        "operationId": "delete_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirmation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "The confirmation does not match"
+          },
+          "409": {
+            "description": "The user is the last owner of a tenant with other members"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Changes the display name of the signed-in user.",
+        "operationId": "update_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "Invalid name"
           }
         },
         "security": [
@@ -7999,6 +8313,9 @@
           },
           "400": {
             "description": "Invalid budget"
+          },
+          "403": {
+            "description": "Needs the owner or admin role"
           }
         },
         "security": [
@@ -8723,10 +9040,534 @@
           }
         ]
       }
+    },
+    "/tenant": {
+      "get": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Returns the current tenant.",
+        "operationId": "get_tenant",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Deletes the current tenant with all its data. Needs the owner role; repeat\nthe tenant name in `confirm`. The default tenant cannot be deleted.",
+        "operationId": "delete_tenant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirmation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "The confirmation does not match"
+          },
+          "403": {
+            "description": "Needs the owner role"
+          },
+          "409": {
+            "description": "The default tenant stays"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Renames the current tenant. Needs the owner or admin role.",
+        "operationId": "update_tenant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tenant"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Needs the owner or admin role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenant/invitations": {
+      "get": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Lists the open invitations of the current tenant. Needs the owner or admin role.",
+        "operationId": "list_invitations",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Invitation"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Invites someone to the current tenant. Needs the owner or admin role; only\nowners invite owners. With mail configured, the invitation goes out by\nmail; otherwise the answer carries the accept link to pass on.",
+        "operationId": "invite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email"
+          },
+          "403": {
+            "description": "Not allowed or invitations are off"
+          },
+          "409": {
+            "description": "Already a member"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenant/invitations/{id}": {
+      "delete": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Revokes an open invitation. Needs the owner or admin role.",
+        "operationId": "revoke_invitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Invitation ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {
+            "description": "Not allowed"
+          },
+          "404": {
+            "description": "Unknown invitation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenant/members": {
+      "get": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Lists the members of the current tenant.",
+        "operationId": "list_members",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Member"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenant/members/{user}": {
+      "delete": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Removes a member, or lets the caller leave. Removing others needs the owner\nor admin role, and only owners remove owners. The last owner cannot leave.",
+        "operationId": "remove_member",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {
+            "description": "Not allowed"
+          },
+          "404": {
+            "description": "Unknown member"
+          },
+          "409": {
+            "description": "Last owner"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Changes the role of a member. Needs the owner or admin role; only owners\ngrant or take away the owner role. The last owner keeps it.",
+        "operationId": "change_role",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "description": "User ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "403": {
+            "description": "Not allowed"
+          },
+          "404": {
+            "description": "Unknown member"
+          },
+          "409": {
+            "description": "Last owner"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenants": {
+      "get": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Lists the tenants of the signed-in user. For the admin token, every tenant\nof the instance, with the owner role.",
+        "operationId": "list_tenants",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Membership"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Creates another tenant owned by the signed-in user, while sign-up is open,\nand issues a token for it.",
+        "operationId": "create_tenant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTenant"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssued"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sign-up is not open"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenants/accept": {
+      "post": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Accepts an invitation as the signed-in user, whose email address must match\nit, and issues a token for the joined tenant.",
+        "operationId": "accept_invitation_signed_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssued"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token or another email address"
+          },
+          "403": {
+            "description": "Invitations are off"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/tenants/{id}/switch": {
+      "post": {
+        "tags": [
+          "tenants"
+        ],
+        "summary": "Switches to another tenant of the user: issues a token bound to it. The\ncurrent token stays valid until it is signed out.",
+        "operationId": "switch_tenant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Tenant ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssued"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AcceptInvitation": {
+        "type": "object",
+        "description": "Accepting an invitation as a signed-in user.",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "device_kind": {
+            "$ref": "#/components/schemas/DeviceKind",
+            "description": "Client kind of that device."
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Name of the device that gets a token for the joined tenant."
+          },
+          "token": {
+            "type": "string",
+            "description": "The invitation token from the link."
+          }
+        }
+      },
+      "AcceptRequest": {
+        "type": "object",
+        "description": "Accepting an invitation with a new account.",
+        "required": [
+          "token",
+          "name",
+          "password",
+          "device_name",
+          "device_kind"
+        ],
+        "properties": {
+          "device_kind": {
+            "$ref": "#/components/schemas/DeviceKind",
+            "description": "Client kind."
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Name of this device."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "password": {
+            "type": "string",
+            "description": "The password, at least 12 characters."
+          },
+          "token": {
+            "type": "string",
+            "description": "The invitation token from the link."
+          }
+        }
+      },
       "ActionRequest": {
         "type": "object",
         "description": "An action the owner asks for, such as a reply or a comment.",
@@ -9278,12 +10119,22 @@
         "type": "object",
         "description": "State of the sign-in.",
         "required": [
-          "setup_required"
+          "setup_required",
+          "signup",
+          "email_required"
         ],
         "properties": {
+          "email_required": {
+            "type": "boolean",
+            "description": "Whether `POST /auth/login` needs an email address because the instance\nhas several users."
+          },
           "setup_required": {
             "type": "boolean",
-            "description": "Whether the owner still has to set a password."
+            "description": "Whether an administrator still has to set the first password with\n`POST /auth/setup`. Never true while sign-up is open."
+          },
+          "signup": {
+            "$ref": "#/components/schemas/SignupMode",
+            "description": "Who may create an account: `closed`, `invite` or `open`."
           }
         }
       },
@@ -10102,6 +10953,19 @@
           }
         }
       },
+      "Confirmation": {
+        "type": "object",
+        "description": "Confirms a deletion by repeating a name.",
+        "required": [
+          "confirm"
+        ],
+        "properties": {
+          "confirm": {
+            "type": "string",
+            "description": "For an account: its email address. For a tenant: its name."
+          }
+        }
+      },
       "ConnectStarted": {
         "type": "object",
         "description": "Answer when an OAuth flow started.",
@@ -10509,6 +11373,7 @@
           "id",
           "name",
           "kind",
+          "tenant_id",
           "created_at"
         ],
         "properties": {
@@ -10537,6 +11402,11 @@
           "name": {
             "type": "string",
             "description": "Name chosen at sign-in."
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenant the token is bound to."
           }
         }
       },
@@ -11240,6 +12110,126 @@
           }
         }
       },
+      "Invitation": {
+        "type": "object",
+        "description": "An open invitation.",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was created."
+          },
+          "email": {
+            "type": "string",
+            "description": "Invited email address."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it expires."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Invitation ID."
+          },
+          "invited_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Who invited."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role the new member gets."
+          }
+        }
+      },
+      "InvitationCreated": {
+        "type": "object",
+        "description": "A created invitation.",
+        "required": [
+          "invitation",
+          "mailed"
+        ],
+        "properties": {
+          "accept_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The accept link, only when no mail was sent. Pass it on yourself."
+          },
+          "invitation": {
+            "$ref": "#/components/schemas/Invitation",
+            "description": "The invitation."
+          },
+          "mailed": {
+            "type": "boolean",
+            "description": "Whether the invitation went out by mail."
+          }
+        }
+      },
+      "InvitationInfo": {
+        "type": "object",
+        "description": "An invitation as the invited person sees it.",
+        "required": [
+          "email",
+          "role",
+          "tenant_name",
+          "expires_at",
+          "account_exists"
+        ],
+        "properties": {
+          "account_exists": {
+            "type": "boolean",
+            "description": "Whether an account with this email address exists. Then the person\nsigns in and accepts with `POST /tenants/accept` instead."
+          },
+          "email": {
+            "type": "string",
+            "description": "Invited email address."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the invitation expires."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role the new member gets."
+          },
+          "tenant_name": {
+            "type": "string",
+            "description": "Name of the tenant."
+          }
+        }
+      },
+      "InviteRequest": {
+        "type": "object",
+        "description": "A new invitation.",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address to invite."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role the new member gets. Defaults to member."
+          }
+        }
+      },
       "ItemDetail": {
         "type": "object",
         "description": "An item with its children, such as a thread with messages or a pull request with checks and files.",
@@ -11349,6 +12339,21 @@
           "service"
         ],
         "properties": {
+          "item_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The connected item it names, filled by the server when it finds one."
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A readable name of it, such as the subject, filled by the server."
+          },
           "reference": {
             "type": [
               "string",
@@ -11369,6 +12374,19 @@
           }
         }
       },
+      "LinkToken": {
+        "type": "object",
+        "description": "A one-time token from a link, such as an email verification.",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The token."
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
         "description": "A sign-in attempt.",
@@ -11386,26 +12404,151 @@
             "type": "string",
             "description": "Name of this device."
           },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address. May be left out while the instance has exactly one user."
+          },
           "password": {
             "type": "string",
             "description": "The password."
+          },
+          "tenant_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Tenant to sign in to. Defaults to the user's oldest membership."
           }
         }
       },
       "Me": {
         "type": "object",
-        "description": "The signed-in owner.",
+        "description": "The signed-in user in their current tenant.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Email address. Absent for the admin token."
+          },
+          "email_verified": {
+            "type": "boolean",
+            "description": "Whether the email address is confirmed."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "The role there."
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The tenant of the token."
+          },
+          "tenant_name": {
+            "type": "string",
+            "description": "Name of that tenant."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone of the instance, such as `Europe/Berlin`. Dates such as\n\"today\" and the days of charts follow it."
+          },
+          "user_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "User ID. Absent for the admin token."
+          }
+        }
+      },
+      "MePatch": {
+        "type": "object",
+        "description": "A change to the signed-in user.",
         "required": [
           "name"
         ],
         "properties": {
           "name": {
             "type": "string",
+            "description": "New display name."
+          }
+        }
+      },
+      "Member": {
+        "type": "object",
+        "description": "A member of a tenant.",
+        "required": [
+          "user_id",
+          "email",
+          "name",
+          "role",
+          "joined_at"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address."
+          },
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user joined."
+          },
+          "name": {
+            "type": "string",
             "description": "Display name."
           },
-          "timezone": {
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role in the tenant."
+          },
+          "user_id": {
             "type": "string",
-            "description": "IANA time zone of the owner, such as `Europe/Berlin`. Dates such as\n\"today\" and the days of charts follow it."
+            "format": "uuid",
+            "description": "User ID."
+          }
+        }
+      },
+      "Membership": {
+        "type": "object",
+        "description": "A tenant a user belongs to.",
+        "required": [
+          "tenant_id",
+          "tenant_name",
+          "role",
+          "joined_at"
+        ],
+        "properties": {
+          "joined_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the user joined."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "The role of the user there."
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenant ID."
+          },
+          "tenant_name": {
+            "type": "string",
+            "description": "Name of the tenant."
           }
         }
       },
@@ -11822,6 +12965,27 @@
           }
         }
       },
+      "NewTenant": {
+        "type": "object",
+        "description": "A new tenant.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "device_kind": {
+            "$ref": "#/components/schemas/DeviceKind",
+            "description": "Client kind of that device."
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Name of the device that gets a token for the new tenant."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          }
+        }
+      },
       "NewThesis": {
         "type": "object",
         "description": "A thesis of the owner.",
@@ -12052,6 +13216,24 @@
           "pipeline",
           "holdings"
         ]
+      },
+      "PasswordChange": {
+        "type": "object",
+        "description": "A password change.",
+        "required": [
+          "current",
+          "new"
+        ],
+        "properties": {
+          "current": {
+            "type": "string",
+            "description": "The current password."
+          },
+          "new": {
+            "type": "string",
+            "description": "The new password, at least 12 characters."
+          }
+        }
       },
       "PeriodAmount": {
         "type": "object",
@@ -13064,6 +14246,28 @@
           }
         }
       },
+      "Role": {
+        "type": "string",
+        "description": "The role of a member in a tenant.",
+        "enum": [
+          "owner",
+          "admin",
+          "member"
+        ]
+      },
+      "RoleChange": {
+        "type": "object",
+        "description": "A change of a member's role.",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "The new role."
+          }
+        }
+      },
       "Rule": {
         "type": "object",
         "description": "A standing rule.",
@@ -13676,7 +14880,7 @@
       },
       "SetupRequest": {
         "type": "object",
-        "description": "A new password.",
+        "description": "A new password set by an administrator.",
         "required": [
           "password"
         ],
@@ -13695,6 +14899,55 @@
           "warning",
           "critical"
         ]
+      },
+      "SignupMode": {
+        "type": "string",
+        "description": "Who may create an account.",
+        "enum": [
+          "closed",
+          "invite",
+          "open"
+        ]
+      },
+      "SignupRequest": {
+        "type": "object",
+        "description": "A request for a new account with its own tenant.",
+        "required": [
+          "email",
+          "name",
+          "password",
+          "device_name",
+          "device_kind"
+        ],
+        "properties": {
+          "device_kind": {
+            "$ref": "#/components/schemas/DeviceKind",
+            "description": "Client kind."
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Name of this device."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "password": {
+            "type": "string",
+            "description": "The password, at least 12 characters."
+          },
+          "tenant_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name of the new tenant. Defaults to the display name."
+          }
+        }
       },
       "SimilarDeal": {
         "type": "object",
@@ -14098,6 +15351,20 @@
           "status": {
             "type": "string",
             "description": "Status."
+          }
+        }
+      },
+      "SwitchRequest": {
+        "type": "object",
+        "description": "A request for a token in another tenant.",
+        "properties": {
+          "device_kind": {
+            "$ref": "#/components/schemas/DeviceKind",
+            "description": "Client kind."
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Name of the device."
           }
         }
       },
@@ -14623,6 +15890,71 @@
           "proposed"
         ]
       },
+      "Tenant": {
+        "type": "object",
+        "description": "A tenant: the space a team or a person works in.",
+        "required": [
+          "id",
+          "name",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was created."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenant ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          }
+        }
+      },
+      "TenantInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Tenant",
+            "description": "The tenant."
+          },
+          {
+            "type": "object",
+            "required": [
+              "role",
+              "members"
+            ],
+            "properties": {
+              "members": {
+                "type": "integer",
+                "description": "Number of members.",
+                "minimum": 0
+              },
+              "role": {
+                "$ref": "#/components/schemas/Role",
+                "description": "The caller's role."
+              }
+            }
+          }
+        ],
+        "description": "The current tenant with the caller's role."
+      },
+      "TenantPatch": {
+        "type": "object",
+        "description": "A change to the tenant.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New display name."
+          }
+        }
+      },
       "TextEdit": {
         "type": "object",
         "description": "The owner's version of a draft text.",
@@ -14690,9 +16022,19 @@
             "format": "uuid",
             "description": "Device ID."
           },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Tenant the token is bound to."
+          },
           "token": {
             "type": "string",
             "description": "The bearer token."
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User the token belongs to."
           }
         }
       },
@@ -14811,6 +16153,84 @@
             "type": "integer",
             "description": "Deals that already have an open or proposed task.",
             "minimum": 0
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "description": "A person who can sign in.",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the account was created."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address."
+          },
+          "email_verified_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the email address was confirmed."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "User ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name."
+          }
+        }
+      },
+      "UserCost": {
+        "type": "object",
+        "description": "Run costs of one user.",
+        "required": [
+          "runs",
+          "cost_eur",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "properties": {
+          "cost_eur": {
+            "type": "number",
+            "format": "double",
+            "description": "Costs in EUR."
+          },
+          "input_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Input tokens."
+          },
+          "output_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Output tokens."
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of runs."
+          },
+          "user_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The user the runs worked for."
           }
         }
       },

@@ -248,6 +248,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts an invitation with a new account and signs in its first device. */
+        post: operations["accept_invitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/devices": {
         parameters: {
             query?: never;
@@ -255,7 +272,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Lists the signed-in devices. */
+        /** Lists the signed-in devices of the user, in every tenant. */
         get: operations["devices"];
         put?: never;
         post?: never;
@@ -275,8 +292,25 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Signs out a device. */
+        /** Signs out a device of the user. */
         delete: operations["revoke_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Shows the invitation behind a token. */
+        post: operations["inspect_invitation"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -291,7 +325,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Signs in a new device. */
+        /** Signs in a new device and binds its token to one tenant. */
         post: operations["login"];
         delete?: never;
         options?: never;
@@ -316,6 +350,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Changes the password of the signed-in user. Every other device is signed out. */
+        post: operations["change_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/setup": {
         parameters: {
             query?: never;
@@ -325,8 +376,28 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sets the owner password. This signs out every device. */
+        /**
+         * Sets the password of the first owner of the default tenant. This signs out
+         *     all their devices.
+         */
         post: operations["setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creates an account with its own tenant, while sign-up is open. */
+        post: operations["signup"];
         delete?: never;
         options?: never;
         head?: never;
@@ -340,7 +411,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Reports whether the instance is set up. */
+        /** Reports how people sign in to this instance. */
         get: operations["auth_status"];
         put?: never;
         post?: never;
@@ -359,8 +430,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Issues a token for a desktop agent or a script. */
+        /** Issues a token for a desktop agent or a script, for the caller's tenant. */
         post: operations["issue_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirms an email address with the token from the verification mail. */
+        post: operations["verify_email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/verify/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends a new verification mail to the signed-in user. */
+        post: operations["resend_verification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1142,6 +1247,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/costs/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sums the cost of runs per user of the tenant. Needs the owner or admin role. */
+        get: operations["user_costs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/credentials": {
         parameters: {
             query?: never;
@@ -1167,10 +1289,13 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Stores a credential, for example `anthropic`, `mcp:linear` or `smtp`. */
+        /**
+         * Stores a credential of the tenant, for example a model provider key such as
+         *     `anthropic`, `mcp:linear` or `slack:#weekly`. Needs the owner or admin role.
+         */
         put: operations["put_credential"];
         post?: never;
-        /** Deletes a credential. */
+        /** Deletes a credential. Needs the owner or admin role. */
         delete: operations["delete_credential"];
         options?: never;
         head?: never;
@@ -1587,14 +1712,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Returns the signed-in owner. */
+        /** Returns the signed-in user and their tenant. */
         get: operations["me"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Deletes the account of the signed-in user. Tenants where they are the only
+         *     member are deleted with all their data. Repeat the email address in
+         *     `confirm`.
+         */
+        delete: operations["delete_me"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Changes the display name of the signed-in user. */
+        patch: operations["update_me"];
         trace?: never;
     };
     "/memory": {
@@ -2669,10 +2800,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the current tenant. */
+        get: operations["get_tenant"];
+        put?: never;
+        post?: never;
+        /**
+         * Deletes the current tenant with all its data. Needs the owner role; repeat
+         *     the tenant name in `confirm`. The default tenant cannot be deleted.
+         */
+        delete: operations["delete_tenant"];
+        options?: never;
+        head?: never;
+        /** Renames the current tenant. Needs the owner or admin role. */
+        patch: operations["update_tenant"];
+        trace?: never;
+    };
+    "/tenant/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the open invitations of the current tenant. Needs the owner or admin role. */
+        get: operations["list_invitations"];
+        put?: never;
+        /**
+         * Invites someone to the current tenant. Needs the owner or admin role; only
+         *     owners invite owners. With mail configured, the invitation goes out by
+         *     mail; otherwise the answer carries the accept link to pass on.
+         */
+        post: operations["invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenant/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revokes an open invitation. Needs the owner or admin role. */
+        delete: operations["revoke_invitation"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenant/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the members of the current tenant. */
+        get: operations["list_members"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenant/members/{user}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes a member, or lets the caller leave. Removing others needs the owner
+         *     or admin role, and only owners remove owners. The last owner cannot leave.
+         */
+        delete: operations["remove_member"];
+        options?: never;
+        head?: never;
+        /**
+         * Changes the role of a member. Needs the owner or admin role; only owners
+         *     grant or take away the owner role. The last owner keeps it.
+         */
+        patch: operations["change_role"];
+        trace?: never;
+    };
+    "/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lists the tenants of the signed-in user. For the admin token, every tenant
+         *     of the instance, with the owner role.
+         */
+        get: operations["list_tenants"];
+        put?: never;
+        /**
+         * Creates another tenant owned by the signed-in user, while sign-up is open,
+         *     and issues a token for it.
+         */
+        post: operations["create_tenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accepts an invitation as the signed-in user, whose email address must match
+         *     it, and issues a token for the joined tenant.
+         */
+        post: operations["accept_invitation_signed_in"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{id}/switch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Switches to another tenant of the user: issues a token bound to it. The
+         *     current token stays valid until it is signed out.
+         */
+        post: operations["switch_tenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Accepting an invitation as a signed-in user. */
+        AcceptInvitation: {
+            /** @description Client kind of that device. */
+            device_kind?: components["schemas"]["DeviceKind"];
+            /** @description Name of the device that gets a token for the joined tenant. */
+            device_name?: string;
+            /** @description The invitation token from the link. */
+            token: string;
+        };
+        /** @description Accepting an invitation with a new account. */
+        AcceptRequest: {
+            /** @description Client kind. */
+            device_kind: components["schemas"]["DeviceKind"];
+            /** @description Name of this device. */
+            device_name: string;
+            /** @description Display name. */
+            name: string;
+            /** @description The password, at least 12 characters. */
+            password: string;
+            /** @description The invitation token from the link. */
+            token: string;
+        };
         /** @description An action the owner asks for, such as a reply or a comment. */
         ActionRequest: {
             /** @description Values for the action's `{{input.<field>}}` placeholders, such as `body`. */
@@ -2933,8 +3252,18 @@ export interface components {
         };
         /** @description State of the sign-in. */
         AuthStatus: {
-            /** @description Whether the owner still has to set a password. */
+            /**
+             * @description Whether `POST /auth/login` needs an email address because the instance
+             *     has several users.
+             */
+            email_required: boolean;
+            /**
+             * @description Whether an administrator still has to set the first password with
+             *     `POST /auth/setup`. Never true while sign-up is open.
+             */
             setup_required: boolean;
+            /** @description Who may create an account: `closed`, `invite` or `open`. */
+            signup: components["schemas"]["SignupMode"];
         };
         /** @description A sentence that describes an automation. */
         AutomationDraftRequest: {
@@ -3275,6 +3604,11 @@ export interface components {
             /** @description Title. */
             title: string;
         };
+        /** @description Confirms a deletion by repeating a name. */
+        Confirmation: {
+            /** @description For an account: its email address. For a tenant: its name. */
+            confirm: string;
+        };
         /** @description Answer when an OAuth flow started. */
         ConnectStarted: {
             /** @description URL to open in a browser. */
@@ -3493,6 +3827,11 @@ export interface components {
             last_used_at?: string | null;
             /** @description Name chosen at sign-in. */
             name: string;
+            /**
+             * Format: uuid
+             * @description Tenant the token is bound to.
+             */
+            tenant_id: string;
         };
         /**
          * @description What kind of client holds a token.
@@ -3788,6 +4127,68 @@ export interface components {
             /** @description Address. */
             url?: string | null;
         };
+        /** @description An open invitation. */
+        Invitation: {
+            /**
+             * Format: date-time
+             * @description When it was created.
+             */
+            created_at: string;
+            /** @description Invited email address. */
+            email: string;
+            /**
+             * Format: date-time
+             * @description When it expires.
+             */
+            expires_at: string;
+            /**
+             * Format: uuid
+             * @description Invitation ID.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description Who invited.
+             */
+            invited_by?: string | null;
+            /** @description Role the new member gets. */
+            role: components["schemas"]["Role"];
+        };
+        /** @description A created invitation. */
+        InvitationCreated: {
+            /** @description The accept link, only when no mail was sent. Pass it on yourself. */
+            accept_url?: string | null;
+            /** @description The invitation. */
+            invitation: components["schemas"]["Invitation"];
+            /** @description Whether the invitation went out by mail. */
+            mailed: boolean;
+        };
+        /** @description An invitation as the invited person sees it. */
+        InvitationInfo: {
+            /**
+             * @description Whether an account with this email address exists. Then the person
+             *     signs in and accepts with `POST /tenants/accept` instead.
+             */
+            account_exists: boolean;
+            /** @description Invited email address. */
+            email: string;
+            /**
+             * Format: date-time
+             * @description When the invitation expires.
+             */
+            expires_at: string;
+            /** @description Role the new member gets. */
+            role: components["schemas"]["Role"];
+            /** @description Name of the tenant. */
+            tenant_name: string;
+        };
+        /** @description A new invitation. */
+        InviteRequest: {
+            /** @description Email address to invite. */
+            email: string;
+            /** @description Role the new member gets. Defaults to member. */
+            role?: components["schemas"]["Role"];
+        };
         /** @description An item with its children, such as a thread with messages or a pull request with checks and files. */
         ItemDetail: {
             /** @description Its children. */
@@ -3839,6 +4240,13 @@ export interface components {
         };
         /** @description Where an item comes from. */
         ItemSource: {
+            /**
+             * Format: uuid
+             * @description The connected item it names, filled by the server when it finds one.
+             */
+            item_id?: string | null;
+            /** @description A readable name of it, such as the subject, filled by the server. */
+            label?: string | null;
             /** @description ID within the service, such as an issue key or a pull request number. */
             reference?: string | null;
             /** @description Service name, such as `linear` or `github`. */
@@ -3846,24 +4254,95 @@ export interface components {
             /** @description Address to open it. */
             url?: string | null;
         };
+        /** @description A one-time token from a link, such as an email verification. */
+        LinkToken: {
+            /** @description The token. */
+            token: string;
+        };
         /** @description A sign-in attempt. */
         LoginRequest: {
             /** @description Client kind. */
             device_kind: components["schemas"]["DeviceKind"];
             /** @description Name of this device. */
             device_name: string;
+            /** @description Email address. May be left out while the instance has exactly one user. */
+            email?: string | null;
             /** @description The password. */
             password: string;
+            /**
+             * Format: uuid
+             * @description Tenant to sign in to. Defaults to the user's oldest membership.
+             */
+            tenant_id?: string | null;
         };
-        /** @description The signed-in owner. */
+        /** @description The signed-in user in their current tenant. */
         Me: {
+            /** @description Email address. Absent for the admin token. */
+            email?: string | null;
+            /** @description Whether the email address is confirmed. */
+            email_verified?: boolean;
             /** @description Display name. */
             name: string;
+            /** @description The role there. */
+            role?: components["schemas"]["Role"];
             /**
-             * @description IANA time zone of the owner, such as `Europe/Berlin`. Dates such as
+             * Format: uuid
+             * @description The tenant of the token.
+             */
+            tenant_id?: string;
+            /** @description Name of that tenant. */
+            tenant_name?: string;
+            /**
+             * @description IANA time zone of the instance, such as `Europe/Berlin`. Dates such as
              *     "today" and the days of charts follow it.
              */
             timezone?: string;
+            /**
+             * Format: uuid
+             * @description User ID. Absent for the admin token.
+             */
+            user_id?: string | null;
+        };
+        /** @description A change to the signed-in user. */
+        MePatch: {
+            /** @description New display name. */
+            name: string;
+        };
+        /** @description A member of a tenant. */
+        Member: {
+            /** @description Email address. */
+            email: string;
+            /**
+             * Format: date-time
+             * @description When the user joined.
+             */
+            joined_at: string;
+            /** @description Display name. */
+            name: string;
+            /** @description Role in the tenant. */
+            role: components["schemas"]["Role"];
+            /**
+             * Format: uuid
+             * @description User ID.
+             */
+            user_id: string;
+        };
+        /** @description A tenant a user belongs to. */
+        Membership: {
+            /**
+             * Format: date-time
+             * @description When the user joined.
+             */
+            joined_at: string;
+            /** @description The role of the user there. */
+            role: components["schemas"]["Role"];
+            /**
+             * Format: uuid
+             * @description Tenant ID.
+             */
+            tenant_id: string;
+            /** @description Name of the tenant. */
+            tenant_name: string;
         };
         /** @description Which provider and model serve a task, from the configuration. */
         ModelRoute: {
@@ -4016,6 +4495,15 @@ export interface components {
             /** @description Title, such as "Service agreement". */
             title: string;
         };
+        /** @description A new tenant. */
+        NewTenant: {
+            /** @description Client kind of that device. */
+            device_kind?: components["schemas"]["DeviceKind"];
+            /** @description Name of the device that gets a token for the new tenant. */
+            device_name?: string;
+            /** @description Display name. */
+            name: string;
+        };
         /** @description A thesis of the owner. */
         NewThesis: {
             /** @description The owner's reasoning in Markdown. */
@@ -4116,6 +4604,13 @@ export interface components {
          * @enum {string}
          */
         Origin: "owner" | "agent" | "pipeline" | "holdings";
+        /** @description A password change. */
+        PasswordChange: {
+            /** @description The current password. */
+            current: string;
+            /** @description The new password, at least 12 characters. */
+            new: string;
+        };
         /** @description Revenue of one month. */
         PeriodAmount: {
             /**
@@ -4514,6 +5009,16 @@ export interface components {
             /** @description The tone asked for. */
             tone: string;
         };
+        /**
+         * @description The role of a member in a tenant.
+         * @enum {string}
+         */
+        Role: "owner" | "admin" | "member";
+        /** @description A change of a member's role. */
+        RoleChange: {
+            /** @description The new role. */
+            role: components["schemas"]["Role"];
+        };
         /** @description A standing rule. */
         Rule: {
             /** @description The agent it applies to. `None` means every agent. */
@@ -4817,7 +5322,7 @@ export interface components {
              */
             updated_at?: string | null;
         };
-        /** @description A new password. */
+        /** @description A new password set by an administrator. */
         SetupRequest: {
             /** @description The password, at least 12 characters. */
             password: string;
@@ -4827,6 +5332,26 @@ export interface components {
          * @enum {string}
          */
         Severity: "info" | "warning" | "critical";
+        /**
+         * @description Who may create an account.
+         * @enum {string}
+         */
+        SignupMode: "closed" | "invite" | "open";
+        /** @description A request for a new account with its own tenant. */
+        SignupRequest: {
+            /** @description Client kind. */
+            device_kind: components["schemas"]["DeviceKind"];
+            /** @description Name of this device. */
+            device_name: string;
+            /** @description Email address. */
+            email: string;
+            /** @description Display name. */
+            name: string;
+            /** @description The password, at least 12 characters. */
+            password: string;
+            /** @description Name of the new tenant. Defaults to the display name. */
+            tenant_name?: string | null;
+        };
         /** @description A won deal the suggestion is based on. */
         SimilarDeal: {
             /**
@@ -5031,6 +5556,13 @@ export interface components {
             seq: number;
             /** @description Status. */
             status: string;
+        };
+        /** @description A request for a token in another tenant. */
+        SwitchRequest: {
+            /** @description Client kind. */
+            device_kind?: components["schemas"]["DeviceKind"];
+            /** @description Name of the device. */
+            device_name?: string;
         };
         /** @description Freshness of a source. */
         SyncStatus: {
@@ -5286,6 +5818,33 @@ export interface components {
          * @enum {string}
          */
         TaskView: "all" | "today" | "upcoming" | "done" | "proposed";
+        /** @description A tenant: the space a team or a person works in. */
+        Tenant: {
+            /**
+             * Format: date-time
+             * @description When it was created.
+             */
+            created_at: string;
+            /**
+             * Format: uuid
+             * @description Tenant ID.
+             */
+            id: string;
+            /** @description Display name. */
+            name: string;
+        };
+        /** @description The current tenant with the caller's role. */
+        TenantInfo: components["schemas"]["Tenant"] & {
+            /** @description Number of members. */
+            members: number;
+            /** @description The caller's role. */
+            role: components["schemas"]["Role"];
+        };
+        /** @description A change to the tenant. */
+        TenantPatch: {
+            /** @description New display name. */
+            name: string;
+        };
         /** @description The owner's version of a draft text. */
         TextEdit: {
             /** @description The new text. */
@@ -5312,8 +5871,18 @@ export interface components {
              * @description Device ID.
              */
             id: string;
+            /**
+             * Format: uuid
+             * @description Tenant the token is bound to.
+             */
+            tenant_id?: string;
             /** @description The bearer token. */
             token: string;
+            /**
+             * Format: uuid
+             * @description User the token belongs to.
+             */
+            user_id?: string;
         };
         /** @description A request for a token without a password. */
         TokenRequest: {
@@ -5364,6 +5933,56 @@ export interface components {
             proposed: string[];
             /** @description Deals that already have an open or proposed task. */
             skipped: number;
+        };
+        /** @description A person who can sign in. */
+        User: {
+            /**
+             * Format: date-time
+             * @description When the account was created.
+             */
+            created_at: string;
+            /** @description Email address. */
+            email: string;
+            /**
+             * Format: date-time
+             * @description When the email address was confirmed.
+             */
+            email_verified_at?: string | null;
+            /**
+             * Format: uuid
+             * @description User ID.
+             */
+            id: string;
+            /** @description Display name. */
+            name: string;
+        };
+        /** @description Run costs of one user. */
+        UserCost: {
+            /**
+             * Format: double
+             * @description Costs in EUR.
+             */
+            cost_eur: number;
+            /**
+             * Format: int64
+             * @description Input tokens.
+             */
+            input_tokens: number;
+            /**
+             * Format: int64
+             * @description Output tokens.
+             */
+            output_tokens: number;
+            /**
+             * Format: int64
+             * @description Number of runs.
+             */
+            runs: number;
+            /**
+             * Format: uuid
+             * @description The user the runs worked for.
+             */
+            user_id?: string | null;
         };
         /** @description An alternative text of a post. */
         Variant: {
@@ -5859,6 +6478,50 @@ export interface operations {
             };
         };
     };
+    accept_invitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenIssued"];
+                };
+            };
+            /** @description Invalid token, name or password */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitations are off */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description An account with this email address exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     devices: {
         parameters: {
             query?: never;
@@ -5905,6 +6568,36 @@ export interface operations {
             };
         };
     };
+    inspect_invitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkToken"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationInfo"];
+                };
+            };
+            /** @description Invalid or expired token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -5926,8 +6619,22 @@ export interface operations {
                     "application/json": components["schemas"]["TokenIssued"];
                 };
             };
-            /** @description Wrong password */
+            /** @description Email address required */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Wrong email or password */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a member of the requested tenant */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5959,6 +6666,41 @@ export interface operations {
             };
         };
     };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description New password too short */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Wrong current password */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     setup: {
         parameters: {
             query?: never;
@@ -5980,6 +6722,71 @@ export interface operations {
             };
             /** @description Password too short */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The default tenant has no owner */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    signup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenIssued"];
+                };
+            };
+            /** @description Nothing created yet, for example while the sign-up waits for approval */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid email, name or password */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sign-up is not open */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Email address taken */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many sign-ups from this address */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6026,6 +6833,58 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TokenIssued"];
                 };
+            };
+        };
+    };
+    verify_email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkToken"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid or expired token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resend_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No mail is configured */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -7627,6 +8486,35 @@ export interface operations {
             };
         };
     };
+    user_costs: {
+        parameters: {
+            query?: {
+                /** @description Days to look back */
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCost"][];
+                };
+            };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_credentials: {
         parameters: {
             query?: never;
@@ -7675,6 +8563,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     delete_credential: {
@@ -7690,6 +8585,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Needs the owner or admin role */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8493,6 +9395,69 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Me"];
                 };
+            };
+        };
+    };
+    delete_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirmation"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The confirmation does not match */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The user is the last owner of a tenant with other members */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MePatch"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid name */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -10287,6 +11252,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     model_routes: {
@@ -10801,6 +11773,425 @@ export interface operations {
             };
             /** @description Not done or unknown */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantInfo"];
+                };
+            };
+        };
+    };
+    delete_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirmation"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The confirmation does not match */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Needs the owner role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The default tenant stays */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantPatch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tenant"];
+                };
+            };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_invitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invitation"][];
+                };
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationCreated"];
+                };
+            };
+            /** @description Invalid email */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not allowed or invitations are off */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Already a member */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revoke_invitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Invitation ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown invitation */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_members: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"][];
+                };
+            };
+        };
+    };
+    remove_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown member */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Last owner */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    change_role: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChange"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown member */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Last owner */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_tenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Membership"][];
+                };
+            };
+        };
+    };
+    create_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewTenant"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenIssued"];
+                };
+            };
+            /** @description Sign-up is not open */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept_invitation_signed_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenIssued"];
+                };
+            };
+            /** @description Invalid token or another email address */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invitations are off */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switch_tenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwitchRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenIssued"];
+                };
+            };
+            /** @description Not a member */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
