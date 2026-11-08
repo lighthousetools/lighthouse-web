@@ -20,6 +20,18 @@ menu bar and the status island hide, the window fills the view, and the rail and
 approvals, permission requests and waiting sessions, and `openExternal` for sign-in pages. The app's `palette` and
 `newNote` commands arrive as the cancelable `lighthouse:command` event.
 
+## Accounts
+
+The sign-in, sign-up, invitation and email confirmation pages share one glass card (`SignInCard` in
+`src/views/Login.tsx`) over the sky. The profile in the rail is a popover with the person, the workspaces and the way
+out, in the look of the bell. Settings rows for members, invitations and costs reuse the settings groups; actions a role
+may not take are left out rather than disabled, with one quiet note saying who changes them.
+
+In the Mac app, the app writes the token into `localStorage["lighthouse.token"]` before the page loads and watches it.
+A tenant switch in the web app stores the new token there, which the Mac app adopts after `GET /me`; signing out removes
+it, which signs the app out. The device ID in `localStorage["lighthouse.device"]` carries the end of its token, so a
+token from the Mac app is never mistaken for this browser's.
+
 ## Live updates
 
 `GET /events` names what changed. Each named event reloads only the data it touches (`queriesFor` in `src/data.ts`):

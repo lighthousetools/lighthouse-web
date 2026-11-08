@@ -41,6 +41,30 @@ Chrome, so it is not part of CI.
   stub. Against a real server the crawl does not delete, remove or discard anything. `pnpm build` replaces `dist`, so
   restart the demo server afterwards (`docker compose -f demo/compose.yml restart demo-server`) to serve the new build.
 
+## Accounts and workspaces
+
+The app follows the server's `GET /auth/status`. A single-user server keeps the password-only sign-in; once a server can
+have more people, the sign-in asks for the email address too. While `signup` is `open`, the sign-in offers to create an
+account with a workspace of its own, and `#/signup` opens that form directly. Too many failed attempts pause the sign-in
+for a minute, and the app says so.
+
+Links from the server's mails open in the app, signed in or not:
+
+- `#/invite?token=…` shows the workspace and role of an invitation. A new person creates an account there, someone
+  with an account signs in, and a signed-in person with the invited address joins with one click.
+- `#/verify?token=…` confirms the email address. When the link no longer works, a signed-in person asks for a new one.
+  Account settings offer the same while the address is unconfirmed.
+
+The avatar at the bottom of the rail names the person, the current workspace and its other workspaces. Switching asks
+the server for a token of the other workspace, signs out the token it replaces and loads that workspace's data. With
+more than one workspace, its name also shows in the menu bar and under the avatar.
+
+Settings hold the account (name, email confirmation, password, devices, deleting the account), the workspace (its name,
+members and roles, invitations with the link to pass on when the server sends no mail, leaving and deleting it), the
+workspace's keys for model providers and connectors, the budget and the costs per member. Members see the workspace,
+its keys and the budget read-only; owners and admins change them, and only owners hand out the owner role or delete the
+workspace. When the server still refuses an action (403), the app shows its reason.
+
 ## Languages
 
 Strings live in `src/i18n`, one file per language, and a test checks that both cover every key. Viewers pick a language on
@@ -60,7 +84,8 @@ In the Brain, `/` at the start of a line offers blocks, and `[[Title]]` links en
 
 ## Security
 
-The device token lives in the browser's local storage. A strict Content Security Policy limits scripts and fonts to this
+The device token lives in the browser's local storage, next to the ID of its device, which marks this browser in the
+device list. A strict Content Security Policy limits scripts and fonts to this
 origin. Markdown from models and files renders as React elements, never as HTML, so it cannot inject markup.
 
 ## License

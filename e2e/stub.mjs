@@ -99,7 +99,7 @@ export function answer(method, pathname) {
     routes.find((item) => item.pattern.test(pathname));
   if (!route) return null;
   if (pathname === "/events") return { status: 200, contentType: "text/event-stream", body: ": stub\n\n" };
-  if (pathname === "/auth/status") return { status: 200, json: { setup_required: false } };
+  if (pathname === "/auth/status") return { status: 200, json: { setup_required: false, signup: "open", email_required: false } };
   if (/\/original$/.test(pathname)) return { status: 404, body: "" };
   const [code, response] = Object.entries(route.operation.responses ?? {}).find(([status]) => status.startsWith("2")) ?? ["200", {}];
   const content = response.content ?? {};
