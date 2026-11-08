@@ -1,4 +1,5 @@
 import createClient, { type Middleware } from "openapi-fetch";
+import { useSyncExternalStore } from "react";
 import { t } from "../i18n";
 import type { components, paths } from "./schema";
 import { readEvents } from "./sse";
@@ -6,19 +7,49 @@ import { readEvents } from "./sse";
 export type Schemas = components["schemas"];
 
 const TOKEN_KEY = "lighthouse.token";
+const DEVICE_KEY = "lighthouse.device";
 
-function readToken(): string | null {
+function read(key: string): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
-let token = readToken();
+let token = read(TOKEN_KEY);
+// The device ID is kept with the end of the token it belongs to. The Mac app hands over tokens of its own, so an ID
+// whose token is gone describes another device and is ignored.
+const tail = (value: string) => value.slice(-8);
+function readDevice(): string | null {
+  const [id, end] = (read(DEVICE_KEY) ?? "").split(":");
+  return id && token && end === tail(token) ? id : null;
+}
+let device = readDevice();
 let onSignedOut = () => {};
+const tokenListeners = new Set<() => void>();
 
 export const isSignedIn = () => token !== null;
+
+/** The device ID of this browser's token, when this app signed in and the token is still the one it got. */
+export const currentDevice = () => {
+  if (token !== read(TOKEN_KEY) && read(TOKEN_KEY) !== null) return null;
+  return device;
+};
+
+/** Rerenders when this browser signs in, switches its token or signs out. */
+export function useSignedIn() {
+  return useSyncExternalStore(
+    (listener) => {
+      tokenListeners.add(listener);
+      return () => {
+        tokenListeners.delete(listener);
+      };
+    },
+    isSignedIn,
+    isSignedIn,
+  );
+}
 
 /** The bearer header for calls that go around the typed client, such as endpoints newer than its spec. */
 export const authHeader = (): Record<string, string> => (token ? { Authorization: `Bearer ${token}` } : {});
@@ -27,18 +58,25 @@ export function setSignedOutHandler(handler: () => void) {
   onSignedOut = handler;
 }
 
-export function storeToken(value: string | null) {
+export function storeToken(value: string | null, deviceId: string | null = null) {
   token = value;
+  device = value === null ? null : deviceId;
   try {
     if (value === null) localStorage.removeItem(TOKEN_KEY);
     else localStorage.setItem(TOKEN_KEY, value);
+    if (device === null || value === null) localStorage.removeItem(DEVICE_KEY);
+    else localStorage.setItem(DEVICE_KEY, `${device}:${tail(value)}`);
   } catch {
     // Without storage, the sign-in lasts until the page reloads.
   }
+  tokenListeners.forEach((listener) => listener());
 }
 
-function signedOut(response: Response) {
-  if (response.status === 401 && token) {
+// A wrong current password answers 401 too, without the token being invalid.
+const KEEPS_TOKEN = new Set(["/auth/password"]);
+
+function signedOut(response: Response, path = "") {
+  if (response.status === 401 && token && !KEEPS_TOKEN.has(path)) {
     storeToken(null);
     onSignedOut();
   }
@@ -49,8 +87,8 @@ const auth: Middleware = {
     if (token) request.headers.set("Authorization", `Bearer ${token}`);
     return request;
   },
-  onResponse({ response }) {
-    signedOut(response);
+  onResponse({ request, response }) {
+    signedOut(response, new URL(request.url).pathname);
     return response;
   },
 };
@@ -61,15 +99,29 @@ export const api = createClient<paths>({
 });
 api.use(auth);
 
+/** A failed call, with the HTTP status so pages can tell a missing role (403) from a pause (429). */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** The text to show for a failed call: the server's own words, except for the sign-in pause, which reads the same in every language. */
+export function errorText(status: number, body: unknown): string {
+  if (status === 429) return t("error.tooMany");
+  const message = (body as { error?: unknown } | null)?.error;
+  return typeof message === "string" && message ? message : t("error.server", { status });
+}
+
+export const statusOf = (error: unknown) => (error instanceof ApiError ? error.status : 0);
+
 /** Unwraps a response and turns the server's error text into an exception. */
 export async function must<T>(
   call: Promise<{ data?: T; error?: unknown; response: Response }>,
 ): Promise<T> {
   const { data, error, response } = await call;
-  if (error !== undefined) {
-    const message = (error as { error?: string })?.error;
-    throw new Error(message ?? t("error.server", { status: response.status }));
-  }
+  if (error !== undefined) throw new ApiError(errorText(response.status, error), response.status);
   return data as T;
 }
 
