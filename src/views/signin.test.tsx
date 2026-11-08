@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { authHeader, isSignedIn, storeToken } from "../api/client";
 import { App } from "../shell/App";
-import { callsTo, json, serve, show } from "../test/api";
+import { OWNER, callsTo, json, serve, show } from "../test/api";
+import { parseLink } from "./Links";
 
 const ISSUED = { id: "d1", token: "lht_new", tenant_id: "t1", user_id: "u1" };
 const status = (signup: string, email_required: boolean) => () => ({ setup_required: false, signup, email_required });
@@ -104,5 +105,88 @@ describe("sign-up", () => {
     await userEvent.type(screen.getByLabelText("Password"), "long enough password");
     await userEvent.click(screen.getByRole("button", { name: "Create account" }));
     expect((await screen.findByRole("alert")).textContent).toBe("this email address has an account");
+  });
+});
+
+describe("links from mails", () => {
+  it("read the token from both spellings of the hash", () => {
+    expect(parseLink("#/invite?token=lhi_a")).toEqual({ kind: "invite", token: "lhi_a" });
+    expect(parseLink("#verify?token=x%2By")).toEqual({ kind: "verify", token: "x+y" });
+    expect(parseLink("#/invite")).toBeNull();
+    expect(parseLink("#settings/account")).toBeNull();
+  });
+
+  const invitation = (account_exists: boolean) => () => ({
+    email: "bob@example.com", role: "member", tenant_name: "Ann Team", expires_at: "2026-11-15T19:00:00Z", account_exists,
+  });
+
+  it("let a new person create an account and join", async () => {
+    location.hash = "#/invite?token=lhi_t";
+    const calls = serve({ "POST /auth/invitation": invitation(false), "POST /auth/accept": () => json(201, ISSUED) });
+    show(<App />);
+    expect(await screen.findByRole("heading", { name: "Join Ann Team" })).toBeTruthy();
+    expect(screen.getByText(/bob@example.com is invited as Member/)).toBeTruthy();
+    await userEvent.type(screen.getByLabelText("Your name"), "Bob Example");
+    await userEvent.type(screen.getByLabelText("Password"), "another long password");
+    await userEvent.click(screen.getByRole("button", { name: "Create account and join" }));
+    await waitFor(() => expect(isSignedIn()).toBe(true));
+    expect(location.hash).toBe("");
+    expect(await callsTo(calls, "POST", "/auth/accept")[0]!.json()).toEqual({
+      token: "lhi_t", name: "Bob Example", password: "another long password", device_name: "Browser", device_kind: "web",
+    });
+  });
+
+  it("let someone with an account sign in, then accept with that sign-in", async () => {
+    location.hash = "#/invite?token=lhi_t";
+    const calls = serve({
+      "POST /auth/invitation": invitation(true),
+      "POST /auth/login": () => ({ id: "d1", token: "lht_login" }),
+      "POST /tenants/accept": () => ({ id: "d2", token: "lht_joined", tenant_id: "t2", user_id: "u2" }),
+    });
+    show(<App />);
+    await userEvent.type(await screen.findByLabelText("Password"), "my long password");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in and join" }));
+    await waitFor(() => expect(authHeader()).toEqual({ Authorization: "Bearer lht_joined" }));
+    expect(await callsTo(calls, "POST", "/auth/login")[0]!.json()).toMatchObject({ email: "bob@example.com" });
+    expect(callsTo(calls, "POST", "/tenants/accept")[0]!.headers.get("Authorization")).toBe("Bearer lht_login");
+    // The sign-in that only served to accept is signed out again.
+    await waitFor(() => expect(callsTo(calls, "POST", "/auth/logout")[0]?.headers.get("Authorization")).toBe("Bearer lht_login"));
+  });
+
+  it("join directly when signed in with the invited address, and refuse another account", async () => {
+    storeToken("lht_x");
+    location.hash = "#/invite?token=lhi_t";
+    serve({ "POST /auth/invitation": invitation(true), "GET /me": () => OWNER });
+    show(<App />);
+    expect(await screen.findByText(/This invitation is for bob@example.com/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Join" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Sign out and continue" })).toBeTruthy();
+  });
+
+  it("explain an invalid invitation", async () => {
+    location.hash = "#/invite?token=old";
+    serve({ "POST /auth/invitation": () => json(400, { error: "the link is invalid or expired" }) });
+    show(<App />);
+    expect(await screen.findByRole("heading", { name: "This invitation does not work" })).toBeTruthy();
+    expect(screen.getByText("the link is invalid or expired")).toBeTruthy();
+  });
+
+  it("confirm an email once and offer a new link when it failed", async () => {
+    location.hash = "#/verify?token=lhv_t";
+    const calls = serve({ "POST /auth/verify": () => new Response(null, { status: 204 }) });
+    const first = show(<App />);
+    expect(await screen.findByRole("heading", { name: "Email confirmed" })).toBeTruthy();
+    expect(callsTo(calls, "POST", "/auth/verify")).toHaveLength(1);
+    first.unmount();
+
+    storeToken("lht_x");
+    const again = serve({
+      "POST /auth/verify": () => json(400, { error: "the link is invalid or expired" }),
+      "POST /auth/verify/resend": () => json(409, { error: "this instance sends no mail" }),
+    });
+    show(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Send a new link" }));
+    expect((await screen.findByRole("alert")).textContent).toBe("this instance sends no mail");
+    expect(callsTo(again, "POST", "/auth/verify/resend")).toHaveLength(1);
   });
 });

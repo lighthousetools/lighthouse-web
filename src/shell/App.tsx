@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Bell as BellIcon, Check, ChevronRight, Search } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type JSX } from "react";
-import { api, followEvents, isSignedIn, setSignedOutHandler, storeToken, type LiveState } from "../api/client";
+import { api, followEvents, storeToken, useSignedIn, type LiveState } from "../api/client";
 import { queriesFor, sessionKey, useAlertCounts, useAlerts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { Popover, type Anchor } from "../ui/popover";
 import { language, t, useLanguage } from "../i18n";
@@ -10,6 +10,8 @@ import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, initials, t
 import { useNow } from "../ui/live";
 import { Ready, decidedStore } from "../views/Ready";
 import { Login } from "../views/Login";
+import { LinkPage, useLink } from "../views/Links";
+import { epoch } from "../session";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
@@ -548,8 +550,15 @@ function Shell() {
 }
 
 export function App() {
-  const [signedIn, setSignedIn] = useState(isSignedIn);
-  useEffect(() => setSignedOutHandler(() => setSignedIn(false)), []);
+  const signedIn = useSignedIn();
+  const link = useLink();
+  const session = epoch.use();
   useEffect(() => watchLook(), []);
-  return signedIn ? <Shell /> : <Login onDone={() => setSignedIn(true)} />;
+  // A new tenant starts with nothing decided in this visit.
+  useEffect(() => {
+    if (session) decidedStore.set([]);
+  }, [session]);
+  // Invitation and confirmation links work signed in or not, so they come before the sign-in.
+  if (link) return <LinkPage link={link} />;
+  return signedIn ? <Shell key={session} /> : <Login onDone={() => undefined} />;
 }
