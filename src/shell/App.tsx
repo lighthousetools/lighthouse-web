@@ -1,17 +1,18 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { AlertCircle, Bell as BellIcon, Check, ChevronRight, Search } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type JSX } from "react";
-import { api, followEvents, storeToken, useSignedIn, type LiveState } from "../api/client";
+import { followEvents, useSignedIn, type LiveState } from "../api/client";
 import { queriesFor, sessionKey, useAlertCounts, useAlerts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { Popover, type Anchor } from "../ui/popover";
 import { language, t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
-import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, initials, type MenuItem } from "../ui";
+import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, type MenuItem } from "../ui";
 import { useNow } from "../ui/live";
 import { Ready, decidedStore } from "../views/Ready";
 import { Login } from "../views/Login";
 import { LinkPage, useLink } from "../views/Links";
-import { epoch } from "../session";
+import { epoch, signOut as endSession, switchTenant, useAuthStatus, useTenants } from "../session";
+import { NewTenantDialog, Profile } from "./Profile";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
@@ -20,7 +21,7 @@ import { NAV, groupOf, visibleNav } from "./nav";
 import { useDomains, useOrganizations } from "../views/connected";
 import { orgStore, setOrg } from "./org";
 import { Palette } from "./Palette";
-import { closeInspector, inspector, palette, toasts } from "./state";
+import { closeInspector, inspector, palette, toast, toasts } from "./state";
 
 // Every page but the start page loads when it is first opened, so the first load stays small.
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
@@ -105,9 +106,8 @@ function useShortcuts() {
   }, []);
 }
 
-async function signOut() {
-  await api.POST("/auth/logout").catch(() => undefined);
-  storeToken(null);
+async function signOut(client?: QueryClient) {
+  await endSession(client);
   location.hash = "";
   location.reload();
 }
@@ -180,6 +180,7 @@ function Menubar({ live }: { live: LiveState }) {
           run: () => go(view),
         }))}
       />
+      <TenantMenu />
       <OrgSwitch />
       <span className="grow" />
       <button type="button" className="mb ic" aria-label={t("nav.search")} onClick={() => palette.set(true)}>
@@ -240,6 +241,33 @@ function Bell() {
           </div>
         </Popover>
       )}
+    </>
+  );
+}
+
+/** The current tenant in the menu bar, once the user belongs to more than one: switch, or start another. */
+function TenantMenu() {
+  const client = useQueryClient();
+  const tenants = useTenants();
+  const status = useAuthStatus();
+  const me = useMe();
+  const [creating, setCreating] = useState(false);
+  const list = tenants.data ?? [];
+  if (list.length < 2) return null;
+  const current = list.find((item) => item.tenant_id === me.data?.tenant_id);
+  const items: MenuItem[] = list.map((item) => ({
+    label: item.tenant_name,
+    icon: <Tick on={item.tenant_id === current?.tenant_id} />,
+    run: () => {
+      if (item.tenant_id !== current?.tenant_id) switchTenant(item.tenant_id, client).catch((error: Error) => toast(error.message, "bad"));
+    },
+  }));
+  items.push("sep", { label: t("settings.workspace"), run: () => go("settings", "workspace") });
+  if (status.data?.signup === "open") items.push({ label: t("tenant.new"), run: () => setCreating(true) });
+  return (
+    <>
+      <MenuButton label={current?.tenant_name ?? t("tenant.workspaces")} items={items} />
+      {creating && <NewTenantDialog onClose={() => setCreating(false)} />}
     </>
   );
 }
@@ -333,10 +361,18 @@ function useAlertTotal() {
   return counts.data ? counts.data.critical + counts.data.warning + counts.data.info : 0;
 }
 
+/** The tenant's name under the avatar, once there is more than one to tell apart. */
+function TenantTag() {
+  const tenants = useTenants();
+  const me = useMe();
+  if ((tenants.data?.length ?? 0) < 2 || !me.data?.tenant_name) return null;
+  return <span className="rt" title={me.data.tenant_name}>{me.data.tenant_name}</span>;
+}
+
 function Rail({ view, live }: { view: View; live: LiveState }) {
+  const client = useQueryClient();
   const ready = useReady();
   const alerts = useAlertTotal();
-  const me = useMe();
   const current = groupOf(view);
   const nav = visibleNav(useDomains()).filter((group) => group.items.length);
   const badge = (id: string) => (id === "today" ? ready.data?.total ?? 0 : id === "work" ? alerts : 0);
@@ -364,20 +400,8 @@ function Rail({ view, live }: { view: View; live: LiveState }) {
         );
       })}
       <div className="rme">
-        <Menu
-          label={t("menu.profile")}
-          items={[
-            { label: <span className="mstat"><Dot tone={live === "live" ? "ok" : "warn"} />{live === "live" ? t("status.live") : t("status.reconnecting")} · {location.host}</span>, run: () => go("connections") },
-            "sep",
-            { label: t("nav.settings"), run: () => go("settings") },
-            { label: t("settings.signOut"), run: () => void signOut() },
-          ]}
-          trigger={(open, isOpen) => (
-            <button type="button" aria-label={t("menu.profile")} aria-expanded={isOpen} onClick={open}>
-              {initials(me.data?.name ?? "") || "·"}
-            </button>
-          )}
-        />
+        <TenantTag />
+        <Profile live={live} onSignOut={() => void signOut(client)} />
       </div>
     </nav>
   );
