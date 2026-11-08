@@ -9,6 +9,7 @@ import { go, useRoute } from "../router";
 import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
 import { Badge, Btn, Empty, Failure, PageHeader, SearchField, Seg, ServiceIcon, Skeleton } from "../ui";
+import { canManage, useRole } from "../session";
 import "./connections.css";
 
 type Connector = Schemas["ConnectorInfo"];
@@ -40,6 +41,7 @@ function StateBadge({ connector }: { connector: Connector }) {
 
 function Detail({ connector }: { connector: Connector }) {
   const connect = useConnect();
+  const manage = canManage(useRole());
   return (
     <div className="cn">
       <button type="button" className="cn-back" onClick={() => go("connections")}>
@@ -56,7 +58,9 @@ function Detail({ connector }: { connector: Connector }) {
           <p>{connector.auth === "oauth" ? t("connections.oauth") : t("connections.credential", { name: connector.name })}</p>
         </div>
         <div className="acts">
-          {connector.auth === "oauth" ? (
+          {!manage ? (
+            <small className="faint">{t("roles.connectorsAdmin")}</small>
+          ) : connector.auth === "oauth" ? (
             <Btn variant={connector.connected ? "" : "primary"} disabled={connect.isPending} onClick={() => connect.mutate(connector.name)}>
               <ExternalLink />
               {connector.connected ? t("settings.reconnect") : t("settings.connect")}
@@ -95,6 +99,7 @@ export function Connections() {
   const route = useRoute();
   const connectors = useConnectors();
   const connect = useConnect();
+  const manage = canManage(useRole());
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const all = connectors.data ?? [];
@@ -149,7 +154,7 @@ export function Connections() {
                     </span>
                     {connector.connected ? (
                       <span className="cn-add on" title={t("settings.connected")}><Check size={14} /></span>
-                    ) : connector.auth === "oauth" ? (
+                    ) : !manage ? null : connector.auth === "oauth" ? (
                       <button
                         type="button"
                         className="cn-add"
