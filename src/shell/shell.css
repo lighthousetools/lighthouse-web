@@ -1,17 +1,10 @@
-/* Shell: time-of-day light, menu bar, window with rail, sidebar and content, inspector, palette, toasts. */
+/* Shell: time-of-day light, a full-size window with rail, sidebar and content, inspector, palette, toasts. */
 .os { position: fixed; inset: 0; color: var(--ink); }
 .light { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: linear-gradient(135deg,#0b2a66,#2f7fd6 55%,#f2c48f); }
 .light.painted { image-rendering: auto; filter: blur(6px); transform: scale(1.04); }
 .light[data-phase="2"] { background: linear-gradient(160deg,#01030a,#071733 60%,#16305e); } .light[data-phase="1"] { background: linear-gradient(135deg,#0533b8,#1a85f0 55%,#a6dcf7); }
-/* Menu bar */
-.menubar { position: fixed; z-index: 60; top: 0; left: 0; right: 0; height: 28px; display: flex; align-items: center; gap: 2px; padding: 0 var(--s2); font-size: var(--t-13); color: #fff; background: rgba(0,0,0,.2); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
-.mb { height: 22px; padding: 0 var(--s2); border-radius: var(--r-xs); font-size: 12.5px; color: #fff; opacity: .92; display: inline-flex; align-items: center; gap: 4px; position: relative; transition: background var(--fast); white-space: nowrap; } .mb:hover, .mb[aria-expanded="true"] { background: rgba(255,255,255,.18); opacity: 1; } .mb.b { font-weight: 500; opacity: 1; font-size: var(--t-13); } .mb.ic { width: 26px; padding: 0; justify-content: center; } .mb.ic i { position: absolute; top: 3px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #ff6b5e; } .mb-tick { width: 14px; display: inline-flex; flex: none; } .mb .dot { width: 6px; height: 6px; }
-/* Island: what runs and what waits, in one line */
-.island { position: fixed; z-index: 65; top: 4px; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 420px); min-height: 26px; border-radius: 14px; background: #000; color: #fff; font-size: 12.5px; font-weight: 500; overflow: hidden; transition: width var(--med) var(--ease), border-radius var(--med) var(--ease); } .island.open { width: 380px; border-radius: 20px; }
-.ih1 { display: flex; align-items: center; justify-content: center; gap: 8px; height: 26px; width: 100%; padding: 0 14px; white-space: nowrap; color: #fff; } .ih1 i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: conic-gradient(#7fb6ff,#ffc070,#7de8c0,#7fb6ff); animation: spin 2.4s linear infinite; } .island.ask .ih1 i { background: #F5A623; animation: pulse 1.4s infinite; } .island.idle .ih1 i { background: #4CC38A; animation: none; } .island.off .ih1 i { background: #8a93a6; animation: none; }
-.she-il { padding: 2px 8px 10px; animation: fade var(--med) var(--ease); } .she-il p { padding: 8px; font-weight: 400; color: rgba(255,255,255,.66); text-align: center; } .ir { display: flex; align-items: center; gap: var(--s2); width: 100%; min-height: 44px; padding: 0 6px; border-radius: var(--r); color: rgba(255,255,255,.6); text-align: left; } .ir:hover { background: rgba(255,255,255,.08); } .ir > .grow { display: block; } .ir b { display: block; font-weight: 500; color: #fff; font-size: var(--t-13); line-height: 18px; } .ir small { display: block; font-weight: 400; font-size: var(--t-12); line-height: 16px; }
 /* Window */
-.window { position: fixed; z-index: 10; inset: 38px 22px 22px; display: flex; border-radius: 18px; overflow: hidden; background: var(--side); backdrop-filter: blur(40px) saturate(150%); -webkit-backdrop-filter: blur(40px) saturate(150%); box-shadow: 0 0 0 .5px rgba(255,255,255,.22), 0 30px 90px rgba(0,10,40,.45); }
+.window { position: fixed; z-index: 10; inset: 0; display: flex; overflow: hidden; background: var(--side); backdrop-filter: blur(40px) saturate(150%); -webkit-backdrop-filter: blur(40px) saturate(150%); }
 .rail { width: 60px; flex: none; display: flex; flex-direction: column; align-items: center; gap: var(--s1); padding: 14px 0 var(--s3); }
 .rail .rl { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: var(--s2); color: var(--ink); }
 .rail > button { position: relative; width: 40px; height: 40px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--ink2); transition: background var(--fast), color var(--fast); } .rail > button:hover { background: var(--hover); color: var(--ink); } .rail > button.on { background: var(--active); color: var(--ink); } .rail > button[data-tip]::after { content: attr(data-tip); position: absolute; z-index: 30; left: 46px; top: 50%; transform: translateY(-50%); height: 24px; padding: 0 8px; border-radius: var(--r-sm); background: var(--pop); color: var(--ink); box-shadow: var(--shadow); font-size: var(--t-12); line-height: 24px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--fast) 300ms; } .rail > button[data-tip]:hover::after { opacity: 1; } .rail b { position: absolute; top: 1px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; font: 500 10px/16px var(--font); text-align: center; background: var(--warn); color: #1e1204; }
@@ -37,18 +30,17 @@
 .signin-who { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s5); padding: var(--s3); border-radius: var(--r-md); background: var(--wash); box-shadow: var(--ring-in); } .signin-who b { display: block; font-weight: 500; color: var(--ink); } .signin-who small { display: block; font-size: var(--t-12); color: var(--ink3); }
 .signin-c .signin-row { display: flex; gap: var(--s2); } .signin-c .signin-row .btn { flex: 1; }
 /* Narrow windows */
-@media (max-width: 1100px) { .island { display: none; } }
-@media (max-width: 900px) { .window { inset: 28px 0 0; border-radius: 0; } .sidebar { display: none; } .content { margin: 0 0 0 0; border-radius: 0; } .menubar .mb.opt { display: none; } }
+@media (max-width: 900px) { .sidebar { display: none; } .content { margin: 0; border-radius: 0; } }
 /* Inside the Mac app: the real menu bar and window buttons replace ours, and the top strip stays free for dragging. */
-[data-native-shell] .menubar, [data-native-shell] .island { display: none; }
-[data-native-shell] .window { inset: 0; border-radius: 0; box-shadow: none; }
 [data-native-shell] .rail { padding-top: calc(var(--native-titlebar-height, 28px) + 6px); }
 [data-native-shell] .sidebar { padding-top: calc(var(--native-titlebar-height, 28px) + 4px); }
 [data-native-shell] .content { margin-top: var(--native-titlebar-height, 28px); }
 [data-native-shell] .toasts { bottom: 20px; }
 .rail b.red { background: #f0584c; color: #fff; }
-.menubar .firm { margin-left: var(--s2); } .firm .seg { padding: 2px; background: rgba(0,0,0,.26); } .firm .seg button { height: 20px; padding: 0 9px; color: rgba(255,255,255,.8); } .firm .seg button.on { background: rgba(255,255,255,.92); color: #0d1526; }
 .firm-o { display: inline-flex; align-items: center; gap: 5px; } .firm-o i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+
+/* The bell in the rail and its popover: ready items and open alerts. */
+.rail .bell { position: relative; width: 40px; height: 40px; border-radius: var(--r-md); display: grid; place-items: center; color: var(--ink2); transition: background var(--fast), color var(--fast); } .rail .bell:hover, .rail .bell[aria-expanded="true"] { background: var(--hover); color: var(--ink); } .rail .bell-dot { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
 
 /* The sidebar's day card, as in the vision: "Today · 2 of 7 done" over a progress bar. */
 .sidebar button.sp { height: auto; text-align: left; cursor: pointer; }
@@ -57,7 +49,7 @@
 .sidebar .sp small { font-size: var(--t-12); color: var(--ink3); }
 .mstat { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); }
 
-/* In the Mac app: the company choice and waiting sessions live in the sidebar, since the menu bar is gone. */
+/* The company choice and waiting sessions live at the top of the sidebar. */
 .sidebar .firm { margin: 2px 0 6px; } .sidebar .firm .seg { display: flex; width: 100%; } .sidebar .firm .seg button { flex: 1; min-width: 0; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
 .sb-pill { display: flex; align-items: center; gap: 8px; height: 30px; margin: 0 0 6px; padding: 0 10px; border-radius: var(--r-full); background: #0b0b10; color: #fff; font-size: var(--t-12); }
 .sb-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
@@ -69,8 +61,6 @@
 [data-native-vibrancy="1"] .window { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
 [data-native-vibrancy="1"] .rail, [data-native-vibrancy="1"] .sidebar { background: transparent; }
 
-/* The bell in the menu bar and its popover: ready items and open alerts. */
-.menubar .bell { position: relative; } .menubar .bell-dot { position: absolute; top: 4px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); }
 .bell-pop { display: grid; gap: 2px; padding: 4px; max-height: 70vh; overflow-y: auto; }
 .bell-h { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; font-size: var(--t-13); } .bell-h b { font-weight: 500; }
 .bell-s { padding: 8px 10px 2px; font-size: var(--t-11); color: var(--ink3); text-transform: uppercase; letter-spacing: .04em; }

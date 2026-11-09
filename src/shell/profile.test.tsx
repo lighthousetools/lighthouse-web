@@ -43,11 +43,10 @@ describe("the profile", () => {
   });
 });
 
-describe("the menu bar", () => {
-  it("names the current tenant once there are several", async () => {
+describe("the rail", () => {
+  it("names the current tenant under the avatar once there are several", async () => {
     serve({ "GET /tenants": () => TWO });
     show(<App />);
-    expect(await screen.findByRole("button", { name: "Acme" })).toBeTruthy();
     expect(await screen.findByTitle("Acme")).toBeTruthy();
   });
 });

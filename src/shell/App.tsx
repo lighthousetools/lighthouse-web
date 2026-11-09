@@ -1,27 +1,26 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { AlertCircle, Bell as BellIcon, Check, ChevronRight, Search } from "lucide-react";
+import { AlertCircle, Bell as BellIcon, Check, Search } from "lucide-react";
 import { Suspense, lazy, useEffect, useRef, useState, type ComponentType, type JSX } from "react";
 import { followEvents, useSignedIn, type LiveState } from "../api/client";
 import { queriesFor, sessionKey, useAlertCounts, useAlerts, useMe, useNeedsYou, useReady, useTasks } from "../data";
 import { Popover, type Anchor } from "../ui/popover";
-import { language, t, useLanguage } from "../i18n";
+import { t, useLanguage } from "../i18n";
 import { VIEWS, go, useRoute, type View } from "../router";
-import { Dot, Kbd, Logo, Menu, Progress, Seg, ServiceIcon, Skeleton, type MenuItem } from "../ui";
-import { useNow } from "../ui/live";
+import { Dot, Kbd, Logo, Progress, Seg, ServiceIcon, Skeleton } from "../ui";
 import { Ready, decidedStore } from "../views/Ready";
 import { Login } from "../views/Login";
 import { LinkPage, useLink } from "../views/Links";
-import { epoch, signOut as endSession, switchTenant, useAuthStatus, useTenants } from "../session";
-import { NewTenantDialog, Profile } from "./Profile";
+import { epoch, signOut as endSession, useTenants } from "../session";
+import { Profile } from "./Profile";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
 import { Light } from "./Light";
-import { lookChoice, setLook, watchLook, type LookChoice } from "./look";
-import { NAV, groupOf, visibleNav } from "./nav";
+import { watchLook } from "./look";
+import { groupOf, visibleNav } from "./nav";
 import { useDomains, useOrganizations } from "../views/connected";
 import { orgStore, setOrg } from "./org";
 import { Palette } from "./Palette";
-import { closeInspector, inspector, palette, toast, toasts } from "./state";
+import { closeInspector, inspector, palette, toasts } from "./state";
 
 // Every page but the start page loads when it is first opened, so the first load stays small.
 const Brain = lazy(() => import("../views/Brain").then((module) => ({ default: module.Brain })));
@@ -112,89 +111,6 @@ async function signOut(client?: QueryClient) {
   location.reload();
 }
 
-const Tick = ({ on }: { on: boolean }) => <span className="mb-tick">{on && <Check size={13} />}</span>;
-
-function MenuButton({ label, items, strong, optional }: { label: string; items: MenuItem[]; strong?: boolean; optional?: boolean }) {
-  return (
-    <Menu
-      label={label}
-      items={items}
-      trigger={(open, isOpen) => (
-        <button type="button" className={`mb ${strong ? "b" : ""} ${optional ? "opt" : ""}`} aria-expanded={isOpen} onClick={open}>
-          {label}
-        </button>
-      )}
-    />
-  );
-}
-
-function Clock() {
-  const now = useNow(15_000);
-  const date = new Date(now);
-  const locale = language() === "de" ? "de-DE" : "en-GB";
-  return (
-    <span className="mb tn">
-      {date.toLocaleDateString(locale, { weekday: "short" })} {date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
-    </span>
-  );
-}
-
-function Menubar({ live }: { live: LiveState }) {
-  const choice = lookChoice.use();
-  const look = (value: LookChoice, label: string): MenuItem => ({ label, icon: <Tick on={choice === value} />, run: () => setLook(value) });
-  return (
-    <div className="menubar">
-      <MenuButton
-        strong
-        label={t("app.name")}
-        items={[
-          { label: t("nav.settings"), run: () => go("settings") },
-          { label: t("nav.connections"), run: () => go("connections") },
-          "sep",
-          { label: t("settings.signOut"), run: () => void signOut() },
-        ]}
-      />
-      <MenuButton
-        label={t("menu.file")}
-        items={[
-          { label: t("brain.newNote"), run: () => go("brain", "new") },
-          { label: t("agents.new"), run: () => go("agents", "new") },
-          "sep",
-          { label: t("menu.searchEverywhere"), run: () => palette.set(true) },
-        ]}
-      />
-      <MenuButton
-        label={t("menu.view")}
-        items={[look("system", t("look.system")), look("glass", t("look.glass")), look("light", t("look.light"))]}
-      />
-      <MenuButton
-        optional
-        label={t("menu.go")}
-        items={VIEWS.map((view, index) => ({
-          label: (
-            <>
-              <span className="grow">{t(NAV.flatMap((group) => group.items).find((item) => item.view === view)!.label)}</span>
-              <Kbd>{index + 1}</Kbd>
-            </>
-          ),
-          run: () => go(view),
-        }))}
-      />
-      <TenantMenu />
-      <OrgSwitch />
-      <span className="grow" />
-      <button type="button" className="mb ic" aria-label={t("nav.search")} onClick={() => palette.set(true)}>
-        <Search size={14} />
-      </button>
-      {live !== "live" && (
-        <span className="mb" role="status"><Dot tone="warn" />{t("status.reconnecting")}</span>
-      )}
-      <Bell />
-      <Clock />
-    </div>
-  );
-}
-
 /** The bell: what is ready for you and which alerts are open, newest first, each one click from its page. */
 function Bell() {
   const ready = useReady();
@@ -208,7 +124,8 @@ function Bell() {
     <>
       <button
         type="button"
-        className="mb ic bell"
+        className="bell"
+        data-tip={t("bell.title")}
         aria-label={t("bell.label", { count })}
         aria-expanded={!!anchor}
         onClick={(event) => {
@@ -216,11 +133,11 @@ function Bell() {
           setAnchor(anchor ? null : { left: box.left, right: box.right, top: box.top, bottom: box.bottom });
         }}
       >
-        <BellIcon size={14} />
+        <BellIcon size={18} strokeWidth={1.75} />
         {count > 0 && <i className="bell-dot" />}
       </button>
       {anchor && (
-        <Popover anchor={anchor} onClose={close} width={340} label={t("bell.title")}>
+        <Popover anchor={anchor} onClose={close} width={340} side="right" label={t("bell.title")}>
           <div className="bell-pop">
             <div className="bell-h"><b>{t("bell.title")}</b><span className="faint tn">{count}</span></div>
             {items.map((item) => (
@@ -245,33 +162,6 @@ function Bell() {
   );
 }
 
-/** The current tenant in the menu bar, once the user belongs to more than one: switch, or start another. */
-function TenantMenu() {
-  const client = useQueryClient();
-  const tenants = useTenants();
-  const status = useAuthStatus();
-  const me = useMe();
-  const [creating, setCreating] = useState(false);
-  const list = tenants.data ?? [];
-  if (list.length < 2) return null;
-  const current = list.find((item) => item.tenant_id === me.data?.tenant_id);
-  const items: MenuItem[] = list.map((item) => ({
-    label: item.tenant_name,
-    icon: <Tick on={item.tenant_id === current?.tenant_id} />,
-    run: () => {
-      if (item.tenant_id !== current?.tenant_id) switchTenant(item.tenant_id, client).catch((error: Error) => toast(error.message, "bad"));
-    },
-  }));
-  items.push("sep", { label: t("settings.workspace"), run: () => go("settings", "workspace") });
-  if (status.data?.signup === "open") items.push({ label: t("tenant.new"), run: () => setCreating(true) });
-  return (
-    <>
-      <MenuButton label={current?.tenant_name ?? t("tenant.workspaces")} items={items} />
-      {creating && <NewTenantDialog onClose={() => setCreating(false)} />}
-    </>
-  );
-}
-
 /** All organizations, or one, with its color. Every list and number follows it. */
 function OrgSwitch() {
   const orgs = useOrganizations();
@@ -289,68 +179,6 @@ function OrgSwitch() {
           ...list.map((item) => [item.id, <span key={item.id} className="firm-o"><i style={{ background: item.color ?? "var(--ink3)" }} />{item.name}</span>] as [string, JSX.Element]),
         ]}
       />
-    </div>
-  );
-}
-
-/** One line that says what runs and what waits. It opens into the list. */
-function Island({ live }: { live: LiveState }) {
-  const needs = useNeedsYou();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const key = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    addEventListener("mousedown", outside);
-    addEventListener("keydown", key);
-    return () => {
-      removeEventListener("mousedown", outside);
-      removeEventListener("keydown", key);
-    };
-  }, [open]);
-  const waiting = needs.waiting.length;
-  const running = needs.running.length;
-  const label =
-    live !== "live" ? t("status.reconnecting")
-    : waiting ? (waiting === 1 ? t("island.waitingOne") : t("island.waiting", { count: waiting }))
-    : running ? t("island.working", { count: running })
-    : t("island.ready");
-  const state = live !== "live" ? "off" : waiting ? "ask" : running ? "" : "idle";
-  const list = [...needs.waiting, ...needs.running].slice(0, 5);
-  return (
-    <div ref={ref} className={`island ${state} ${open ? "open" : ""}`}>
-      <button type="button" className="ih1" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <i />
-        {label}
-      </button>
-      {open && (
-        <div className="she-il">
-          {list.map((session) => (
-            <button
-              type="button"
-              key={sessionKey(session)}
-              className="ir"
-              onClick={() => {
-                go("sessions", sessionKey(session));
-                setOpen(false);
-              }}
-            >
-              <ServiceIcon name="claude" size={20} />
-              <span className="grow">
-                <b className="clip">{session.project}</b>
-                <small className="clip">{session.status === "waiting" ? t("status.waiting") : session.summary ?? session.node_name}</small>
-              </span>
-              <ChevronRight size={14} />
-            </button>
-          ))}
-          {!list.length && (
-            <p>{needs.decisions ? t("island.decisions", { count: needs.decisions }) : t("island.nothing")}</p>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -400,6 +228,7 @@ function Rail({ view, live }: { view: View; live: LiveState }) {
         );
       })}
       <div className="rme">
+        <Bell />
         <TenantTag />
         <Profile live={live} onSignOut={() => void signOut(client)} />
       </div>
@@ -426,7 +255,7 @@ function TodayCard() {
     : <button type="button" className="sp" onClick={() => go("ready")}>{body}</button>;
 }
 
-/** In the Mac app the menu bar and its island are gone, so waiting sessions show here. */
+/** Waiting sessions, at the top of the sidebar. */
 function SessionPill() {
   const needs = useNeedsYou();
   const waiting = needs.waiting.length;
@@ -440,7 +269,6 @@ function SessionPill() {
 }
 
 function Sidebar({ view }: { view: View }) {
-  const native = inNativeShell();
   const ready = useReady();
   const tasks = useTasks("today");
   const alerts = useAlertTotal();
@@ -452,8 +280,8 @@ function Sidebar({ view }: { view: View }) {
   return (
     <aside className="sidebar" aria-label={t(group.label)}>
       <h2>{t(group.label)}</h2>
-      {native && <OrgSwitch />}
-      {native && <SessionPill />}
+      <OrgSwitch />
+      <SessionPill />
       <button type="button" className="sq" onClick={() => palette.set(true)}>
         <Search size={14} />
         <span className="grow">{t("nav.search")}</span>
@@ -553,8 +381,6 @@ function Shell() {
   return (
     <div className="os">
       <Light />
-      <Menubar live={live} />
-      <Island live={live} />
       <main className={`window ${solo ? "solo" : ""}`} aria-label={t("app.name")}>
         <Rail view={route.view} live={live} />
         <Sidebar view={route.view} />
