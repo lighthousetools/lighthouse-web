@@ -106,7 +106,8 @@ describe("sign-in", () => {
   it("offers the language before sign-in and switches everything", async () => {
     serve({ "GET /auth/status": () => ({ setup_required: false }) });
     show(<App />);
-    await userEvent.click(await screen.findByRole("button", { name: "Deutsch" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Language" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Deutsch" }));
     expect(await screen.findByRole("button", { name: "Anmelden" })).toBeTruthy();
     setLanguage("en");
   });

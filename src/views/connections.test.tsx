@@ -58,7 +58,7 @@ describe("connections", () => {
     expect(await screen.findByText("No connections yet")).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "Add connection" })[0]!);
     expect(await screen.findByText("This applies to you only. Owners and admins change the workspace.")).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: "Linear" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Linear/ }));
     fireEvent.click(screen.getAllByRole("button", { name: "Add connection" }).at(-1)!);
     await waitFor(() => expect(callsTo(calls, "PUT", "/settings/me/connectors/linear")).toHaveLength(1));
     const body = await callsTo(calls, "PUT", "/settings/me/connectors/linear")[0]!.json();

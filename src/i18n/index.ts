@@ -21,12 +21,11 @@ function readChoice(): Choice {
 
 let choice = readChoice();
 
-function browserLanguage(): Language {
-  return (globalThis.navigator?.language ?? "en").toLowerCase().startsWith("de") ? "de" : "en";
-}
+/** German until someone picks a language, here or in their settings. */
+const DEFAULT: Language = "de";
 
 export function language(): Language {
-  return choice === "system" ? browserLanguage() : choice;
+  return choice === "system" ? DEFAULT : choice;
 }
 
 export function languageChoice(): Choice {

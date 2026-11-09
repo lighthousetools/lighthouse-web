@@ -5,25 +5,16 @@ import { groupEntries } from "../views/Brain";
 import { heat, reportParts } from "../views/Recap";
 import { freedom } from "../views/Agents";
 import { newIds } from "./bridge";
-import { dayPhase, resolveLook } from "./look";
+import { resolveLook } from "./look";
 
 const at = (hour: number, minute = 0) => new Date(2026, 10, 9, hour, minute);
 
 describe("look", () => {
-  it("follows the system unless chosen", () => {
-    expect(resolveLook("system", true)).toBe("glass");
-    expect(resolveLook("system", false)).toBe("light");
-    expect(resolveLook("light", true)).toBe("light");
+  it("is light unless Dark was chosen", () => {
+    expect(resolveLook("system")).toBe("light");
+    expect(resolveLook("light")).toBe("light");
   });
 
-  it("moves the light from night over dawn and noon back to night", () => {
-    expect(dayPhase(at(2))).toBe(2);
-    expect(dayPhase(at(7))).toBe(0);
-    expect(dayPhase(at(10))).toBe(0.5);
-    expect(dayPhase(at(14))).toBe(1);
-    expect(dayPhase(at(19))).toBe(1.5);
-    expect(dayPhase(at(23))).toBe(2);
-  });
 });
 
 describe("routes", () => {

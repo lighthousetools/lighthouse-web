@@ -7,7 +7,7 @@ import { dayTime } from "../format";
 import { t, tOr, useLanguage, type Key } from "../i18n";
 import { go, useRoute } from "../router";
 import { canManage, signOut, useRole, useTenants, type Role } from "../session";
-import { lookChoice, setLook, type LookChoice } from "../shell/look";
+import { lookChoice, setLook, type Look, resolveLook } from "../shell/look";
 import { toast } from "../shell/state";
 import { Avatar, Badge, Btn, Confirm, Failure, Field, Modal, Progress, Seg, Skeleton } from "../ui";
 import { LanguagePicker } from "./LanguagePicker";
@@ -52,14 +52,13 @@ function General() {
       </Group>
       <Group title={t("settings.appearance")}>
         <SettingRow title={t("settings.look")} sub={t("settings.lookHint")}>
-          <Seg<LookChoice>
+          <Seg<Look>
             label={t("settings.look")}
-            value={choice}
+            value={resolveLook(choice)}
             onChange={setLook}
-            options={[["system", t("look.system")], ["glass", t("look.glass")], ["light", t("look.light")]]}
+            options={[["glass", t("look.glass")], ["light", t("look.light")]]}
           />
         </SettingRow>
-        <SettingRow title={t("settings.light")} sub={t("settings.lightHint")} />
       </Group>
     </>
   );

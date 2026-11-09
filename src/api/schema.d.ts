@@ -1865,6 +1865,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/node/launches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Hands queued launches to this desktop agent and names running ones to stop.
+         *     Waits up to `wait` seconds for one.
+         */
+        get: operations["take_launches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/node/launches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reports what became of a launch of this desktop agent. */
+        post: operations["report_launch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/node/otel/v1/metrics": {
         parameters: {
             query?: never;
@@ -1932,6 +1969,27 @@ export interface paths {
         put?: never;
         /** Reports the state of a desktop agent. */
         post: operations["report_node"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/node/sessions/{id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Composes what Lighthouse knows for a session of this desktop agent: the
+         *     session's own state, Brain entries and open tasks of its project. A new
+         *     session (`source=startup`) gets only the project part.
+         */
+        get: operations["get_session_context"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2587,6 +2645,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/launch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asks a desktop agent to start a Claude Code session, or to resume one. */
+        post: operations["launch_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/launches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists launches, newest first. */
+        get: operations["list_launches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/launches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns one launch. */
+        get: operations["get_launch"];
+        put?: never;
+        post?: never;
+        /**
+         * Cancels a launch. A queued one ends at once; a running one ends when its
+         *     desktop agent stops the process.
+         */
+        delete: operations["cancel_launch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions/{node}/{id}": {
         parameters: {
             query?: never;
@@ -2615,7 +2728,8 @@ export interface paths {
         put?: never;
         /**
          * Sends a message to a session. The desktop agent hands it over as the next
-         *     instruction when the session stops, see `docs/desktop-agent.md`.
+         *     instruction when the session stops, see `docs/desktop-agent.md`. A session
+         *     Lighthouse launched that has ended is resumed with the message instead.
          */
         post: operations["send_session_message"];
         delete?: never;
@@ -3035,9 +3149,11 @@ export interface paths {
         put?: never;
         /**
          * Sends a message and gets the answer.
-         * @description With a talk agent configured, a run of that agent answers with the thread as
+         * @description With a talk agent chosen, a run of that agent answers with the thread as
          *     context: the answer is `pending` until the run ends, and the run shows the
-         *     tool calls and approvals. Without one, the Second Brain answers at once.
+         *     tool calls and approvals. Without one, the built-in assistant answers the
+         *     same way with the person's connected services, or, when none is connected,
+         *     the Second Brain answers at once.
          */
         post: operations["send_message"];
         delete?: never;
@@ -4091,9 +4207,9 @@ export interface components {
             source: components["schemas"]["Layer"];
             /** @description The credential of its bearer token, if it uses one. */
             token_name?: string | null;
-            /** @description `http` or `stdio`. Only the instance has `stdio` connectors. */
+            /** @description `http`, `openapi` or `stdio`. Only the instance has `stdio` and `openapi` connectors. */
             transport: string;
-            /** @description Server URL of an `http` connector. */
+            /** @description Server URL of an `http` connector, or the description of an `openapi` one. */
             url?: string | null;
         };
         /** @description The person something is for. */
@@ -4714,6 +4830,76 @@ export interface components {
             /** @description Address to open it. */
             url?: string | null;
         };
+        /** @description A stored launch. */
+        Launch: {
+            /** @description Whether someone asked to stop it. */
+            cancel_requested: boolean;
+            /**
+             * Format: double
+             * @description Costs Claude Code reported, in USD.
+             */
+            cost_usd?: number | null;
+            /**
+             * Format: date-time
+             * @description When it was asked for.
+             */
+            created_at: string;
+            /** @description Working directory. */
+            cwd: string;
+            /**
+             * Format: date-time
+             * @description When it ended.
+             */
+            finished_at?: string | null;
+            /**
+             * Format: uuid
+             * @description Launch ID.
+             */
+            id: string;
+            /** @description Model. */
+            model?: string | null;
+            /**
+             * Format: uuid
+             * @description The machine.
+             */
+            node_id: string;
+            /** @description The instruction. */
+            prompt: string;
+            /** @description The final answer or the error. */
+            result?: string | null;
+            /** @description Session it continues. */
+            resume?: string | null;
+            /** @description The Claude Code session, once known. */
+            session_id?: string | null;
+            /** @description `queued`, `started`, `running`, `succeeded`, `failed` or `cancelled`. */
+            status: string;
+            /**
+             * Format: date-time
+             * @description Latest change.
+             */
+            updated_at: string;
+        };
+        /** @description Launches handed to a node, and running ones it should stop. */
+        LaunchQueue: {
+            /** @description IDs of running launches to stop. */
+            cancel: string[];
+            /** @description Launches to start now. */
+            launches: components["schemas"]["Launch"][];
+        };
+        /** @description What a node reports about a launch. */
+        LaunchReport: {
+            /**
+             * Format: double
+             * @description Costs in USD.
+             */
+            cost_usd?: number | null;
+            /** @description The final answer or the error. */
+            result?: string | null;
+            /** @description The Claude Code session. */
+            session_id?: string | null;
+            /** @description `running`, `succeeded`, `failed` or `cancelled`. */
+            status: string;
+        };
         /**
          * @description Where a setting comes from.
          * @enum {string}
@@ -4897,6 +5083,19 @@ export interface components {
             category?: string | null;
             /** @description The fact. */
             text: string;
+        };
+        /** @description A session to start or resume. */
+        NewLaunch: {
+            /** @description Working directory on that machine. */
+            cwd: string;
+            /** @description Model, if not the default of Claude Code. */
+            model?: string | null;
+            /** @description The machine that runs it: its ID, or its name. A name that several machines share picks the one seen last. */
+            node: string;
+            /** @description The instruction. */
+            prompt: string;
+            /** @description Session ID to continue instead of starting a new session. */
+            resume?: string | null;
         };
         /** @description A message from the owner. */
         NewMessage: {
@@ -5356,16 +5555,28 @@ export interface components {
         PresetConnector: {
             /** @description `none`, `bearer` or `oauth`. */
             auth: string;
+            /** @description A group for browsing, such as `crm` or `storage`. */
+            category?: string | null;
+            /** @description The vendor's documentation of the server. */
+            docs?: string | null;
             /** @description Reversible tools. */
             draft_tools?: string[];
             /** @description Suggested name. */
             id: string;
+            /** @description The vendor's page to create a token, for `bearer`. */
+            key_url?: string | null;
             /** @description Display name. */
             label: string;
+            /** @description Something to know before connecting, such as a region or an admin setting. */
+            note?: string | null;
             /** @description Tools known to be read-only. */
             read_tools?: string[];
+            /** @description `dynamic` when the server registers clients itself, `preregistered` when you register an OAuth app first. */
+            registration?: string | null;
             /** @description Server URL. */
             url: string;
+            /** @description Who runs the server. */
+            vendor?: string | null;
         };
         /** @description A suggested model. */
         PresetModel: {
@@ -5841,6 +6052,11 @@ export interface components {
              * @description Latest report.
              */
             updated_at: string;
+        };
+        /** @description What a session gets when it starts, resumes or was compacted. */
+        SessionContext: {
+            /** @description Markdown for the session's context. Empty when there is nothing to say. */
+            text: string;
         };
         /** @description Everything known about a session. */
         SessionDetail: {
@@ -10574,6 +10790,61 @@ export interface operations {
             };
         };
     };
+    take_launches: {
+        parameters: {
+            query?: {
+                /** @description Seconds to wait, at most 60 */
+                wait?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LaunchQueue"];
+                };
+            };
+        };
+    };
+    report_launch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Launch ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LaunchReport"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Launch"];
+                };
+            };
+            /** @description Unknown, foreign or already over */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     export_metrics: {
         parameters: {
             query?: never;
@@ -10671,6 +10942,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NodeState"];
+                };
+            };
+        };
+    };
+    get_session_context: {
+        parameters: {
+            query?: {
+                /** @description Working directory of the session */
+                cwd?: string;
+                /** @description startup, resume, compact or clear */
+                source?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Session ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionContext"];
                 };
             };
         };
@@ -12040,6 +12338,125 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Session"][];
                 };
+            };
+        };
+    };
+    launch_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewLaunch"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Launch"];
+                };
+            };
+            /** @description Empty prompt or directory */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown node */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_launches: {
+        parameters: {
+            query?: {
+                /** @description Only launches of this node */
+                node?: string;
+                /** @description Maximum number of launches */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Launch"][];
+                };
+            };
+        };
+    };
+    get_launch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Launch ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Launch"];
+                };
+            };
+            /** @description Unknown launch */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_launch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Launch ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Launch"];
+                };
+            };
+            /** @description Unknown or already over */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -9,6 +9,7 @@ import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
 import { Badge, Btn, Confirm, Empty, Failure, Field, Modal, PageHeader, SearchField, Seg, ServiceIcon, Skeleton, Toggle } from "../ui";
 import { SecretModal, SourceBadge, TargetPicker, targetOf, useEffective, useManage, usePresets, useRefresh, words, type Target, type View } from "./layers";
+import { ConnectorCatalog } from "./ConnectorCatalog";
 import "./connections.css";
 
 type Connector = View["connectors"][number];
@@ -83,7 +84,7 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       if (!existing) go("connections", name);
     },
   });
-  const valid = /^[a-z][a-z0-9_-]{0,39}$/.test(name) && /^https?:\/\//.test(url.trim());
+  const valid = /^[a-z][a-z0-9_-]{0,39}$/.test(name) && /^https?:\/\//.test(url.trim()) && !url.includes("{");
   return (
     <Modal
       wide
@@ -100,24 +101,17 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       <div className="lay-form">
       {!existing && <TargetPicker value={target} onChange={setTarget} />}
       {!existing && (presets.data?.connectors?.length ?? 0) > 0 && (
-        <div className="lay-chips">
-          {(presets.data?.connectors ?? []).map((preset) => (
-            <Btn
-              key={preset.id}
-              size="sm"
-              variant={name === preset.id ? "primary" : ""}
-              onClick={() => {
-                setName(preset.id);
-                setUrl(preset.url);
-                setAuth((preset.auth as Auth) ?? "oauth");
-                setReads((preset.read_tools ?? []).join(", "));
-                setDrafts((preset.draft_tools ?? []).join(", "));
-              }}
-            >
-              {preset.label}
-            </Btn>
-          ))}
-        </div>
+        <ConnectorCatalog
+          presets={presets.data?.connectors ?? []}
+          selected={name}
+          onPick={(preset) => {
+            setName(preset.id);
+            setUrl(preset.url);
+            setAuth((preset.auth as Auth) ?? "oauth");
+            setReads((preset.read_tools ?? []).join(", "));
+            setDrafts((preset.draft_tools ?? []).join(", "));
+          }}
+        />
       )}
       <Field value={name} onChange={setName} disabled={!!existing} label={t("connections.name")} placeholder={t("connections.name")} />
       {name && !/^[a-z][a-z0-9_-]{0,39}$/.test(name) && <small className="faint">{t("models.nameRule")}</small>}

@@ -3,3 +3,5 @@ dist
 *.local
 .env
 e2e/report.json
+# Licensed fonts ship with the hosted image only, see src/ui/tokens.css
+public/fonts/

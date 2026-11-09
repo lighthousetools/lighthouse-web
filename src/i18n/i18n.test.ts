@@ -32,7 +32,7 @@ describe("translations", () => {
     for (const key of used) expect(Object.keys(en), key).toContain(key);
   });
 
-  it("switch at once and follow the browser by default", () => {
+  it("switch at once and start in German", () => {
     setLanguage("de");
     expect(language()).toBe("de");
     expect(t("nav.ready")).toBe("Fertig für dich");
@@ -41,7 +41,7 @@ describe("translations", () => {
     setLanguage("en");
     expect(longDate(new Date(2026, 10, 6))).toBe("Friday 6 November");
     setLanguage("system");
-    expect(language()).toBe("en");
+    expect(language()).toBe("de");
   });
 
   it("fill in values and fall back for unknown names", () => {

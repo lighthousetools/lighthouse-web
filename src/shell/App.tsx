@@ -14,7 +14,7 @@ import { epoch, signOut as endSession, useTenants } from "../session";
 import { Profile } from "./Profile";
 import { inNativeShell, listenForCommands, newIds, post } from "./bridge";
 import { Inspector } from "./Inspector";
-import { Light } from "./Light";
+import { Dots } from "./Dots";
 import { watchLook } from "./look";
 import { groupOf, visibleNav } from "./nav";
 import { useDomains, useOrganizations } from "../views/connected";
@@ -382,7 +382,7 @@ function Shell() {
   const solo = (visibleNav(domains).find((entry) => entry.id === groupOf(route.view).id)?.items.length ?? 0) < 2;
   return (
     <div className="os">
-      <Light />
+      <Dots />
       <main className={`window ${solo ? "solo" : ""}`} aria-label={t("app.name")}>
         <Rail view={route.view} live={live} />
         <Sidebar view={route.view} />

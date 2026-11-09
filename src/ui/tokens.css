@@ -1,5 +1,11 @@
+/* Nohemi is licensed separately and not part of this repository. The hosted image serves it from /fonts; builds
+   without it fall back to the system font. */
+@font-face { font-family: "Nohemi"; font-style: normal; font-weight: 300; font-display: swap; src: url("/fonts/Nohemi-Light.woff2") format("woff2"); }
+@font-face { font-family: "Nohemi"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/Nohemi-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Nohemi"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/Nohemi-Medium.woff2") format("woff2"); }
+@font-face { font-family: "Nohemi"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/Nohemi-SemiBold.woff2") format("woff2"); }
 :root {
-  --font: "Inter Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; --display: var(--font); --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font: "Nohemi", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; --display: var(--font); --mono: ui-monospace, "SF Mono", Menlo, monospace;
   /* type: base 13/20. Only weights 400 and 500. Hierarchy by opacity. */ --t-10: 10px; --t-11: 11px; --t-12: 12px; --t-125: 12.5px; --t-13: 13px; --t-14: 14px; --t-15: 15px; --t-16: 15px; --t-20: 20px; --t-22: 22px; --t-24: 24px; --t-28: 28px; --t-40: 40px;
   /* space */ --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px; --s10: 40px;
   /* radii */ --r-xs: 4px; --r-sm: 6px; --r: 8px; --r-md: 10px; --r-lg: 12px; --r-tray: 14px; --r-xl: 16px; --r-full: 999px;
@@ -7,23 +13,23 @@
   --ease: cubic-bezier(.22,1,.36,1); --fast: 140ms; --med: 240ms; --slow: 400ms;
 }
 [data-look="glass"] {
-  --ink: rgba(255,255,255,.92); --strong: #fff; --ink2: rgba(255,255,255,.62); --ink3: rgba(255,255,255,.45); --ink4: rgba(255,255,255,.28);
-  --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14);
-  --pane: rgba(16,17,22,.8); --side: rgba(12,14,22,.56); --surface: rgba(255,255,255,.05); --surface2: rgba(255,255,255,.06); --wash: rgba(255,255,255,.03); --hover: rgba(255,255,255,.05); --active: rgba(255,255,255,.08);
-  --pop: rgba(30,30,35,.9); --ring: 0 0 0 .5px rgba(255,255,255,.1), 0 1px 2px rgba(0,0,0,.4); --ring-in: inset 0 0 0 .5px rgba(255,255,255,.14); --shadow: 0 0 0 .5px rgba(255,255,255,.12), 0 16px 44px rgba(0,0,0,.5); --edge: none;
+  --ink: rgba(255,255,255,.92); --strong: #fff; --ink2: rgba(255,255,255,.7); --ink3: rgba(255,255,255,.52); --ink4: rgba(255,255,255,.34);
+  --line: rgba(255,255,255,.1); --line2: rgba(255,255,255,.18);
+  --pane: #1a1a1d; --side: rgba(14,14,16,.62); --surface: rgba(255,255,255,.07); --surface2: rgba(255,255,255,.09); --wash: rgba(255,255,255,.04); --hover: rgba(255,255,255,.07); --active: rgba(255,255,255,.11);
+  --pop: rgba(36,36,40,.94); --ring: 0 0 0 .5px rgba(255,255,255,.1), 0 1px 2px rgba(0,0,0,.4); --ring-in: inset 0 0 0 .5px rgba(255,255,255,.14); --shadow: 0 0 0 .5px rgba(255,255,255,.12), 0 16px 44px rgba(0,0,0,.5); --edge: none;
   --btn: rgba(255,255,255,.92); --btn-ink: #161618; --chart: #5B9AFF; --chart2: #f5a623; --term: rgba(0,0,0,.34); --accent: #5B9AFF; --accent-soft: rgba(91,154,255,.16);
   --warn: #F5A623; --warn-soft: rgba(245,166,35,.14); --ok: #4CC38A; --ok-soft: rgba(76,195,138,.14); --bad: #FF6B5E; --bad-soft: rgba(255,107,94,.14); --vio: #B49BFF; --vio-soft: rgba(180,155,255,.15);
 }
 [data-look="light"] {
   --ink: rgba(0,0,0,.88); --strong: #000; --ink2: rgba(0,0,0,.61); --ink3: rgba(0,0,0,.45); --ink4: rgba(0,0,0,.27);
   --line: rgba(0,0,0,.06); --line2: rgba(0,0,0,.12);
-  --pane: rgba(255,255,255,.94); --side: rgba(248,248,248,.74); --surface: #fff; --surface2: rgba(0,0,0,.04); --wash: rgba(0,0,0,.02); --hover: rgba(0,0,0,.03); --active: rgba(0,0,0,.055);
+  --pane: #fff; --side: rgba(250,250,250,.72); --surface: #fff; --surface2: rgba(0,0,0,.04); --wash: rgba(0,0,0,.02); --hover: rgba(0,0,0,.03); --active: rgba(0,0,0,.055);
   --pop: rgba(255,255,255,.96); --ring: 0 0 0 .5px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05); --ring-in: inset 0 0 0 .5px rgba(0,0,0,.14); --shadow: 0 0 0 .5px rgba(0,0,0,.1), 0 16px 44px rgba(0,0,0,.14); --edge: none;
   --btn: rgba(0,0,0,.88); --btn-ink: #fcfcfc; --chart: #0060E2; --chart2: #b86e00; --term: #141416; --accent: #0060E2; --accent-soft: rgba(0,96,226,.08);
   --warn: #B26A00; --warn-soft: rgba(245,166,35,.14); --ok: #0E7A4B; --ok-soft: rgba(14,122,75,.1); --bad: #CF2E20; --bad-soft: rgba(207,46,32,.09); --vio: #6A43D9; --vio-soft: rgba(106,67,217,.09);
 }
 *, *::before, *::after { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #03070f; color: var(--ink); font: 400 13px/20px var(--font); }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; background: #fff; color: var(--ink); font: 400 13px/20px var(--font); }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
 input, textarea, select { font: inherit; color: inherit; background: none; border: 0; outline: 0; }
 h1, h2, h3, h4, p, ul, ol { margin: 0; padding: 0; } li { list-style: none; }

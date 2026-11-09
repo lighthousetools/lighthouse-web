@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cronText } from "../cron";
 import {
   ArrowDown, ArrowLeft, ArrowUp, Bell, Bot, CalendarClock, Clock, FileCode, GitBranch, Hand, Maximize2, Minus,
-  FlaskConical, MousePointerClick, Play, Plus, Save, Search, Sparkles, Trash2, Webhook, Wrench, X, Zap, type LucideIcon,
+  FlaskConical, MousePointerClick, Play, Plus, Save, Search, Sparkles, Trash2, Webhook, Workflow, Wrench, X, Activity, type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from "react";
 import { api, must, type Schemas } from "../api/client";
@@ -31,13 +31,13 @@ type NodeKind = "trigger" | Step["kind"];
 const pendingStore = createStore<Automation | null>(null);
 
 const KIND: Record<NodeKind, { label: Key; tone: Tone; icon: LucideIcon }> = {
-  trigger: { label: "automations.kind.trigger", tone: "info", icon: Zap },
+  trigger: { label: "automations.kind.trigger", tone: "info", icon: Activity },
   agent: { label: "automations.kind.agent", tone: "vio", icon: Bot },
   tool: { label: "automations.kind.tool", tone: "", icon: Wrench },
   notify: { label: "automations.kind.notify", tone: "ok", icon: Bell },
   if: { label: "automations.kind.if", tone: "warn", icon: GitBranch },
 };
-const TRIGGER_ICON: Record<Trigger["kind"], LucideIcon> = { cron: CalendarClock, event: Zap, webhook: Webhook, manual: MousePointerClick };
+const TRIGGER_ICON: Record<Trigger["kind"], LucideIcon> = { cron: CalendarClock, event: Activity, webhook: Webhook, manual: MousePointerClick };
 
 const runsOf = (runs: Schemas["RunRecord"][], id: string) => runs.filter((run) => run.agent_id === `automation:${id}`);
 
@@ -204,7 +204,7 @@ function List() {
           <Skeleton count={4} height={60} />
         ) : all.length === 0 ? (
           <div className="card">
-            <Empty icon={<Zap />} title={t("automations.empty")} sub={t("automations.emptyHint")} />
+            <Empty icon={<Workflow />} title={t("automations.empty")} sub={t("automations.emptyHint")} />
           </div>
         ) : (
           <div className="card au-rows">
@@ -464,7 +464,7 @@ const PALETTE: { group: Key; items: { kind: NodeKind; trigger?: Trigger["kind"];
     group: "automations.palette.triggers",
     items: [
       { kind: "trigger", trigger: "cron", label: "automations.triggerKind.cron", icon: CalendarClock },
-      { kind: "trigger", trigger: "event", label: "automations.triggerKind.event", icon: Zap },
+      { kind: "trigger", trigger: "event", label: "automations.triggerKind.event", icon: Activity },
       { kind: "trigger", trigger: "webhook", label: "automations.triggerKind.webhook", icon: Webhook },
       { kind: "trigger", trigger: "manual", label: "automations.triggerKind.manual", icon: MousePointerClick },
     ],

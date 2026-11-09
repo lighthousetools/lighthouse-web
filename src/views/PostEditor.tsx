@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, CalendarClock, Check, ChevronRight, Copy, CornerDownLeft, ExternalLink, Hash, List, ListOrdered, MoreHorizontal, Plus, Scissors, Sparkles, Trash2, Type, X, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarClock, Check, ChevronRight, Copy, CornerDownLeft, ExternalLink, Hash, List, ListOrdered, MoreHorizontal, Plus, Scissors, Sparkles, Trash2, Type, X, Wand2 } from "lucide-react";
 import { api, must } from "../api/client";
 import { useEffect, useRef, useState } from "react";
 import { go } from "../router";
@@ -145,7 +145,7 @@ function Rewrite({ post, locked, onUse, onKeep }: { post: Post; locked: boolean;
   return (
     <>
       <div className="eai">
-        <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.sharperAsk"))}><Zap />{t("posts.rewrite.sharper")}</Btn>
+        <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.sharperAsk"))}><Wand2 />{t("posts.rewrite.sharper")}</Btn>
         <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.shorterAsk"))}><Scissors />{t("posts.rewrite.shorter")}</Btn>
         <Btn size="sm" disabled={rewrite.isPending} onClick={() => ask(t("posts.rewrite.hookAsk"))}><Type />{t("posts.rewrite.hook")}</Btn>
         <label className="field" style={{ flex: 1, minWidth: 180, height: "var(--h-sm)" }}>

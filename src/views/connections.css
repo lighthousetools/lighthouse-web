@@ -8,7 +8,7 @@
 .cn-add { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--surface); box-shadow: var(--ring); color: var(--ink2); transition: background var(--fast), color var(--fast); } .cn-add:hover { background: var(--active); color: var(--ink); } .cn-add.on { background: var(--btn); color: var(--btn-ink); box-shadow: none; }
 .cn-none { display: grid; justify-items: center; gap: var(--s2); padding: var(--s10) 0; color: var(--ink2); } .cn-none b { font-weight: 500; color: var(--ink); }
 .cn-back { display: inline-flex; align-items: center; gap: 6px; height: var(--h-sm); padding: 0 var(--s2) 0 6px; margin: 0 0 var(--s3) -6px; font-size: var(--t-13); color: var(--ink2); border-radius: var(--r-sm); } .cn-back:hover { background: var(--hover); color: var(--ink); }
-.cn-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s5); } .cn-head .t { display: flex; align-items: center; gap: var(--s2); } .cn-head h1 { font: 500 var(--t-24)/32px var(--display); letter-spacing: -.24px; } .cn-head p { color: var(--ink2); font-size: var(--t-125); line-height: 18px; max-width: 560px; } .cn-head .acts { display: flex; align-items: center; gap: var(--s3); flex: none; }
+.cn-head { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s5); } .cn-head .t { display: flex; align-items: center; gap: var(--s2); } .cn-head h1 { font: 500 var(--t-24)/32px var(--display); letter-spacing: 0; } .cn-head p { color: var(--ink2); font-size: var(--t-125); line-height: 18px; max-width: 560px; } .cn-head .acts { display: flex; align-items: center; gap: var(--s3); flex: none; }
 .cn-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--s5); align-items: start; } .cn-cols > div > .sh:first-child { margin-top: 0; }
 .cn-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); } .cn-stats + .sh { margin-top: var(--s5); }
 .cn-prog { display: flex; align-items: center; gap: var(--s3); font-size: var(--t-12); margin-bottom: var(--s3); } .cn-body .cn-prog { margin: var(--s3) 0 0; }
@@ -34,3 +34,30 @@
 .cn-spin { animation: cnspin 1s linear infinite; } @keyframes cnspin { to { transform: rotate(360deg); } }
 @media (max-width: 1240px) { .cn-cols { grid-template-columns: minmax(0, 1fr); } }
 .cn-row .grow { min-width: 0; } @media (max-width: 1000px) { .cn-grid { grid-template-columns: minmax(0,1fr); } }
+
+/* Catalog of ready connectors */
+.cat { display: grid; gap: var(--s3); }
+.cat-groups { display: flex; gap: var(--s1); overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.cat-groups::-webkit-scrollbar { display: none; }
+.cat-groups button {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink2);
+  font: 500 12px/1 var(--font); cursor: pointer;
+}
+.cat-groups button span { color: var(--ink3); font-variant-numeric: tabular-nums; }
+.cat-groups button.on { background: var(--ink); border-color: var(--ink); color: var(--pane); }
+.cat-groups button.on span { color: inherit; opacity: .7; }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s2); max-height: 320px; overflow-y: auto; }
+.cat-tile {
+  display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink);
+  text-align: left; cursor: pointer; font: inherit;
+}
+.cat-tile:hover { border-color: var(--line2, var(--line)); }
+.cat-tile.on { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.cat-name { display: grid; min-width: 0; }
+.cat-name b { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-name small { color: var(--ink3); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-note { display: grid; gap: var(--s1); padding: 12px 14px; border-radius: 12px; background: var(--surface); color: var(--ink2); font-size: 13px; }
+.cat-note p { margin: 0; }
+.cat-links { display: flex; gap: var(--s1); flex-wrap: wrap; }

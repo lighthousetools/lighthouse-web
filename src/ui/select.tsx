@@ -12,6 +12,7 @@ export function Select<T extends string>({ value, onChange, options, label, widt
   return (
     <Menu
       label={label}
+      width={width}
       trigger={(open, isOpen) => (
         <button
           type="button"

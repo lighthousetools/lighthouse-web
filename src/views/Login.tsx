@@ -3,8 +3,8 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { ApiError, api, errorText, must, storeToken, type Schemas } from "../api/client";
 import { t, useLanguage } from "../i18n";
 import { DEVICE, useAuthStatus } from "../session";
-import { Light } from "../shell/Light";
-import { Btn, Failure, Field, Logo } from "../ui";
+import { Dots } from "../shell/Dots";
+import { Btn, Failure, Field, Wordmark } from "../ui";
 import { LanguagePicker } from "./LanguagePicker";
 
 /** The shortest password the server takes. */
@@ -15,11 +15,11 @@ export function SignInCard({ title, lead, children }: { title: string; lead?: Re
   useLanguage();
   return (
     <div className="os">
-      <Light />
+      <Dots />
       <main className="signin">
         <div className="signin-c">
           <div className="brand">
-            <Logo size={22} /> {t("app.name")}
+            <Wordmark />
           </div>
           <h1>{title}</h1>
           {lead && <p>{lead}</p>}
@@ -122,7 +122,7 @@ export function Login({ onDone }: { onDone: () => void }) {
     );
   }
   return (
-    <SignInCard title={t("login.title")} lead={t("login.lead")}>
+    <SignInCard title={t("login.title")}>
       {status.data?.setup_required ? (
         <p className="note-box" style={{ marginTop: 20 }}>{t("login.setup")}</p>
       ) : (

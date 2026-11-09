@@ -329,7 +329,7 @@ export function brandOf(name?: string): string | undefined {
   if (!name) return undefined;
   const lower = name.toLowerCase();
   if (BRANDS[lower]) return lower;
-  if (/gmail|google|drive|calendar/.test(lower)) return "google";
+  if (/gmail|google|\bdrive\b|\bcalendar\b/.test(lower)) return "google";
   if (/claude|anthropic/.test(lower)) return "claude";
   return Object.keys(BRANDS).find((brand) => lower.includes(brand));
 }
@@ -591,8 +591,10 @@ export function menuPosition(trigger: DOMRect, menu: { width: number; height: nu
   return { left, top };
 }
 
-export function Menu({ trigger, items, label }: {
+export function Menu({ trigger, items, label, width }: {
   trigger: (open: () => void, isOpen: boolean) => ReactNode; items: MenuItem[]; label?: string;
+  /** Fixes the menu's width, so it lines up with its trigger. */
+  width?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -648,7 +650,7 @@ export function Menu({ trigger, items, label }: {
             className="menu"
             role="menu"
             aria-label={label}
-            style={pos ?? { left: -9999, top: 0 }}
+            style={{ ...(pos ?? { left: -9999, top: 0 }), ...(width ? { width, minWidth: 0 } : {}) }}
           >
             {items.map((item, index) =>
               item === "sep" ? (
@@ -734,13 +736,24 @@ export function Confirm({ title, body, action, onConfirm, onClose }: {
   );
 }
 
+/** The mark: a lightning bolt in the current color. */
 export function Logo({ size = 22 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M9.3 22h5.4l-1.1-13h-3.2z" fill="currentColor" />
-      <path d="M12 2.5l3.2 3.2H8.8z" fill="currentColor" />
-      <path d="M10 6.2h4v2.3h-4z" fill="var(--warn)" />
-      <path d="M2 7.4h5M17 7.4h5" stroke="var(--warn)" strokeWidth="1.5" />
+      <path d="M15.6 2 7.8 13.6h4L9.6 22l7-12h-3.8z" fill="currentColor" />
     </svg>
+  );
+}
+
+/** The name, set in Nohemi, with the bolt as its "I". */
+export function Wordmark() {
+  return (
+    <span className="wordmark" role="img" aria-label="Lighthouse">
+      L
+      <svg className="wordmark-i" viewBox="0 0 10 20" aria-hidden="true">
+        <path d="M8.6 0 .8 11.6h4L2.6 20l7-12H5.8z" fill="currentColor" />
+      </svg>
+      GHTHOUSE
+    </span>
   );
 }

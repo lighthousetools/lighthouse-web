@@ -1,15 +1,25 @@
-import { useLanguageChoice, setLanguage, t, useLanguage, type Choice } from "../i18n";
-import { Seg } from "../ui";
+import germany from "circle-flags/flags/de.svg";
+import britain from "circle-flags/flags/gb.svg";
+import type { ReactNode } from "react";
+import { setLanguage, t, useLanguage, type Language } from "../i18n";
+import { Select } from "../ui/select";
+
+const flag = (src: string) => <img className="flag" src={src} alt="" width={18} height={18} />;
+
+const option = (mark: ReactNode, name: string) => <span className="lang-o">{mark}{name}</span>;
 
 export function LanguagePicker() {
-  const choice = useLanguageChoice();
-  useLanguage();
+  const current = useLanguage();
   return (
-    <Seg<Choice>
+    <Select<Language>
+      width={148}
       label={t("lang.label")}
-      value={choice}
+      value={current}
       onChange={setLanguage}
-      options={[["system", t("lang.system")], ["de", "Deutsch"], ["en", "English"]]}
+      options={[
+        ["de", option(flag(germany), "Deutsch")],
+        ["en", option(flag(britain), "English")],
+      ]}
     />
   );
 }

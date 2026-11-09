@@ -1,6 +1,6 @@
 import {
   Bell, Bot, Brain, Layers, ListTodo, Newspaper, Plug, ScrollText, Settings2, Sun, Sunrise, Terminal, UserRound,
-  Briefcase, Workflow, Zap, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, Building2, Handshake, BarChart3, MessageSquare, FileSignature,
+  Briefcase, Workflow, FileText, Inbox, Mail, Calendar, CheckSquare, GitPullRequest, Building2, Handshake, BarChart3, MessageSquare, FileSignature,
   Receipt, Coins, TrendingUp, Radar, Sparkles, Megaphone, Send, LineChart, Presentation, type LucideIcon,
 } from "lucide-react";
 import type { Key } from "../i18n";
@@ -52,7 +52,7 @@ export const NAV: NavGroup[] = [
   },
   { id: "brain", label: "nav.brain", icon: Brain, items: [{ view: "brain", label: "nav.brain", icon: Brain }] },
   {
-    id: "auto", label: "nav.group.auto", icon: Zap, items: [
+    id: "auto", label: "nav.group.auto", icon: Workflow, items: [
       { view: "automations", label: "nav.automations", icon: Workflow },
       { view: "agents", label: "nav.agents", icon: Bot },
       { view: "log", label: "nav.log", icon: FileText },

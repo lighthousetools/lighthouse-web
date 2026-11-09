@@ -1,6 +1,6 @@
 /* Decision queue: list on the left, the open decision on the right, keyboard first. */
 .rdy { max-width: 1100px; margin: 0 auto; height: 100%; min-height: 560px; display: flex; flex-direction: column; } .rdy.rd-empty { max-width: 760px; }
-.rdy h1 { font: 500 28px/36px var(--display); letter-spacing: -.02em; } .rdy .lead { color: var(--ink2); margin-top: 4px; font-size: var(--t-14); }
+.rdy h1 { font: 500 28px/36px var(--display); letter-spacing: 0; } .rdy .lead { color: var(--ink2); margin-top: 4px; font-size: var(--t-14); }
 .rd-h { display: flex; align-items: flex-start; gap: var(--s3); }
 .rdy .prog { display: flex; align-items: center; gap: var(--s3); margin: var(--s4) 0 var(--s3); font-size: var(--t-12); color: var(--ink3); min-height: 24px; white-space: nowrap; } .rdy .prog b { color: var(--ink); font-weight: 500; }
 .rd-stamp { display: inline-flex; align-items: center; gap: 6px; color: var(--ink2); } .rd-stamp button { color: var(--ink); font-weight: 500; } .rd-stamp button:hover { color: var(--accent); }
@@ -13,7 +13,7 @@
 .rd-none { font-size: var(--t-13); color: var(--ink3); padding: var(--s3) 10px; }
 .rd-item { min-height: 0; min-width: 0; position: relative; container-type: inline-size; } .rd-mo { height: 100%; min-height: 0; }
 .rdc { flex: 1; min-height: 0; overflow-y: auto; padding: var(--s5); display: flex; flex-direction: column; } .rdc .rd-hd { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-13); color: var(--ink2); }
-.rdc h2 { font: 500 var(--t-22)/30px var(--display); letter-spacing: -.012em; margin-top: var(--s3); } .rdc .rd-why { font-size: var(--t-13); color: var(--ink2); margin-top: var(--s1); } .rdc .rd-why b { font-weight: 500; color: var(--ink); }
+.rdc h2 { font: 500 var(--t-22)/30px var(--display); letter-spacing: 0; margin-top: var(--s3); } .rdc .rd-why { font-size: var(--t-13); color: var(--ink2); margin-top: var(--s1); } .rdc .rd-why b { font-weight: 500; color: var(--ink); }
 .rdc .rea-dh { display: flex; align-items: center; gap: var(--s2); margin-top: var(--s4); margin-bottom: var(--s2); min-height: 30px; font-size: var(--t-12); color: var(--ink3); }
 .rdc .body { flex: 0 0 auto; min-height: 96px; outline: 0; } .rdc .body[contenteditable="false"] { opacity: .62; }
 .rdc .reax-att { display: flex; align-items: center; gap: var(--s3); width: 100%; margin-top: var(--s2); padding: var(--s2) var(--s3); border-radius: var(--r-md); background: var(--surface2); font-size: var(--t-13); transition: background var(--fast); } .rdc .reax-att:hover { background: var(--active); } .reax-att .th { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--wash); box-shadow: var(--ring-in); color: var(--ink3); flex: none; } .reax-att .vw { display: inline-flex; align-items: center; gap: 6px; font-size: var(--t-12); font-weight: 500; flex: none; }
@@ -23,7 +23,7 @@
 .rd-item .rd-ft { flex: none; display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s5); border-top: 1px solid var(--line); }
 @container (max-width: 700px) { .rd-item .rd-ft .btn:not(.primary) kbd { display: none; } .rd-item .rd-ft { padding-inline: var(--s3); gap: 6px; } .rd-item .rd-ft .btn { padding: 0 10px; } }
 @container (max-width: 620px) { .rd-item .rd-ft .btn:not(.primary) svg { display: none; } }
-.rdy-done { flex: 1; min-height: 0; display: grid; place-items: center; text-align: center; } .rdy-done h1 { font: 500 var(--t-40)/1.1 var(--display); letter-spacing: -.03em; } .rd-acts { display: flex; gap: var(--s2); justify-content: center; margin-top: var(--s5); flex-wrap: wrap; }
+.rdy-done { flex: 1; min-height: 0; display: grid; place-items: center; text-align: center; } .rdy-done h1 { font: 500 var(--t-40)/1.1 var(--display); letter-spacing: 0; } .rd-acts { display: flex; gap: var(--s2); justify-content: center; margin-top: var(--s5); flex-wrap: wrap; }
 .rd-log { margin: var(--s6) auto 0; width: min(520px,100%); text-align: left; } .rd-log button { display: flex; align-items: center; gap: var(--s2); width: 100%; height: 30px; padding: 0 var(--s2); border-radius: var(--r-sm); font-size: var(--t-12); color: var(--ink2); } .rd-log button:hover { background: var(--hover); } .rd-log em { font-style: normal; color: var(--ink3); }
 .rd-facts { display: grid; grid-template-columns: 96px minmax(0,1fr); gap: 6px var(--s3); font-size: var(--t-13); line-height: 20px; } .rd-facts dt { color: var(--ink3); } .rd-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .rdc .ta.body { margin-top: var(--s3); white-space: pre-wrap; overflow-wrap: anywhere; } .rdc textarea.ta { min-height: 220px; }

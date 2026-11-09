@@ -6046,6 +6046,94 @@
         ]
       }
     },
+    "/node/launches": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Hands queued launches to this desktop agent and names running ones to stop.\nWaits up to `wait` seconds for one.",
+        "operationId": "take_launches",
+        "parameters": [
+          {
+            "name": "wait",
+            "in": "query",
+            "description": "Seconds to wait, at most 60",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LaunchQueue"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/node/launches/{id}": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Reports what became of a launch of this desktop agent.",
+        "operationId": "report_launch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Launch ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LaunchReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Launch"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown, foreign or already over"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/node/otel/v1/metrics": {
       "post": {
         "tags": [
@@ -6183,6 +6271,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NodeState"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/node/sessions/{id}/context": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Composes what Lighthouse knows for a session of this desktop agent: the\nsession's own state, Brain entries and open tasks of its project. A new\nsession (`source=startup`) gets only the project part.",
+        "operationId": "get_session_context",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cwd",
+            "in": "query",
+            "description": "Working directory of the session",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "description": "startup, resume, compact or clear",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionContext"
                 }
               }
             }
@@ -8222,7 +8364,7 @@
         "tags": [
           "ready"
         ],
-        "summary": "What a run read, readable, such as `Mail · 3 threads`.",
+        "summary": "What a run read, readable, such as `Mail \u00b7 3 threads`.",
         "operationId": "run_basis",
         "parameters": [
           {
@@ -8337,6 +8479,175 @@
         ]
       }
     },
+    "/sessions/launch": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Asks a desktop agent to start a Claude Code session, or to resume one.",
+        "operationId": "launch_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewLaunch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Launch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty prompt or directory"
+          },
+          "404": {
+            "description": "Unknown node"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/launches": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Lists launches, newest first.",
+        "operationId": "list_launches",
+        "parameters": [
+          {
+            "name": "node",
+            "in": "query",
+            "description": "Only launches of this node",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of launches",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Launch"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/launches/{id}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Returns one launch.",
+        "operationId": "get_launch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Launch ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Launch"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown launch"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Cancels a launch. A queued one ends at once; a running one ends when its\ndesktop agent stops the process.",
+        "operationId": "cancel_launch",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Launch ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Launch"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or already over"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/sessions/{node}/{id}": {
       "get": {
         "tags": [
@@ -8391,7 +8702,7 @@
         "tags": [
           "sessions"
         ],
-        "summary": "Sends a message to a session. The desktop agent hands it over as the next\ninstruction when the session stops, see `docs/desktop-agent.md`.",
+        "summary": "Sends a message to a session. The desktop agent hands it over as the next\ninstruction when the session stops, see `docs/desktop-agent.md`. A session\nLighthouse launched that has ended is resumed with the message instead.",
         "operationId": "send_session_message",
         "parameters": [
           {
@@ -9745,7 +10056,7 @@
           "talk"
         ],
         "summary": "Sends a message and gets the answer.",
-        "description": "With a talk agent configured, a run of that agent answers with the thread as\ncontext: the answer is `pending` until the run ends, and the run shows the\ntool calls and approvals. Without one, the Second Brain answers at once.",
+        "description": "With a talk agent chosen, a run of that agent answers with the thread as\ncontext: the answer is `pending` until the run ends, and the run shows the\ntool calls and approvals. Without one, the built-in assistant answers the\nsame way with the person's connected services, or, when none is connected,\nthe Second Brain answers at once.",
         "operationId": "send_message",
         "parameters": [
           {
@@ -11541,7 +11852,7 @@
       },
       "Basis": {
         "type": "object",
-        "description": "Something a run read or used, readable, such as `Mail · 3 threads`.",
+        "description": "Something a run read or used, readable, such as `Mail \u00b7 3 threads`.",
         "required": [
           "tool",
           "label"
@@ -12433,14 +12744,14 @@
           },
           "transport": {
             "type": "string",
-            "description": "`http` or `stdio`. Only the instance has `stdio` connectors."
+            "description": "`http`, `openapi` or `stdio`. Only the instance has `stdio` and `openapi` connectors."
           },
           "url": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Server URL of an `http` connector."
+            "description": "Server URL of an `http` connector, or the description of an `openapi` one."
           }
         }
       },
@@ -12859,7 +13170,7 @@
               "string",
               "null"
             ],
-            "description": "A line under the title, such as \"Mail from John Roe · yesterday\"."
+            "description": "A line under the title, such as \"Mail from John Roe \u00b7 yesterday\"."
           },
           "text": {
             "type": "string",
@@ -13775,6 +14086,162 @@
           }
         }
       },
+      "Launch": {
+        "type": "object",
+        "description": "A stored launch.",
+        "required": [
+          "id",
+          "node_id",
+          "cwd",
+          "prompt",
+          "status",
+          "cancel_requested",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "cancel_requested": {
+            "type": "boolean",
+            "description": "Whether someone asked to stop it."
+          },
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Costs Claude Code reported, in USD."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was asked for."
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Working directory."
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it ended."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Launch ID."
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Model."
+          },
+          "node_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The machine."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The instruction."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The final answer or the error."
+          },
+          "resume": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Session it continues."
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The Claude Code session, once known."
+          },
+          "status": {
+            "type": "string",
+            "description": "`queued`, `started`, `running`, `succeeded`, `failed` or `cancelled`."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Latest change."
+          }
+        }
+      },
+      "LaunchQueue": {
+        "type": "object",
+        "description": "Launches handed to a node, and running ones it should stop.",
+        "required": [
+          "launches",
+          "cancel"
+        ],
+        "properties": {
+          "cancel": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "IDs of running launches to stop."
+          },
+          "launches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Launch"
+            },
+            "description": "Launches to start now."
+          }
+        }
+      },
+      "LaunchReport": {
+        "type": "object",
+        "description": "What a node reports about a launch.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Costs in USD."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The final answer or the error."
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The Claude Code session."
+          },
+          "status": {
+            "type": "string",
+            "description": "`running`, `succeeded`, `failed` or `cancelled`."
+          }
+        }
+      },
       "Layer": {
         "type": "string",
         "description": "Where a setting comes from.",
@@ -14185,6 +14652,43 @@
           "text": {
             "type": "string",
             "description": "The fact."
+          }
+        }
+      },
+      "NewLaunch": {
+        "type": "object",
+        "description": "A session to start or resume.",
+        "required": [
+          "node",
+          "cwd",
+          "prompt"
+        ],
+        "properties": {
+          "cwd": {
+            "type": "string",
+            "description": "Working directory on that machine."
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Model, if not the default of Claude Code."
+          },
+          "node": {
+            "type": "string",
+            "description": "The machine that runs it: its ID, or its name. A name that several machines share picks the one seen last."
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The instruction."
+          },
+          "resume": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Session ID to continue instead of starting a new session."
           }
         }
       },
@@ -15315,6 +15819,20 @@
             "type": "string",
             "description": "`none`, `bearer` or `oauth`."
           },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A group for browsing, such as `crm` or `storage`."
+          },
+          "docs": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The vendor's documentation of the server."
+          },
           "draft_tools": {
             "type": "array",
             "items": {
@@ -15326,9 +15844,23 @@
             "type": "string",
             "description": "Suggested name."
           },
+          "key_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The vendor's page to create a token, for `bearer`."
+          },
           "label": {
             "type": "string",
             "description": "Display name."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Something to know before connecting, such as a region or an admin setting."
           },
           "read_tools": {
             "type": "array",
@@ -15337,9 +15869,23 @@
             },
             "description": "Tools known to be read-only."
           },
+          "registration": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`dynamic` when the server registers clients itself, `preregistered` when you register an OAuth app first."
+          },
           "url": {
             "type": "string",
             "description": "Server URL."
+          },
+          "vendor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who runs the server."
           }
         },
         "additionalProperties": false
@@ -16468,6 +17014,19 @@
             "type": "string",
             "format": "date-time",
             "description": "Latest report."
+          }
+        }
+      },
+      "SessionContext": {
+        "type": "object",
+        "description": "What a session gets when it starts, resumes or was compacted.",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Markdown for the session's context. Empty when there is nothing to say."
           }
         }
       },
@@ -18426,7 +18985,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The highest of the day, in °C."
+            "description": "The highest of the day, in \u00b0C."
           },
           "location": {
             "type": [
@@ -18441,7 +19000,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The lowest of the day, in °C."
+            "description": "The lowest of the day, in \u00b0C."
           },
           "source": {
             "type": [
@@ -18460,7 +19019,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The temperature now, in °C."
+            "description": "The temperature now, in \u00b0C."
           }
         }
       },
