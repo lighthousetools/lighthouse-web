@@ -1,6 +1,6 @@
 import { AlarmClockOff, Archive, ArrowDown, ArrowUp, ExternalLink, Paperclip, PenSquare, Plus, Reply, Search, Send, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { dayTime } from "../format";
+import { dayTime, sourceName } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { Avatar, Badge, Btn, CheckBox, Empty, Failure, Field, Kbd, Modal, Skeleton } from "../ui";
@@ -32,7 +32,7 @@ export function displayName(author: string | null | undefined) {
 
 function Row({ item, on, picked, onPick, onOpen }: { item: Item; on: boolean; picked: boolean; onPick: () => void; onOpen: () => void }) {
   const unread = has(item, "unread");
-  const name = displayName(item.author) || item.source;
+  const name = displayName(item.author) || sourceName(item.source);
   return (
     <div className={`ml-row ${on ? "on" : ""} ${unread ? "un" : ""}`} role="option" aria-selected={on} onClick={onOpen}>
       <span className="ml-ld" onClick={(event) => event.stopPropagation()}>
@@ -155,12 +155,12 @@ function Reading({ id, position, count, onStep }: { id: string; position: number
             <p>
               {has(thread, "important") && <Badge tone="warn">{t("mail.important")}</Badge>}
               {has(thread, "unread") && <Badge>{t("inbox.tag.unread")}</Badge>}
-              <span className="faint">{thread.source}</span>
+              <span className="faint">{sourceName(thread.source)}</span>
             </p>
           </header>
           <div className="ml-th">
             {(messages.length ? messages : [thread]).map((message) => {
-              const name = displayName(message.author) || message.source;
+              const name = displayName(message.author) || sourceName(message.source);
               const body = field(message, "body") ?? field(message, "text") ?? message.summary ?? "";
               const attachments = (message.data as { attachments?: { name?: string; filename?: string }[] } | null)?.attachments ?? [];
               return (

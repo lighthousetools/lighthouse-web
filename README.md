@@ -72,8 +72,14 @@ for their runs. Under Connections, people add MCP servers over HTTPS for the wor
 their own account to a shared service, and switch a connection off for themselves. Owners and admins also connect
 shared accounts and switch server connections off for the workspace.
 
-Preferences hold language, time zone, the Talk agent, notifications and the place for the weather, each with its source
-and a way back to the default. Members change their own; owners and admins also change the workspace's.
+Preferences hold language, time zone, the Talk agent, notifications, accounts, publishing, Slack aliases, Brain models
+and the place for the weather, each with its source and a way back to the default. Members change their own; owners and
+admins also change the workspace's. Sources shows a person's own sources, whose items reach only them, apart from the
+shared ones, and adds them from suggestions. Skills, agents and automations show their layer with a switch for the
+workspace and for oneself.
+
+`e2e/settings-check.mjs` opens and submits these forms in a browser against a running server with a database of its
+own. See the head of the file for what it needs.
 
 ## Languages
 

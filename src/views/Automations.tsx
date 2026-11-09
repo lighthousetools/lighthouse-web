@@ -20,6 +20,7 @@ import {
   serializeAutomation, stepAt, type Automation, type Step, type StepPath, type Trigger,
 } from "./automation";
 import { layoutFlow, NODE_H, NODE_W, type FlowNode } from "./flow";
+import { LayerSwitch, useManage, type Layer } from "./layers";
 import "./automations.css";
 
 type Info = Schemas["AutomationInfo"];
@@ -527,6 +528,7 @@ function DryRun({ source, trigger }: { source: string; trigger: Trigger }) {
 }
 
 function Builder({ info, initial }: { info?: Info; initial: Automation }) {
+  const manage = useManage();
   const client = useQueryClient();
   const agentsQuery = useAgents();
   const agents = agentsQuery.data ?? [];
@@ -681,8 +683,9 @@ function Builder({ info, initial }: { info?: Info; initial: Automation }) {
         {info && (
           <>
             <Btn size="sm" disabled={run.isPending} onClick={() => run.mutate()}><Play />{t("automations.runNow")}</Btn>
-            <Btn size="sm" onClick={() => toggle.mutate(!info.enabled)}>{info.enabled ? t("automations.pause") : t("automations.switchOn")}</Btn>
-            {info.editable && <Btn icon size="sm" variant="ghost" aria-label={t("common.delete")} onClick={() => setConfirming(true)}><Trash2 /></Btn>}
+            <LayerSwitch kind="automations" id={info.id} layer={(info.layer || "instance") as Layer} disabledBy={info.disabled_by as Layer | null | undefined} />
+            {(info.layer === "personal" || manage) && <Btn size="sm" onClick={() => toggle.mutate(!info.enabled)}>{info.enabled ? t("automations.pause") : t("automations.switchOn")}</Btn>}
+            {info.editable && (info.layer === "personal" || manage) && <Btn icon size="sm" variant="ghost" aria-label={t("common.delete")} onClick={() => setConfirming(true)}><Trash2 /></Btn>}
           </>
         )}
       </div>

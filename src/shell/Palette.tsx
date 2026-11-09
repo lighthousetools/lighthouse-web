@@ -1,3 +1,4 @@
+import { sourceName } from "../format";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -67,7 +68,7 @@ export function Palette() {
         id: `item:${item.id}`,
         group: t(`connected.domain.${item.domain as "mail"}`),
         label: item.title ?? item.external_id,
-        icon: <ServiceIcon name={item.source} size={18} />,
+        icon: <ServiceIcon name={sourceName(item.source)} size={18} />,
         run: () => go(viewOfDomain(item.domain), item.parent_id && item.kind === "message" ? item.parent_id : item.id),
       });
     }

@@ -177,8 +177,8 @@ export function Center() {
             <div className="cc-h">
               {(sources.data ?? []).map((source) => (
                 <button type="button" key={source.name} onClick={() => go("connections")}>
-                  <ServiceIcon name={source.connector} fallback={source.name} size={18} />
-                  <span className="grow clip">{source.name}</span>
+                  <ServiceIcon name={source.connector} fallback={source.label || source.name} size={18} />
+                  <span className="grow clip">{source.label || source.name}</span>
                   <i className={`dot ${source.status?.last_error ? "bad" : source.stale ? "warn" : "ok"}`} />
                 </button>
               ))}

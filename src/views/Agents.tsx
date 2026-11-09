@@ -14,6 +14,7 @@ import {
 import { clock, useNow } from "../ui/live";
 import { costsByDay } from "./briefing";
 import { RunDot, RunStatus, openRun, runSeconds, seconds } from "./runs";
+import { LayerSwitch, TargetPicker, useManage, type Layer, type Target } from "./layers";
 import "./agents.css";
 
 type Agent = Schemas["AgentInfo"];
@@ -61,11 +62,13 @@ function useRunAgent() {
   });
 }
 
-function SourceEditor({ initial, onClose, onSaved }: { initial: string; onClose: () => void; onSaved?: (agent: Agent) => void }) {
+function SourceEditor({ initial, onClose, onSaved, layer }: { initial: string; onClose: () => void; onSaved?: (agent: Agent) => void; layer?: string }) {
+  const manage = useManage();
+  const [target, setTarget] = useState<Target>(layer === "personal" || !manage ? "me" : "tenant");
   const client = useQueryClient();
   const [source, setSource] = useState(initial);
   const save = useMutation({
-    mutationFn: () => must(api.POST("/agents", { body: { source } })),
+    mutationFn: () => must(api.POST("/agents", { params: { query: { layer: manage ? target : "me" } }, body: { source } })),
     onSuccess: (agent) => {
       toast(t("agents.saved"));
       void client.invalidateQueries({ queryKey: ["agents"] });
@@ -77,6 +80,7 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: string; onClose:
     <div className="card ag-src">
       <label>
         <span className="lbl" style={{ marginTop: 0 }}>{t("agents.file")}</span>
+        {!layer && <TargetPicker value={target} onChange={setTarget} />}
         <textarea className="ta mono" spellCheck={false} value={source} onChange={(event) => setSource(event.target.value)} />
       </label>
       <Failure error={save.error} />
@@ -88,8 +92,11 @@ function SourceEditor({ initial, onClose, onSaved }: { initial: string; onClose:
   );
 }
 
+const AGENT_TEMPLATE = "---\nname: \nscope: org\ntrigger:\n  manual: true\n---\n";
+
 function Creator() {
   const [description, setDescription] = useState("");
+  const [own, setOwn] = useState<string | null>(null);
   const draft = useMutation({ mutationFn: () => must(api.POST("/agents/draft", { body: { description } })) });
   return (
     <div className="ag-page">
@@ -104,7 +111,9 @@ function Creator() {
           <p>{t("agents.newLead")}</p>
         </div>
       </header>
-      {draft.data ? (
+      {own !== null ? (
+        <SourceEditor initial={own} onClose={() => setOwn(null)} onSaved={(agent) => go("agents", agent.id)} />
+      ) : draft.data ? (
         <SourceEditor initial={draft.data.source} onClose={() => draft.reset()} onSaved={(agent) => go("agents", agent.id)} />
       ) : (
         <div className="card pad ag-new">
@@ -124,6 +133,7 @@ function Creator() {
               <Sparkles />
               {draft.isPending ? t("agents.writing") : t("agents.write")}
             </Btn>
+            <Btn onClick={() => setOwn(AGENT_TEMPLATE)}>{t("agents.writeOwn")}</Btn>
           </div>
         </div>
       )}
@@ -150,6 +160,7 @@ function RunRows({ runs, names, empty }: { runs: Schemas["RunRecord"][]; names: 
 }
 
 function Detail({ agent }: { agent: Agent }) {
+  const manage = useManage();
   const client = useQueryClient();
   const names = useAgentNames();
   const [editing, setEditing] = useState(false);
@@ -183,11 +194,12 @@ function Detail({ agent }: { agent: Agent }) {
           <h1>{agent.name}</h1>
           <p>{agent.schedule ? t("agents.next", { time: dayTime(agent.next_run) }) : t("agents.manual")}</p>
         </div>
-        <Btn disabled={run.isPending || agent.blocked.length > 0} onClick={() => run.mutate(agent.id)}>
+        <Btn disabled={run.isPending || agent.blocked.length > 0 || agent.enabled === false} onClick={() => run.mutate(agent.id)}>
           <Play />
           {t("agents.run")}
         </Btn>
-        {agent.editable && (
+        <LayerSwitch kind="agents" id={agent.id} layer={(agent.layer ?? "instance") as Layer} disabledBy={agent.disabled_by as Layer | null | undefined} />
+        {agent.editable && (agent.layer === "personal" || manage) && (
           <>
             <Btn onClick={() => setEditing(!editing)}>
               <Pencil />
@@ -204,7 +216,7 @@ function Detail({ agent }: { agent: Agent }) {
         <p key={reason} className="fail ag-blocked"><AlertTriangle size={14} />{reason}</p>
       ))}
       {editing ? (
-        <SourceEditor initial={agent.source} onClose={() => setEditing(false)} />
+        <SourceEditor initial={agent.source} layer={agent.layer ?? "tenant"} onClose={() => setEditing(false)} />
       ) : (
         <>
           <div className="g4">

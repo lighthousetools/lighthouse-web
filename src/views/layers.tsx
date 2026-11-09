@@ -4,7 +4,7 @@ import { api, must, type Schemas } from "../api/client";
 import { languageChoice, setLanguage, t, tOr } from "../i18n";
 import { canManage, useRole } from "../session";
 import { toast } from "../shell/state";
-import { Badge, Btn, Failure, Field, Modal, Seg } from "../ui";
+import { Badge, Btn, Failure, Field, Modal, Seg, Toggle } from "../ui";
 import "./layers.css";
 
 export type View = Schemas["SettingsView"];
@@ -44,6 +44,9 @@ export function useRefresh() {
     void client.invalidateQueries({ queryKey: ["connectors"] });
     void client.invalidateQueries({ queryKey: ["credentials"] });
     void client.invalidateQueries({ queryKey: ["agents"] });
+    void client.invalidateQueries({ queryKey: ["automations"] });
+    void client.invalidateQueries({ queryKey: ["connected"] });
+    void client.invalidateQueries({ queryKey: ["me"] });
   };
 }
 
@@ -75,6 +78,40 @@ export function TargetPicker({ value, onChange }: { value: Target; onChange: (va
       onChange={onChange}
       options={[["tenant", t("layers.forWorkspace")], ["me", t("layers.forMe")]]}
     />
+  );
+}
+
+/**
+ * Where an agent, automation or skill comes from, with its switches: for the
+ * whole workspace (owners and admins) and for the caller.
+ */
+export function LayerSwitch({ kind, id, layer, disabledBy }: { kind: "agents" | "automations" | "skills"; id: string; layer: Layer; disabledBy?: Layer | null }) {
+  const manage = useManage();
+  const refresh = useRefresh();
+  const client = useQueryClient();
+  const change = useMutation({
+    mutationFn: ({ target, enabled }: { target: Target; enabled: boolean }) =>
+      must(api.PUT("/settings/{layer}/{kind}/{id}/enabled", { params: { path: { layer: target, kind, id } }, body: { enabled } })),
+    onSuccess: () => {
+      refresh();
+      void client.invalidateQueries({ queryKey: [kind] });
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  return (
+    <span className="lay-switch">
+      <SourceBadge source={layer} />
+      {manage && layer !== "personal" && (
+        <label>
+          {t("layers.forWorkspace")}
+          <Toggle label={t("layers.switchWorkspace", { name: id })} on={disabledBy !== "tenant"} onChange={(enabled) => change.mutate({ target: "tenant", enabled })} />
+        </label>
+      )}
+      <label>
+        {t("layers.forMe")}
+        <Toggle label={t("layers.switchMine", { name: id })} disabled={disabledBy === "tenant"} on={disabledBy !== "personal"} onChange={(enabled) => change.mutate({ target: "me", enabled })} />
+      </label>
+    </span>
   );
 }
 

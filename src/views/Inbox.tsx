@@ -1,6 +1,6 @@
 import { ArrowRight, Check, ExternalLink, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { dayTime } from "../format";
+import { dayTime, sourceName } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go } from "../router";
 import { Badge, Btn, Empty, Failure, Seg, ServiceIcon, Skeleton, type Tone } from "../ui";
@@ -104,10 +104,10 @@ export function Inbox() {
                       const tag = tagOf(item);
                       return (
                         <div key={item.id} data-it={item.id} className={`ib-r ${current?.id === item.id ? "on" : ""}`} onClick={() => setSelected(item.id)} onDoubleClick={() => open(item)}>
-                          <ServiceIcon name={item.source} fallback={item.source} size={24} />
+                          <ServiceIcon name={sourceName(item.source)} fallback={sourceName(item.source)} size={24} />
                           <span className="grow tx">
                             <span className="t clip">{item.title ?? item.external_id}</span>
-                            <span className="s clip">{[item.author, item.summary].filter(Boolean).join(" · ") || item.source}</span>
+                            <span className="s clip">{[item.author, item.summary].filter(Boolean).join(" · ") || sourceName(item.source)}</span>
                           </span>
                           <span className="am tn">{age(item.occurred_at ?? item.synced_at)}</span>
                           <Badge tone={tag.tone}>{tag.label}</Badge>
@@ -132,12 +132,12 @@ export function Inbox() {
           </div>
           {(sources.data ?? []).map((source) => (
             <div key={source.name} className={`ib-d ${source.status?.last_error ? "" : "mine"}`} title={source.status?.last_error ?? undefined}>
-              <ServiceIcon name={source.connector} fallback={source.name} size={14} />
+              <ServiceIcon name={source.connector} fallback={source.label || source.name} size={14} />
               <span className="grow">
-                {source.name} · {t(`connected.domain.${source.domain as "mail"}`)}
+                {source.label || source.name} · {t(`connected.domain.${source.domain as "mail"}`)}
                 <br />
                 <span className="faint">
-                  {source.status?.last_error ? t("connected.failed", { source: source.name }) : source.status?.last_success_at ? t("connected.updated", { age: age(source.status.last_success_at) }) : t("connected.never")}
+                  {source.status?.last_error ? t("connected.failed", { source: source.label || source.name }) : source.status?.last_success_at ? t("connected.updated", { age: age(source.status.last_success_at) }) : t("connected.never")}
                   {source.status ? ` · ${t("inbox.items", { count: source.status.items })}` : ""}
                 </span>
               </span>

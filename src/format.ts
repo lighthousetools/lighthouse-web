@@ -114,3 +114,6 @@ export function dayTime(value?: string | null, now = new Date()) {
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
+
+/** The name of a source as people gave it. A personal source's key ends in its owner. */
+export const sourceName = (key: string) => key.replace(/@[0-9a-f]{8}-[0-9a-f-]{27}$/, "");

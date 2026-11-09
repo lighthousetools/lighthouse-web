@@ -12,6 +12,8 @@ import { Group, SettingRow } from "./settingsKit";
 
 type Value = Schemas["ValueView"];
 type Notifications = { deliver: string[]; decisions: boolean; done: boolean; alerts: string };
+type Publishing = { connector: string; tool: string; service?: string | null; input?: unknown };
+type BrainModels = { provider?: string | null; embedding_model?: string | null; vision_model?: string | null; transcription_model?: string | null };
 type Place = { latitude: number; longitude: number; location?: string | null };
 
 /** The layer an entry can be reset in: the one being edited, if the value comes from there. */
@@ -95,8 +97,94 @@ export function Preferences() {
         </SettingRow>
         <Targets key={push.deliver.join()} current={push.deliver} onSave={(deliver) => save("notifications", { ...push, deliver })} />
       </Group>
+      {layer === "me" && (
+        <Identity
+          key={JSON.stringify([value("accounts")?.value, value("addresses")?.value])}
+          accounts={(value("accounts")?.value as Record<string, string> | undefined) ?? {}}
+          addresses={(value("addresses")?.value as string[] | undefined) ?? []}
+          onAccounts={(next) => save("accounts", next)}
+          onAddresses={(next) => save("addresses", next)}
+        />
+      )}
+      <Advanced
+        key={JSON.stringify([value("publishing")?.value, value("slack_channels")?.value, value("brain")?.value])}
+        target={layer}
+        publishing={value("publishing")?.value as Publishing | null | undefined}
+        slack={(value("slack_channels")?.value as string[] | undefined) ?? []}
+        brain={(value("brain")?.value as BrainModels | undefined) ?? {}}
+        badges={{ publishing: trail("publishing"), slack: trail("slack_channels"), brain: trail("brain") }}
+        onSave={save}
+      />
       <Weather key={JSON.stringify(place)} place={place} trail={trail("weather")} onSave={(next) => save("weather", next)} />
       <Failure error={set.error ?? reset.error} />
+    </>
+  );
+}
+
+/** A person's names in services and further addresses, so their sources recognize what is theirs. */
+function Identity({ accounts, addresses, onAccounts, onAddresses }: { accounts: Record<string, string>; addresses: string[]; onAccounts: (next: Record<string, string>) => void; onAddresses: (next: string[]) => void }) {
+  const [names, setNames] = useState(Object.entries(accounts).map(([service, account]) => `${service}=${account}`).join(", "));
+  const [mails, setMails] = useState(addresses.join(", "));
+  const parsed = () => Object.fromEntries(words(names).map((pair) => pair.split("=", 2) as [string, string]).filter(([service, account]) => service && account));
+  return (
+    <Group title={t("prefs.identity")} hint={t("prefs.identityHint")}>
+      <SettingRow title={t("prefs.accounts")} sub={t("prefs.accountsHint")}>
+        <span className="st-inline">
+          <span className="st-f"><Field value={names} onChange={setNames} label={t("prefs.accounts")} placeholder="linear=alex, github=alex-example" onEnter={() => onAccounts(parsed())} /></span>
+          <Btn size="sm" onClick={() => onAccounts(parsed())}>{t("common.save")}</Btn>
+        </span>
+      </SettingRow>
+      <SettingRow title={t("prefs.addresses")} sub={t("prefs.addressesHint")}>
+        <span className="st-inline">
+          <span className="st-f"><Field value={mails} onChange={setMails} label={t("prefs.addresses")} placeholder="alex@example.com" onEnter={() => onAddresses(words(mails))} /></span>
+          <Btn size="sm" onClick={() => onAddresses(words(mails))}>{t("common.save")}</Btn>
+        </span>
+      </SettingRow>
+    </Group>
+  );
+}
+
+/** What publishes posts, Slack aliases and the Brain's models. */
+function Advanced({ target, publishing, slack, brain, badges, onSave }: { target: Target; publishing?: Publishing | null; slack: string[]; brain: BrainModels; badges: Record<"publishing" | "slack" | "brain", ReactNode>; onSave: (key: string, value: unknown) => void }) {
+  const [connector, setConnector] = useState(publishing?.connector ?? "");
+  const [tool, setTool] = useState(publishing?.tool ?? "");
+  const [service, setService] = useState(publishing?.service ?? "");
+  const [aliases, setAliases] = useState(slack.join(", "));
+  const [provider, setProvider] = useState(brain.provider ?? "");
+  const [embedding, setEmbedding] = useState(brain.embedding_model ?? "");
+  const [vision, setVision] = useState(brain.vision_model ?? "");
+  const [transcription, setTranscription] = useState(brain.transcription_model ?? "");
+  const optional = (text: string) => text.trim() || undefined;
+  return (
+    <>
+      <Group title={t("prefs.publishing")} hint={t("prefs.publishingHint")}>
+        <SettingRow title={t("prefs.publishingTool")}>{badges.publishing}</SettingRow>
+        <div className="st-add">
+          <Field value={connector} onChange={setConnector} label={t("prefs.connector")} placeholder={t("prefs.connector")} />
+          <Field value={tool} onChange={setTool} label={t("prefs.tool")} placeholder={t("prefs.tool")} />
+          <Field value={service} onChange={setService} label={t("prefs.service")} placeholder={t("prefs.service")} />
+          <Btn disabled={!connector || !tool} onClick={() => onSave("publishing", { connector, tool, input: publishing?.input ?? undefined, service: optional(service) })}>{t("common.save")}</Btn>
+        </div>
+      </Group>
+      <Group title={t("prefs.slack")} hint={t("prefs.slackHint")}>
+        <SettingRow title={t("prefs.slackAliases")}>
+          {badges.slack}
+          <span className="st-inline">
+            <span className="st-f"><Field value={aliases} onChange={setAliases} label={t("prefs.slackAliases")} placeholder="#team" onEnter={() => onSave("slack_channels", words(aliases))} /></span>
+            <Btn size="sm" onClick={() => onSave("slack_channels", words(aliases))}>{t("common.save")}</Btn>
+          </span>
+        </SettingRow>
+      </Group>
+      <Group title={t("prefs.brain")} hint={target === "tenant" ? t("prefs.brainHintWorkspace") : t("prefs.brainHintMine")}>
+        <SettingRow title={t("prefs.brainModels")}>{badges.brain}</SettingRow>
+        <div className="st-add">
+          <Field value={provider} onChange={setProvider} label={t("prefs.brainProvider")} placeholder={t("prefs.brainProvider")} />
+          {target === "tenant" && <Field value={embedding} onChange={setEmbedding} label={t("prefs.embedding")} placeholder={t("prefs.embedding")} />}
+          <Field value={vision} onChange={setVision} label={t("prefs.vision")} placeholder={t("prefs.vision")} />
+          <Field value={transcription} onChange={setTranscription} label={t("prefs.transcription")} placeholder={t("prefs.transcription")} />
+          <Btn onClick={() => onSave("brain", { provider: optional(provider), embedding_model: target === "tenant" ? optional(embedding) : undefined, vision_model: optional(vision), transcription_model: optional(transcription) })}>{t("common.save")}</Btn>
+        </div>
+      </Group>
     </>
   );
 }

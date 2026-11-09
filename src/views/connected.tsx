@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Plug, RefreshCw } from "lucide-react";
 import { api, must, type Schemas } from "../api/client";
-import { dayTime } from "../format";
+import { dayTime, sourceName } from "../format";
 import { language, t } from "../i18n";
 import { orgStore } from "../shell/org";
 import { go } from "../router";
@@ -256,7 +256,7 @@ export function ItemInspector({ id }: { id: string }) {
   return (
     <InspectorPanel
       kind={t(`connected.domain.${item.domain as "mail"}`)}
-      icon={<ServiceIcon name={brandOf(item.source) ?? item.source} size={16} fallback={item.source} />}
+      icon={<ServiceIcon name={brandOf(sourceName(item.source)) ?? sourceName(item.source)} size={16} fallback={sourceName(item.source)} />}
       title={item.title ?? item.external_id}
       facts={[
         ...(item.author ? [[t("connected.from"), personName(item.author)] as [string, string]] : []),
@@ -267,7 +267,7 @@ export function ItemInspector({ id }: { id: string }) {
     >
       {(messages.length ? messages : [item]).map((message) => (
         <div key={message.id} className="insp-msg">
-          {messages.length > 0 && <b>{personName(message.author) || message.source}</b>}
+          {messages.length > 0 && <b>{personName(message.author) || sourceName(message.source)}</b>}
           <Markdown source={field(message, "body") ?? field(message, "text") ?? message.summary ?? ""} />
         </div>
       ))}
