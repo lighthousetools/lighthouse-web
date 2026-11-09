@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, Coins, FileCode2, Hand, LayoutGrid, ListChecks, Monitor, Pause, Play, Search, Terminal, X } from "lucide-react";
+import { ArrowUp, Check, Coins, FileCode2, Hand, History, LayoutGrid, ListChecks, Monitor, Pause, Play, Search, Sparkles, Terminal, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, must, type Schemas } from "../api/client";
 import { sessionKey, useNodes, usePermissions, useSessions } from "../data";
@@ -12,6 +12,7 @@ import { DiffViewer, parseUnifiedDiff, type DiffFile } from "../ui/diff";
 import { Elapsed } from "../ui/live";
 import { Markdown } from "../ui/markdown";
 import { plainFields } from "./Decisions";
+import { HistoryView, NewSessionButton, SkillsView } from "./SessionsMore";
 import "./sessions.css";
 
 type Session = Schemas["Session"];
@@ -66,7 +67,7 @@ function usePause() {
   });
 }
 
-function Rail({ sessions, current, nodes }: { sessions: Session[]; current?: string; nodes: Schemas["Node"][] }) {
+function Rail({ sessions, current, nodes, page }: { sessions: Session[]; current?: string; nodes: Schemas["Node"][]; page?: string }) {
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
   const shown = sessions.filter((session) => !needle || `${session.project} ${session.branch ?? ""} ${session.node_name} ${session.summary ?? ""}`.toLowerCase().includes(needle));
@@ -76,6 +77,7 @@ function Rail({ sessions, current, nodes }: { sessions: Session[]; current?: str
     <div className="cl-rail">
       <div className="top">
         <h1>{t("nav.sessions")}</h1>
+        <NewSessionButton nodes={nodes} />
       </div>
       <label className="cl-find">
         <Search size={13} className="faint" />
@@ -86,10 +88,18 @@ function Rail({ sessions, current, nodes }: { sessions: Session[]; current?: str
           </button>
         )}
       </label>
-      <button type="button" className={`cl-all ${current ? "" : "on"}`} onClick={() => go("sessions")}>
+      <button type="button" className={`cl-all ${current || page ? "" : "on"}`} onClick={() => go("sessions")}>
         <LayoutGrid size={14} />
         <span className="grow">{t("sessions.all")}</span>
         <em>{sessions.length}</em>
+      </button>
+      <button type="button" className={`cl-all ${page === "history" ? "on" : ""}`} onClick={() => go("sessions", "history")}>
+        <History size={14} />
+        <span className="grow">{t("sessions.history")}</span>
+      </button>
+      <button type="button" className={`cl-all ${page === "skills" ? "on" : ""}`} onClick={() => go("sessions", "skills")}>
+        <Sparkles size={14} />
+        <span className="grow">{t("sessions.skills")}</span>
       </button>
       <div className="list">
         {GROUPS.map((group) => {
@@ -564,14 +574,19 @@ export function Sessions() {
     [sessions.data],
   );
   const current = list.find((session) => sessionKey(session) === route.param);
+  const page = route.param === "history" || route.param === "skills" ? route.param : undefined;
   const requests = (permissions.data ?? []).filter(
     (request) => current && request.session_id === current.id && request.node_id === current.node_id,
   );
   return (
     <div className="page flush">
       <div className="clv">
-        <Rail sessions={list} current={current ? sessionKey(current) : undefined} nodes={nodes.data ?? []} />
-        {sessions.isPending ? (
+        <Rail sessions={list} current={current ? sessionKey(current) : undefined} nodes={nodes.data ?? []} page={page} />
+        {page === "history" ? (
+          <HistoryView live={new Set(list.map((session) => session.id))} />
+        ) : page === "skills" ? (
+          <SkillsView nodes={nodes.data ?? []} />
+        ) : sessions.isPending ? (
           <div className="cl-ov"><Skeleton count={5} /></div>
         ) : sessions.isError ? (
           <div className="cl-ov"><Failure error={sessions.error} /></div>

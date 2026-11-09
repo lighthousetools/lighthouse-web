@@ -1177,23 +1177,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/connectors/{id}/tools": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Lists the tools a connector offers, with their level now and a suggestion from its server. */
-        get: operations["connector_tools"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/connectors/{id}/connect": {
         parameters: {
             query?: never;
@@ -1210,6 +1193,23 @@ export interface paths {
          *     shared account. A personal connector always connects personally.
          */
         post: operations["connect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connectors/{id}/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the tools a connector offers, with their level now and a suggestion from its server. */
+        get: operations["connector_tools"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1882,6 +1882,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/node/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Takes the sessions a desktop agent found on its machine, so they can be resumed from the apps. */
+        post: operations["report_history"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/node/launches": {
         parameters: {
             query?: never;
@@ -1913,6 +1930,26 @@ export interface paths {
         put?: never;
         /** Reports what became of a launch of this desktop agent. */
         post: operations["report_launch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/node/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Takes memories Claude Code wrote on a machine: one Brain entry per project, and facts about the owner as
+         *     proposals.
+         */
+        post: operations["report_memories"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2027,6 +2064,23 @@ export interface paths {
         get: operations["take_session_messages"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/node/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Takes the skills a desktop agent found on its machine. */
+        post: operations["report_skills"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2662,6 +2716,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists Claude Code sessions found on the caller's machines, newest first. */
+        get: operations["list_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions/launch": {
         parameters: {
             query?: never;
@@ -2712,6 +2783,23 @@ export interface paths {
          *     desktop agent stops the process.
          */
         delete: operations["cancel_launch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/skills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the Claude Code skills on the caller's machines. */
+        get: operations["list_local_skills"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4167,19 +4255,6 @@ export interface components {
             title: string;
         };
         /** @description A connector. */
-        /** @description A tool a connector offers, with its level now and the level its server suggests. */
-        ConnectorTool: {
-            /** @description What it does, as its server says. */
-            description: string;
-            /** @description The server marks it as destructive. */
-            destructive: boolean;
-            /** @description `read`, `draft` or `write` under the current lists. */
-            level: string;
-            /** @description Unqualified name. */
-            name: string;
-            /** @description `read` when the server marks it read-only, else `write`. Only a suggestion: servers describe their own tools. */
-            suggested: string;
-        };
         ConnectorInfo: {
             /** @description `none`, `bearer`, `oauth` or `process`. */
             auth: string;
@@ -4214,6 +4289,19 @@ export interface components {
              *     private endpoints.
              */
             url: string;
+        };
+        /** @description A tool a connector offers, with its level now and the level its server suggests. */
+        ConnectorTool: {
+            /** @description What it does, as its server says. */
+            description: string;
+            /** @description The server marks it as destructive. */
+            destructive: boolean;
+            /** @description `read`, `draft` or `write` under the current lists. */
+            level: string;
+            /** @description Unqualified name. */
+            name: string;
+            /** @description `read` when the server marks it read-only, else `write`. Only a suggestion: servers describe their own tools. */
+            suggested: string;
         };
         /** @description A connector as it applies to the caller. */
         ConnectorView: {
@@ -4686,6 +4774,39 @@ export interface components {
             /** @description Server version. */
             version: string;
         };
+        /** @description A stored past session, with the machine it is on. */
+        HistoryEntry: {
+            /** @description Git branch. */
+            branch?: string | null;
+            /** @description Working directory. */
+            cwd?: string | null;
+            /** @description What the owner asked first. */
+            first_prompt?: string | null;
+            /**
+             * Format: date-time
+             * @description Last activity.
+             */
+            last_active_at: string;
+            /**
+             * Format: int32
+             * @description Number of messages.
+             */
+            messages: number;
+            /**
+             * Format: uuid
+             * @description The machine.
+             */
+            node_id: string;
+            /** @description Project name. */
+            project: string;
+            /** @description Session ID from Claude Code. */
+            session_id: string;
+        };
+        /** @description Sessions a desktop agent found on its machine. */
+        HistoryReport: {
+            /** @description The sessions. */
+            sessions: components["schemas"]["PastSession"][];
+        };
         /** @description The owner's notes on a holding, by kind. */
         HoldingNotes: {
             /** @description Numbers the owner watches. */
@@ -4953,6 +5074,19 @@ export interface components {
             /** @description The token. */
             token: string;
         };
+        /** @description A skill found on a machine. */
+        LocalSkill: {
+            /** @description What it is for. */
+            description?: string | null;
+            /** @description Its name. */
+            name: string;
+            /** @description Folder of the skill. */
+            path: string;
+            /** @description The project folder, for project skills. */
+            project?: string | null;
+            /** @description `user` for the owner's own skills, `project` for those of a project. */
+            scope: string;
+        };
         /** @description A sign-in attempt. */
         LoginRequest: {
             /** @description Client kind. */
@@ -5037,6 +5171,25 @@ export interface components {
             tenant_id: string;
             /** @description Name of the tenant. */
             tenant_name: string;
+        };
+        /** @description What became of reported memories. */
+        MemoriesApplied: {
+            /** @description Brain entries created or updated. */
+            entries: number;
+            /** @description Facts proposed to the owner. */
+            facts: number;
+        };
+        /** @description Memories a desktop agent found new or changed. */
+        MemoriesReport: {
+            /** @description Projects whose memories changed, each with all its files. */
+            projects: components["schemas"]["ProjectMemories"][];
+        };
+        /** @description One memory file of Claude Code. */
+        MemoryFile: {
+            /** @description Its content. */
+            content: string;
+            /** @description File name. */
+            file: string;
         };
         /** @description A model of a provider for a task, with its prices. */
         ModelInput: {
@@ -5351,6 +5504,29 @@ export interface components {
             current: string;
             /** @description The new password, at least 12 characters. */
             new: string;
+        };
+        /** @description A session found on a machine. */
+        PastSession: {
+            /** @description Git branch. */
+            branch?: string | null;
+            /** @description Working directory. */
+            cwd?: string | null;
+            /** @description What the owner asked first, cut short. */
+            first_prompt?: string | null;
+            /** @description Session ID from Claude Code. */
+            id: string;
+            /**
+             * Format: date-time
+             * @description Last activity.
+             */
+            last_active_at: string;
+            /**
+             * Format: int32
+             * @description Number of messages.
+             */
+            messages?: number;
+            /** @description Project name. */
+            project: string;
         };
         /** @description Revenue of one month. */
         PeriodAmount: {
@@ -5677,6 +5853,13 @@ export interface components {
             label: string;
             /** @description The value as text. */
             value: string;
+        };
+        /** @description The memory files of one project. */
+        ProjectMemories: {
+            /** @description All its memory files, already redacted by the agent. */
+            memories: components["schemas"]["MemoryFile"][];
+            /** @description Project name, or none for the home folder. */
+            project?: string | null;
         };
         /** @description The work of one project in a recap. */
         ProjectWork: {
@@ -6286,6 +6469,11 @@ export interface components {
             /** @description The file, for one created in the apps. */
             source?: string | null;
         };
+        /** @description Skills a desktop agent found on its machine. */
+        SkillsReport: {
+            /** @description Every skill, replacing what the machine reported before. */
+            skills: components["schemas"]["LocalSkill"][];
+        };
         /** @description When to show an item again. */
         Snooze: {
             /**
@@ -6527,6 +6715,24 @@ export interface components {
             provider: string;
             /** @description Task. */
             task: string;
+        };
+        /** @description A stored skill, with the machine it is on. */
+        StoredSkill: {
+            /** @description What it is for. */
+            description?: string | null;
+            /** @description Its name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description The machine.
+             */
+            node_id: string;
+            /** @description Folder of the skill. */
+            path: string;
+            /** @description The project folder, for project skills. */
+            project?: string | null;
+            /** @description `user` or `project`. */
+            scope: string;
         };
         /** @description An entry of a lower layer that this layer switched. */
         StoredSwitch: {
@@ -9370,35 +9576,6 @@ export interface operations {
             };
         };
     };
-    connector_tools: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Connector name */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConnectorTool"][];
-                };
-            };
-            /** @description The server could not be asked */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     connect: {
         parameters: {
             query?: {
@@ -9431,6 +9608,35 @@ export interface operations {
             };
             /** @description Connecting for the tenant needs the owner or admin role */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    connector_tools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connector name */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorTool"][];
+                };
+            };
+            /** @description The server could not be asked */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10849,6 +11055,35 @@ export interface operations {
             };
         };
     };
+    report_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoryReport"];
+            };
+        };
+        responses: {
+            /** @description Stored */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a desktop agent */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     take_launches: {
         parameters: {
             query?: {
@@ -10897,6 +11132,36 @@ export interface operations {
             };
             /** @description Unknown, foreign or already over */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    report_memories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoriesReport"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoriesApplied"];
+                };
+            };
+            /** @description Not a desktop agent */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11054,6 +11319,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionMessage"][];
                 };
+            };
+        };
+    };
+    report_skills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SkillsReport"];
+            };
+        };
+        responses: {
+            /** @description Stored */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not a desktop agent */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -12400,6 +12694,32 @@ export interface operations {
             };
         };
     };
+    list_history: {
+        parameters: {
+            query?: {
+                /** @description Only sessions of this machine */
+                node?: string;
+                /** @description Matches project, branch and first prompt */
+                q?: string;
+                /** @description Maximum number of sessions */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoryEntry"][];
+                };
+            };
+        };
+    };
     launch_session: {
         parameters: {
             query?: never;
@@ -12516,6 +12836,25 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_local_skills: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredSkill"][];
+                };
             };
         };
     };

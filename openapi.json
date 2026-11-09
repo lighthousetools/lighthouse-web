@@ -3487,6 +3487,48 @@
         ]
       }
     },
+    "/connectors/{id}/tools": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Lists the tools a connector offers, with their level now and a suggestion from its server.",
+        "operationId": "connector_tools",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Connector name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorTool"
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The server could not be asked"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/contracts": {
       "get": {
         "tags": [
@@ -6046,6 +6088,38 @@
         ]
       }
     },
+    "/node/history": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Takes the sessions a desktop agent found on its machine, so they can be resumed from the apps.",
+        "operationId": "report_history",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Stored"
+          },
+          "403": {
+            "description": "Not a desktop agent"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/node/launches": {
       "get": {
         "tags": [
@@ -6125,6 +6199,44 @@
           },
           "404": {
             "description": "Unknown, foreign or already over"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/node/memories": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Takes memories Claude Code wrote on a machine: one Brain entry per project, and facts about the owner as\nproposals.",
+        "operationId": "report_memories",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemoriesReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoriesApplied"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a desktop agent"
           }
         },
         "security": [
@@ -6378,6 +6490,38 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/node/skills": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Takes the skills a desktop agent found on its machine.",
+        "operationId": "report_skills",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillsReport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Stored"
+          },
+          "403": {
+            "description": "Not a desktop agent"
           }
         },
         "security": [
@@ -8479,6 +8623,65 @@
         ]
       }
     },
+    "/sessions/history": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Lists Claude Code sessions found on the caller's machines, newest first.",
+        "operationId": "list_history",
+        "parameters": [
+          {
+            "name": "node",
+            "in": "query",
+            "description": "Only sessions of this machine",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Matches project, branch and first prompt",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of sessions",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/sessions/launch": {
       "post": {
         "tags": [
@@ -8639,6 +8842,34 @@
           },
           "404": {
             "description": "Unknown or already over"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/sessions/skills": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Lists the Claude Code skills on the caller's machines.",
+        "operationId": "list_local_skills",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StoredSkill"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -12655,6 +12886,39 @@
           }
         }
       },
+      "ConnectorTool": {
+        "type": "object",
+        "description": "A tool a connector offers, with its level now and the level its server suggests.",
+        "required": [
+          "name",
+          "description",
+          "level",
+          "suggested",
+          "destructive"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "What it does, as its server says."
+          },
+          "destructive": {
+            "type": "boolean",
+            "description": "The server marks it as destructive."
+          },
+          "level": {
+            "type": "string",
+            "description": "`read`, `draft` or `write` under the current lists."
+          },
+          "name": {
+            "type": "string",
+            "description": "Unqualified name."
+          },
+          "suggested": {
+            "type": "string",
+            "description": "`read` when the server marks it read-only, else `write`. Only a suggestion: servers describe their own tools."
+          }
+        }
+      },
       "ConnectorView": {
         "type": "object",
         "description": "A connector as it applies to the caller.",
@@ -13688,6 +13952,79 @@
           }
         }
       },
+      "HistoryEntry": {
+        "type": "object",
+        "description": "A stored past session, with the machine it is on.",
+        "required": [
+          "node_id",
+          "session_id",
+          "project",
+          "messages",
+          "last_active_at"
+        ],
+        "properties": {
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Git branch."
+          },
+          "cwd": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Working directory."
+          },
+          "first_prompt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the owner asked first."
+          },
+          "last_active_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last activity."
+          },
+          "messages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of messages."
+          },
+          "node_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The machine."
+          },
+          "project": {
+            "type": "string",
+            "description": "Project name."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session ID from Claude Code."
+          }
+        }
+      },
+      "HistoryReport": {
+        "type": "object",
+        "description": "Sessions a desktop agent found on its machine.",
+        "required": [
+          "sessions"
+        ],
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PastSession"
+            },
+            "description": "The sessions."
+          }
+        }
+      },
       "HoldingNotes": {
         "type": "object",
         "description": "The owner's notes on a holding, by kind.",
@@ -14309,6 +14646,43 @@
           }
         }
       },
+      "LocalSkill": {
+        "type": "object",
+        "description": "A skill found on a machine.",
+        "required": [
+          "name",
+          "path",
+          "scope"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it is for."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name."
+          },
+          "path": {
+            "type": "string",
+            "description": "Folder of the skill."
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The project folder, for project skills."
+          },
+          "scope": {
+            "type": "string",
+            "description": "`user` for the owner's own skills, `project` for those of a project."
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
         "description": "A sign-in attempt.",
@@ -14471,6 +14845,60 @@
           "tenant_name": {
             "type": "string",
             "description": "Name of the tenant."
+          }
+        }
+      },
+      "MemoriesApplied": {
+        "type": "object",
+        "description": "What became of reported memories.",
+        "required": [
+          "entries",
+          "facts"
+        ],
+        "properties": {
+          "entries": {
+            "type": "integer",
+            "description": "Brain entries created or updated.",
+            "minimum": 0
+          },
+          "facts": {
+            "type": "integer",
+            "description": "Facts proposed to the owner.",
+            "minimum": 0
+          }
+        }
+      },
+      "MemoriesReport": {
+        "type": "object",
+        "description": "Memories a desktop agent found new or changed.",
+        "required": [
+          "projects"
+        ],
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectMemories"
+            },
+            "description": "Projects whose memories changed, each with all its files."
+          }
+        }
+      },
+      "MemoryFile": {
+        "type": "object",
+        "description": "One memory file of Claude Code.",
+        "required": [
+          "file",
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Its content."
+          },
+          "file": {
+            "type": "string",
+            "description": "File name."
           }
         }
       },
@@ -15251,6 +15679,56 @@
           "new": {
             "type": "string",
             "description": "The new password, at least 12 characters."
+          }
+        }
+      },
+      "PastSession": {
+        "type": "object",
+        "description": "A session found on a machine.",
+        "required": [
+          "id",
+          "project",
+          "last_active_at"
+        ],
+        "properties": {
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Git branch."
+          },
+          "cwd": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Working directory."
+          },
+          "first_prompt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the owner asked first, cut short."
+          },
+          "id": {
+            "type": "string",
+            "description": "Session ID from Claude Code."
+          },
+          "last_active_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last activity."
+          },
+          "messages": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of messages."
+          },
+          "project": {
+            "type": "string",
+            "description": "Project name."
           }
         }
       },
@@ -16075,6 +16553,29 @@
           "value": {
             "type": "string",
             "description": "The value as text."
+          }
+        }
+      },
+      "ProjectMemories": {
+        "type": "object",
+        "description": "The memory files of one project.",
+        "required": [
+          "memories"
+        ],
+        "properties": {
+          "memories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemoryFile"
+            },
+            "description": "All its memory files, already redacted by the agent."
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Project name, or none for the home folder."
           }
         }
       },
@@ -17486,6 +17987,22 @@
           }
         }
       },
+      "SkillsReport": {
+        "type": "object",
+        "description": "Skills a desktop agent found on its machine.",
+        "required": [
+          "skills"
+        ],
+        "properties": {
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocalSkill"
+            },
+            "description": "Every skill, replacing what the machine reported before."
+          }
+        }
+      },
       "Snooze": {
         "type": "object",
         "description": "When to show an item again.",
@@ -18000,6 +18517,49 @@
           "task": {
             "type": "string",
             "description": "Task."
+          }
+        }
+      },
+      "StoredSkill": {
+        "type": "object",
+        "description": "A stored skill, with the machine it is on.",
+        "required": [
+          "node_id",
+          "name",
+          "path",
+          "scope"
+        ],
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it is for."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name."
+          },
+          "node_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The machine."
+          },
+          "path": {
+            "type": "string",
+            "description": "Folder of the skill."
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The project folder, for project skills."
+          },
+          "scope": {
+            "type": "string",
+            "description": "`user` or `project`."
           }
         }
       },

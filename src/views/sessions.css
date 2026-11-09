@@ -50,3 +50,14 @@
 .cl-usage { display: grid; grid-template-columns: 1fr 1fr; gap: 6px var(--s3); margin: 4px 0 8px; font-size: var(--t-12); }
 .cl-usage dt { color: var(--ink3); }
 .cl-usage dd { margin: 0; font-size: var(--t-14); font-weight: 500; }
+
+/* Past sessions and skills of the machines */
+.sm-list { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.sm-row { display: flex; align-items: center; gap: var(--s3); padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.sm-row b { font-weight: 500; font-size: var(--t-14); }
+.sm-row p { margin: 2px 0; color: var(--ink2); font-size: var(--t-13); }
+.sm-row small { font-size: var(--t-12); }
+.sm-group { margin-top: var(--s5); }
+.sm-ta { display: grid; gap: 6px; font-size: var(--t-12); color: var(--ink2); }
+.sm-ta textarea { width: 100%; min-height: 110px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--pane); color: var(--ink); font: 400 var(--t-13)/20px var(--font); resize: vertical; }
+.sm-ta textarea:focus { outline: none; border-color: var(--ink3); }
