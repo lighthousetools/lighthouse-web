@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, Eye, KeyRound, PencilLine, Plug, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, KeyRound, PencilLine, Plug, Plus, Trash2 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { api, must } from "../api/client";
-import { humanize, toolName } from "../format";
+import { humanize } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { openExternal } from "../shell/bridge";
@@ -10,6 +10,7 @@ import { toast } from "../shell/state";
 import { Badge, Btn, Confirm, Empty, Failure, Field, Modal, PageHeader, SearchField, Seg, ServiceIcon, Skeleton, Toggle } from "../ui";
 import { SecretModal, SourceBadge, TargetPicker, targetOf, useEffective, useManage, usePresets, useRefresh, words, type Target, type View } from "./layers";
 import { ConnectorCatalog } from "./ConnectorCatalog";
+import { ConnectorTools } from "./ConnectorTools";
 import "./connections.css";
 
 type Connector = View["connectors"][number];
@@ -212,23 +213,7 @@ function Detail({ connector }: { connector: Connector }) {
         </div>
       )}
       <div className="sh">{t("connections.whatItMay")}<small>{connector.read_tools.length + connector.draft_tools.length}</small></div>
-      <div className="card cn-tools">
-        {connector.read_tools.map((tool) => (
-          <div key={tool}>
-            <Eye size={14} className="faint" />
-            <span className="grow clip">{toolName(tool)} <span className="faint mono" style={{ fontSize: 12 }}>{tool}</span></span>
-            <Badge>{t("connections.readsBadge")}</Badge>
-          </div>
-        ))}
-        {connector.draft_tools.map((tool) => (
-          <div key={tool}>
-            <PencilLine size={14} className="faint" />
-            <span className="grow clip">{toolName(tool)} <span className="faint mono" style={{ fontSize: 12 }}>{tool}</span></span>
-            <Badge tone="info">{t("agents.asksFirst")}</Badge>
-          </div>
-        ))}
-        {connector.read_tools.length + connector.draft_tools.length === 0 && <p className="st-emp">{t("connections.noTools")}</p>}
-      </div>
+      <ConnectorTools connector={connector} editable={own != null} layer={own} />
       <p className="faint" style={{ fontSize: 12, marginTop: 12 }}>{t("connections.guard")}</p>
       {connector.source === "instance" && <p className="faint" style={{ fontSize: 12 }}>{t("connections.fromServer")}</p>}
       {connector.source === "tenant" && !manage && <p className="faint" style={{ fontSize: 12 }}>{t("roles.connectorsAdmin")}</p>}

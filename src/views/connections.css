@@ -61,3 +61,7 @@
 .cat-note { display: grid; gap: var(--s1); padding: 12px 14px; border-radius: 12px; background: var(--surface); color: var(--ink2); font-size: 13px; }
 .cat-note p { margin: 0; }
 .cat-links { display: flex; gap: var(--s1); flex-wrap: wrap; }
+
+/* Tool levels */
+.cn-suggest { display: flex; align-items: center; gap: 10px; margin-bottom: var(--s2); padding: 10px 12px; border-radius: 12px; background: var(--surface); color: var(--ink2); font-size: 13px; }
+.cn-tools .cn-desc { display: block; margin-top: 2px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

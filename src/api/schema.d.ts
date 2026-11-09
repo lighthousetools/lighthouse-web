@@ -1177,6 +1177,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/connectors/{id}/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the tools a connector offers, with their level now and a suggestion from its server. */
+        get: operations["connector_tools"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/connectors/{id}/connect": {
         parameters: {
             query?: never;
@@ -4150,6 +4167,19 @@ export interface components {
             title: string;
         };
         /** @description A connector. */
+        /** @description A tool a connector offers, with its level now and the level its server suggests. */
+        ConnectorTool: {
+            /** @description What it does, as its server says. */
+            description: string;
+            /** @description The server marks it as destructive. */
+            destructive: boolean;
+            /** @description `read`, `draft` or `write` under the current lists. */
+            level: string;
+            /** @description Unqualified name. */
+            name: string;
+            /** @description `read` when the server marks it read-only, else `write`. Only a suggestion: servers describe their own tools. */
+            suggested: string;
+        };
         ConnectorInfo: {
             /** @description `none`, `bearer`, `oauth` or `process`. */
             auth: string;
@@ -9337,6 +9367,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ConnectorInfo"][];
                 };
+            };
+        };
+    };
+    connector_tools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connector name */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorTool"][];
+                };
+            };
+            /** @description The server could not be asked */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
