@@ -803,7 +803,7 @@
             "description": "Wrong email or password"
           },
           "403": {
-            "description": "Not a member of the requested tenant"
+            "description": "Not a member of the requested tenant, or the email address is not confirmed yet"
           },
           "429": {
             "description": "Too many failed attempts"
@@ -850,7 +850,7 @@
           "400": {
             "description": "New password too short"
           },
-          "401": {
+          "403": {
             "description": "Wrong current password"
           }
         },
@@ -922,7 +922,7 @@
             }
           },
           "202": {
-            "description": "Nothing created yet, for example while the sign-up waits for approval"
+            "description": "No token yet: the sign-up waits for approval, or the account waits for its confirmed email address"
           },
           "400": {
             "description": "Invalid email, name or password"
@@ -1015,6 +1015,34 @@
           "204": {},
           "400": {
             "description": "Invalid or expired token"
+          }
+        }
+      }
+    },
+    "/auth/verify/request": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sends a new verification mail before signing in. The answer is the same\nwhether or not the address has an account, so it reveals nothing.",
+        "operationId": "request_verification",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "409": {
+            "description": "No mail is configured"
+          },
+          "429": {
+            "description": "Too many requests"
           }
         }
       }
@@ -1815,6 +1843,9 @@
               }
             }
           },
+          "409": {
+            "description": "The entitlements refuse the question"
+          },
           "502": {
             "description": "The model could not answer"
           }
@@ -1850,6 +1881,9 @@
             "content": {
               "text/event-stream": {}
             }
+          },
+          "409": {
+            "description": "The entitlements refuse the question"
           }
         },
         "security": [
@@ -3367,7 +3401,7 @@
     "/connectors/{id}/connect": {
       "post": {
         "tags": [],
-        "summary": "Starts the OAuth flow of a connector.",
+        "summary": "Starts the OAuth flow of a connector. With `scope=personal`, any member\nconnects their own account and the tokens go to their own vault; other\nmembers never use them. Without it, an owner or admin connects the tenant's\nshared account. A personal connector always connects personally.",
         "operationId": "connect",
         "parameters": [
           {
@@ -3375,6 +3409,15 @@
             "in": "path",
             "description": "Connector name",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "`personal` or `tenant` (default)",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -3392,6 +3435,9 @@
           },
           "400": {
             "description": "Cannot start the flow"
+          },
+          "403": {
+            "description": "Connecting for the tenant needs the owner or admin role"
           }
         },
         "security": [
@@ -5574,6 +5620,107 @@
           "204": {},
           "400": {
             "description": "Invalid name"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/me/credentials": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Lists the names of the caller's own credentials in this tenant.",
+        "operationId": "list_personal_credentials",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/me/credentials/{name}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Stores one of the caller's own credentials, such as their own provider key\nor the bearer token of a connector. Other members never use it.",
+        "operationId": "put_personal_credential",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Credential name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CredentialValue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "description": "Empty value"
+          },
+          "422": {
+            "description": "Invalid name"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes one of the caller's own credentials, including the tokens of a\nconnector they connected themselves (`oauth:<connector>`).",
+        "operationId": "delete_personal_credential",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Credential name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown credential"
           }
         },
         "security": [
@@ -8325,6 +8472,31 @@
         ]
       }
     },
+    "/settings/effective": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Shows the providers, models, routes and connectors that apply to the\ncaller, each with the layer it comes from.",
+        "operationId": "effective",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/settings/models": {
       "get": {
         "tags": [
@@ -8344,6 +8516,560 @@
                 }
               }
             }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/presets": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Lists suggested providers, models and connectors to prefill forms. The\nsuggestions are data of the server, not settings.",
+        "operationId": "presets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Presets"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/changes": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Lists the latest changes of a layer: who changed what and when. Values are\nnot recorded. The tenant layer's changes need the owner or admin role.",
+        "operationId": "changes",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of changes",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeRecord"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Needs the owner or admin role"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/connectors/{name}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Adds or replaces an MCP connector over streamable HTTP in a layer. The URL\nmust be a public `https` URL unless the instance allows private endpoints.\nA personal connector's tokens live in the caller's own vault.",
+        "operationId": "put_connector",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Connector name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "409": {
+            "description": "The name exists in a lower layer, or a limit is reached"
+          },
+          "422": {
+            "description": "Invalid input or an endpoint that is not public"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes a connector of a layer. Its tokens stay in the vault until deleted.",
+        "operationId": "delete_connector",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Connector name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/connectors/{name}/enabled": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Switches a connector on or off in a layer: one of the layer itself, or one\nof a lower layer for this layer only, such as an instance connector the\ntenant does not use.",
+        "operationId": "switch_connector",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Connector name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown connector"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/entries": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Shows what one layer stores: `tenant` for the whole tenant, `me` for the\ncaller's own settings.",
+        "operationId": "entries",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayerView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/providers/{name}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Adds a provider to a layer or changes its kind and URL. A provider whose\nname a lower layer has keeps that kind and URL; a layer can then only\nchange its models.",
+        "operationId": "put_provider",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Provider name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "403": {
+            "description": "Needs the owner or admin role"
+          },
+          "409": {
+            "description": "Conflicts with a lower layer, or a limit is reached"
+          },
+          "422": {
+            "description": "Invalid input or an endpoint that is not public"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes a provider of a layer with its models. Its key stays in the vault.",
+        "operationId": "delete_provider",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Provider name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          },
+          "409": {
+            "description": "A route of the layer needs it"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/providers/{name}/models/{task}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Sets the model of a provider for a task, with its prices. For a provider of\na lower layer, the layer gets its own entry with the same kind and URL.",
+        "operationId": "put_model",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Provider name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "description": "Task, such as `text`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown provider"
+          },
+          "422": {
+            "description": "Invalid model, price or task"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes the model of a provider for a task in a layer.",
+        "operationId": "delete_model",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Provider name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "description": "Task",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          },
+          "409": {
+            "description": "A route of the layer needs it"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/routing/{task}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Sets the primary provider and fallback of a task in a layer. Both need a\nmodel for the task.",
+        "operationId": "put_route",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "description": "Task, such as `text`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "422": {
+            "description": "Unknown task or provider without a model"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes the route of a task in a layer, so the lower layer's applies again.",
+        "operationId": "delete_route",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "task",
+            "in": "path",
+            "description": "Task",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
           }
         },
         "security": [
@@ -8616,6 +9342,9 @@
           },
           "404": {
             "description": "Unknown thread"
+          },
+          "409": {
+            "description": "The entitlements refuse the run or the question"
           }
         },
         "security": [
@@ -10135,6 +10864,10 @@
           "signup": {
             "$ref": "#/components/schemas/SignupMode",
             "description": "Who may create an account: `closed`, `invite` or `open`."
+          },
+          "verification_required": {
+            "type": "boolean",
+            "description": "Whether people who signed up must confirm their email address before\nthey sign in."
           }
         }
       },
@@ -10787,6 +11520,48 @@
           }
         }
       },
+      "ChangeRecord": {
+        "type": "object",
+        "description": "A recorded change. Values are not recorded.",
+        "required": [
+          "at",
+          "layer",
+          "area",
+          "name",
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`set` or `delete`."
+          },
+          "actor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Who changed it, absent for the admin token."
+          },
+          "area": {
+            "type": "string",
+            "description": "What kind of entry: `provider`, `model`, `route`, `connector`,\n`switch` or `value`."
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened."
+          },
+          "layer": {
+            "type": "string",
+            "description": "`tenant` or `personal`."
+          },
+          "name": {
+            "type": "string",
+            "description": "Which entry."
+          }
+        }
+      },
       "ChangedFile": {
         "type": "object",
         "description": "A changed file with its latest change.",
@@ -11040,6 +11815,155 @@
               "type": "string"
             },
             "description": "Tools that run directly because they only read."
+          }
+        }
+      },
+      "ConnectorInput": {
+        "type": "object",
+        "description": "An MCP connector over streamable HTTP. Connectors that start a process on\nthe server exist only in `lighthouse.toml`.",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "auth": {
+            "type": "string",
+            "description": "`none`, `bearer` (token in the vault as `mcp:<name>`) or `oauth`."
+          },
+          "client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pre-registered OAuth client ID, if the server has no dynamic registration."
+          },
+          "draft_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reversible tools without external effect, such as saving a draft."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is in use. Defaults to on."
+          },
+          "read_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools known to be read-only. Every other tool counts as `write`."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "OAuth scopes to request."
+          },
+          "url": {
+            "type": "string",
+            "description": "Server URL. Must be a public `https` URL unless the instance allows\nprivate endpoints."
+          }
+        }
+      },
+      "ConnectorView": {
+        "type": "object",
+        "description": "A connector as it applies to the caller.",
+        "required": [
+          "name",
+          "transport",
+          "auth",
+          "scopes",
+          "read_tools",
+          "draft_tools",
+          "source",
+          "enabled"
+        ],
+        "properties": {
+          "auth": {
+            "type": "string",
+            "description": "`none`, `bearer`, `oauth` or `process`."
+          },
+          "client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pre-registered OAuth client ID."
+          },
+          "connected": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Layer",
+                "description": "Where the credential used for the caller comes from now: `personal`,\n`tenant`, or `instance` for connectors that need none."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "disabled_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Layer",
+                "description": "The layer that switched it off, if one did."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reversible tools."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is in use for the caller."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          },
+          "read_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools known to be read-only."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "OAuth scopes."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "The layer that defines it."
+          },
+          "token_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The credential of its bearer token, if it uses one."
+          },
+          "transport": {
+            "type": "string",
+            "description": "`http` or `stdio`. Only the instance has `stdio` connectors."
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Server URL of an `http` connector."
           }
         }
       },
@@ -12374,6 +13298,60 @@
           }
         }
       },
+      "Layer": {
+        "type": "string",
+        "description": "Where a setting comes from.",
+        "enum": [
+          "instance",
+          "tenant",
+          "personal"
+        ]
+      },
+      "LayerView": {
+        "type": "object",
+        "description": "The entries one layer stores, without what it inherits.",
+        "required": [
+          "layer",
+          "providers",
+          "routing",
+          "connectors",
+          "switches"
+        ],
+        "properties": {
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorView"
+            },
+            "description": "Connectors."
+          },
+          "layer": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "`tenant` or `personal`."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredProvider"
+            },
+            "description": "Providers."
+          },
+          "routing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredRoute"
+            },
+            "description": "Routes."
+          },
+          "switches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredSwitch"
+            },
+            "description": "Switched entries of lower layers."
+          }
+        }
+      },
       "LinkToken": {
         "type": "object",
         "description": "A one-time token from a link, such as an email verification.",
@@ -12552,6 +13530,31 @@
           }
         }
       },
+      "ModelInput": {
+        "type": "object",
+        "description": "A model of a provider for a task, with its prices.",
+        "required": [
+          "model",
+          "input_eur_per_mtok",
+          "output_eur_per_mtok"
+        ],
+        "properties": {
+          "input_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "Price in EUR per million input tokens."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model name as the provider expects it."
+          },
+          "output_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "Price in EUR per million output tokens."
+          }
+        }
+      },
       "ModelRoute": {
         "type": "object",
         "description": "Which provider and model serve a task, from the configuration.",
@@ -12588,6 +13591,41 @@
           "task": {
             "type": "string",
             "description": "The task, such as `text`."
+          }
+        }
+      },
+      "ModelView": {
+        "type": "object",
+        "description": "A model of a provider for a task.",
+        "required": [
+          "task",
+          "model",
+          "input_eur_per_mtok",
+          "output_eur_per_mtok",
+          "source"
+        ],
+        "properties": {
+          "input_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "Price in EUR per million input tokens."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model name."
+          },
+          "output_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "Price in EUR per million output tokens."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "Where it comes from."
+          },
+          "task": {
+            "type": "string",
+            "description": "Task."
           }
         }
       },
@@ -13786,6 +14824,154 @@
           }
         }
       },
+      "PresetConnector": {
+        "type": "object",
+        "description": "A suggested MCP connector.",
+        "required": [
+          "id",
+          "label",
+          "url",
+          "auth"
+        ],
+        "properties": {
+          "auth": {
+            "type": "string",
+            "description": "`none`, `bearer` or `oauth`."
+          },
+          "draft_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reversible tools."
+          },
+          "id": {
+            "type": "string",
+            "description": "Suggested name."
+          },
+          "label": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "read_tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tools known to be read-only."
+          },
+          "url": {
+            "type": "string",
+            "description": "Server URL."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PresetModel": {
+        "type": "object",
+        "description": "A suggested model.",
+        "required": [
+          "task",
+          "model",
+          "label",
+          "input_eur_per_mtok",
+          "output_eur_per_mtok"
+        ],
+        "properties": {
+          "input_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "List price in EUR per million input tokens."
+          },
+          "label": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model name as the provider expects it."
+          },
+          "output_eur_per_mtok": {
+            "type": "number",
+            "format": "double",
+            "description": "List price in EUR per million output tokens."
+          },
+          "task": {
+            "type": "string",
+            "description": "Task it suits."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PresetProvider": {
+        "type": "object",
+        "description": "A suggested provider.",
+        "required": [
+          "id",
+          "label",
+          "kind"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base URL, if not the provider's default."
+          },
+          "id": {
+            "type": "string",
+            "description": "Suggested name."
+          },
+          "key_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where to create a key."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`anthropic` or `openai`."
+          },
+          "label": {
+            "type": "string",
+            "description": "Display name."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresetModel"
+            },
+            "description": "Suggested models."
+          }
+        },
+        "additionalProperties": false
+      },
+      "Presets": {
+        "type": "object",
+        "description": "Every suggestion.",
+        "required": [
+          "providers"
+        ],
+        "properties": {
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresetConnector"
+            },
+            "description": "Connectors."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresetProvider"
+            },
+            "description": "Providers with their models."
+          }
+        },
+        "additionalProperties": false
+      },
       "Preview": {
         "type": "object",
         "description": "The arguments of a call, readable.",
@@ -13870,6 +15056,90 @@
               "$ref": "#/components/schemas/DocumentItem"
             },
             "description": "What is still open or at risk."
+          }
+        }
+      },
+      "ProviderInput": {
+        "type": "object",
+        "description": "A provider to add or replace.",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base URL, for example of an OpenAI compatible service. Must be a public\n`https` URL unless the instance allows private endpoints."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`anthropic` or `openai`."
+          }
+        }
+      },
+      "ProviderView": {
+        "type": "object",
+        "description": "A provider as it applies to the caller.",
+        "required": [
+          "name",
+          "kind",
+          "source",
+          "defined_at",
+          "key_name",
+          "needs_key",
+          "models"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base URL, if not the provider's default."
+          },
+          "defined_at": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "The layer that chose its kind and URL."
+          },
+          "key": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Layer",
+                "description": "Where the key used for the caller comes from now, if there is one."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "key_name": {
+            "type": "string",
+            "description": "The credential that holds its key, for `PUT /credentials/{name}` or\n`PUT /me/credentials/{name}`."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`anthropic`, `openai`, `mock` or `demo`."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelView"
+            },
+            "description": "Models by task."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          },
+          "needs_key": {
+            "type": "boolean",
+            "description": "Whether it needs a key at all."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "The highest layer with an entry for it."
           }
         }
       },
@@ -14265,6 +15535,77 @@
           "role": {
             "$ref": "#/components/schemas/Role",
             "description": "The new role."
+          }
+        }
+      },
+      "RouteInput": {
+        "type": "object",
+        "description": "The route of a task.",
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "fallback": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Fallback provider."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Primary provider."
+          }
+        }
+      },
+      "RouteView": {
+        "type": "object",
+        "description": "The route of a task as it applies to the caller.",
+        "required": [
+          "task",
+          "provider",
+          "source"
+        ],
+        "properties": {
+          "fallback": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Fallback provider."
+          },
+          "fallback_model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Its model for the task."
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Its model for the task."
+          },
+          "problem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it cannot work, if it cannot."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Primary provider."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "Where the route comes from."
+          },
+          "task": {
+            "type": "string",
+            "description": "Task."
           }
         }
       },
@@ -14878,6 +16219,56 @@
           }
         }
       },
+      "SettingsView": {
+        "type": "object",
+        "description": "Everything that applies to the caller, with the layer of every entry.",
+        "required": [
+          "tasks",
+          "can_manage",
+          "allow_private_endpoints",
+          "providers",
+          "routing",
+          "connectors"
+        ],
+        "properties": {
+          "allow_private_endpoints": {
+            "type": "boolean",
+            "description": "Whether providers and connectors may use private addresses."
+          },
+          "can_manage": {
+            "type": "boolean",
+            "description": "Whether the caller may change the tenant layer."
+          },
+          "connectors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectorView"
+            },
+            "description": "Connectors, including the ones switched off."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderView"
+            },
+            "description": "Providers."
+          },
+          "routing": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RouteView"
+            },
+            "description": "Routes by task."
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tasks the server routes to models."
+          }
+        }
+      },
       "SetupRequest": {
         "type": "object",
         "description": "A new password set by an administrator.",
@@ -15351,6 +16742,100 @@
           "status": {
             "type": "string",
             "description": "Status."
+          }
+        }
+      },
+      "StoredProvider": {
+        "type": "object",
+        "description": "A provider as one layer stores it.",
+        "required": [
+          "name",
+          "kind",
+          "models"
+        ],
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base URL."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`anthropic` or `openai`."
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelView"
+            },
+            "description": "Models of this layer."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name."
+          }
+        }
+      },
+      "StoredRoute": {
+        "type": "object",
+        "description": "A route as one layer stores it.",
+        "required": [
+          "task",
+          "provider"
+        ],
+        "properties": {
+          "fallback": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Fallback provider."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Primary provider."
+          },
+          "task": {
+            "type": "string",
+            "description": "Task."
+          }
+        }
+      },
+      "StoredSwitch": {
+        "type": "object",
+        "description": "An entry of a lower layer that this layer switched.",
+        "required": [
+          "kind",
+          "name",
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is on."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`connector`, `agent`, `automation` or `source`."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the entry."
+          }
+        }
+      },
+      "SwitchInput": {
+        "type": "object",
+        "description": "Switches an entry on or off.",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is in use."
           }
         }
       },
@@ -16249,6 +17734,19 @@
           "text": {
             "type": "string",
             "description": "The text."
+          }
+        }
+      },
+      "VerificationRequest": {
+        "type": "object",
+        "description": "A request for a new verification mail, before signing in.",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The email address of the account."
           }
         }
       },

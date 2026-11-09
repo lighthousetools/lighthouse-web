@@ -455,6 +455,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/verify/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sends a new verification mail before signing in. The answer is the same
+         *     whether or not the address has an account, so it reveals nothing.
+         */
+        post: operations["request_verification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/verify/resend": {
         parameters: {
             query?: never;
@@ -1166,7 +1186,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Starts the OAuth flow of a connector. */
+        /**
+         * Starts the OAuth flow of a connector. With `scope=personal`, any member
+         *     connects their own account and the tokens go to their own vault; other
+         *     members never use them. Without it, an owner or admin connects the tenant's
+         *     shared account. A personal connector always connects personally.
+         */
         post: operations["connect"];
         delete?: never;
         options?: never;
@@ -1726,6 +1751,47 @@ export interface paths {
         head?: never;
         /** Changes the display name of the signed-in user. */
         patch: operations["update_me"];
+        trace?: never;
+    };
+    "/me/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the names of the caller's own credentials in this tenant. */
+        get: operations["list_personal_credentials"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/credentials/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Stores one of the caller's own credentials, such as their own provider key
+         *     or the bearer token of a connector. Other members never use it.
+         */
+        put: operations["put_personal_credential"];
+        post?: never;
+        /**
+         * Deletes one of the caller's own credentials, including the tokens of a
+         *     connector they connected themselves (`oauth:<connector>`).
+         */
+        delete: operations["delete_personal_credential"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/memory": {
@@ -2579,6 +2645,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/effective": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shows the providers, models, routes and connectors that apply to the
+         *     caller, each with the layer it comes from.
+         */
+        get: operations["effective"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/models": {
         parameters: {
             query?: never;
@@ -2594,6 +2680,173 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lists suggested providers, models and connectors to prefill forms. The
+         *     suggestions are data of the server, not settings.
+         */
+        get: operations["presets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lists the latest changes of a layer: who changed what and when. Values are
+         *     not recorded. The tenant layer's changes need the owner or admin role.
+         */
+        get: operations["changes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/connectors/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Adds or replaces an MCP connector over streamable HTTP in a layer. The URL
+         *     must be a public `https` URL unless the instance allows private endpoints.
+         *     A personal connector's tokens live in the caller's own vault.
+         */
+        put: operations["put_connector"];
+        post?: never;
+        /** Deletes a connector of a layer. Its tokens stay in the vault until deleted. */
+        delete: operations["delete_connector"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/connectors/{name}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switches a connector on or off in a layer: one of the layer itself, or one
+         *     of a lower layer for this layer only, such as an instance connector the
+         *     tenant does not use.
+         */
+        put: operations["switch_connector"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shows what one layer stores: `tenant` for the whole tenant, `me` for the
+         *     caller's own settings.
+         */
+        get: operations["entries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/providers/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Adds a provider to a layer or changes its kind and URL. A provider whose
+         *     name a lower layer has keeps that kind and URL; a layer can then only
+         *     change its models.
+         */
+        put: operations["put_provider"];
+        post?: never;
+        /** Deletes a provider of a layer with its models. Its key stays in the vault. */
+        delete: operations["delete_provider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/providers/{name}/models/{task}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the model of a provider for a task, with its prices. For a provider of
+         *     a lower layer, the layer gets its own entry with the same kind and URL.
+         */
+        put: operations["put_model"];
+        post?: never;
+        /** Deletes the model of a provider for a task in a layer. */
+        delete: operations["delete_model"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/routing/{task}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the primary provider and fallback of a task in a layer. Both need a
+         *     model for the task.
+         */
+        put: operations["put_route"];
+        post?: never;
+        /** Deletes the route of a task in a layer, so the lower layer's applies again. */
+        delete: operations["delete_route"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3264,6 +3517,11 @@ export interface components {
             setup_required: boolean;
             /** @description Who may create an account: `closed`, `invite` or `open`. */
             signup: components["schemas"]["SignupMode"];
+            /**
+             * @description Whether people who signed up must confirm their email address before
+             *     they sign in.
+             */
+            verification_required?: boolean;
         };
         /** @description A sentence that describes an automation. */
         AutomationDraftRequest: {
@@ -3538,6 +3796,30 @@ export interface components {
             /** @description The slot. */
             slot: components["schemas"]["PostSlot"];
         };
+        /** @description A recorded change. Values are not recorded. */
+        ChangeRecord: {
+            /** @description `set` or `delete`. */
+            action: string;
+            /**
+             * Format: uuid
+             * @description Who changed it, absent for the admin token.
+             */
+            actor?: string | null;
+            /**
+             * @description What kind of entry: `provider`, `model`, `route`, `connector`,
+             *     `switch` or `value`.
+             */
+            area: string;
+            /**
+             * Format: date-time
+             * @description When it happened.
+             */
+            at: string;
+            /** @description `tenant` or `personal`. */
+            layer: string;
+            /** @description Which entry. */
+            name: string;
+        };
         /** @description A changed file with its latest change. */
         ChangedFile: {
             /**
@@ -3635,6 +3917,56 @@ export interface components {
             name: string;
             /** @description Tools that run directly because they only read. */
             read_tools: string[];
+        };
+        /**
+         * @description An MCP connector over streamable HTTP. Connectors that start a process on
+         *     the server exist only in `lighthouse.toml`.
+         */
+        ConnectorInput: {
+            /** @description `none`, `bearer` (token in the vault as `mcp:<name>`) or `oauth`. */
+            auth?: string;
+            /** @description Pre-registered OAuth client ID, if the server has no dynamic registration. */
+            client_id?: string | null;
+            /** @description Reversible tools without external effect, such as saving a draft. */
+            draft_tools?: string[];
+            /** @description Whether it is in use. Defaults to on. */
+            enabled?: boolean;
+            /** @description Tools known to be read-only. Every other tool counts as `write`. */
+            read_tools?: string[];
+            /** @description OAuth scopes to request. */
+            scopes?: string[];
+            /**
+             * @description Server URL. Must be a public `https` URL unless the instance allows
+             *     private endpoints.
+             */
+            url: string;
+        };
+        /** @description A connector as it applies to the caller. */
+        ConnectorView: {
+            /** @description `none`, `bearer`, `oauth` or `process`. */
+            auth: string;
+            /** @description Pre-registered OAuth client ID. */
+            client_id?: string | null;
+            connected?: components["schemas"]["Layer"] | null;
+            disabled_by?: components["schemas"]["Layer"] | null;
+            /** @description Reversible tools. */
+            draft_tools: string[];
+            /** @description Whether it is in use for the caller. */
+            enabled: boolean;
+            /** @description Name. */
+            name: string;
+            /** @description Tools known to be read-only. */
+            read_tools: string[];
+            /** @description OAuth scopes. */
+            scopes: string[];
+            /** @description The layer that defines it. */
+            source: components["schemas"]["Layer"];
+            /** @description The credential of its bearer token, if it uses one. */
+            token_name?: string | null;
+            /** @description `http` or `stdio`. Only the instance has `stdio` connectors. */
+            transport: string;
+            /** @description Server URL of an `http` connector. */
+            url?: string | null;
         };
         /** @description The person something is for. */
         Counterpart: {
@@ -4254,6 +4586,24 @@ export interface components {
             /** @description Address to open it. */
             url?: string | null;
         };
+        /**
+         * @description Where a setting comes from.
+         * @enum {string}
+         */
+        Layer: "instance" | "tenant" | "personal";
+        /** @description The entries one layer stores, without what it inherits. */
+        LayerView: {
+            /** @description Connectors. */
+            connectors: components["schemas"]["ConnectorView"][];
+            /** @description `tenant` or `personal`. */
+            layer: components["schemas"]["Layer"];
+            /** @description Providers. */
+            providers: components["schemas"]["StoredProvider"][];
+            /** @description Routes. */
+            routing: components["schemas"]["StoredRoute"][];
+            /** @description Switched entries of lower layers. */
+            switches: components["schemas"]["StoredSwitch"][];
+        };
         /** @description A one-time token from a link, such as an email verification. */
         LinkToken: {
             /** @description The token. */
@@ -4344,6 +4694,21 @@ export interface components {
             /** @description Name of the tenant. */
             tenant_name: string;
         };
+        /** @description A model of a provider for a task, with its prices. */
+        ModelInput: {
+            /**
+             * Format: double
+             * @description Price in EUR per million input tokens.
+             */
+            input_eur_per_mtok: number;
+            /** @description Model name as the provider expects it. */
+            model: string;
+            /**
+             * Format: double
+             * @description Price in EUR per million output tokens.
+             */
+            output_eur_per_mtok: number;
+        };
         /** @description Which provider and model serve a task, from the configuration. */
         ModelRoute: {
             /** @description The fallback provider, if any. */
@@ -4355,6 +4720,25 @@ export interface components {
             /** @description The provider. */
             provider: string;
             /** @description The task, such as `text`. */
+            task: string;
+        };
+        /** @description A model of a provider for a task. */
+        ModelView: {
+            /**
+             * Format: double
+             * @description Price in EUR per million input tokens.
+             */
+            input_eur_per_mtok: number;
+            /** @description Model name. */
+            model: string;
+            /**
+             * Format: double
+             * @description Price in EUR per million output tokens.
+             */
+            output_eur_per_mtok: number;
+            /** @description Where it comes from. */
+            source: components["schemas"]["Layer"];
+            /** @description Task. */
             task: string;
         };
         /** @description A new deck. */
@@ -4840,6 +5224,62 @@ export interface components {
              */
             weekday: number;
         };
+        /** @description A suggested MCP connector. */
+        PresetConnector: {
+            /** @description `none`, `bearer` or `oauth`. */
+            auth: string;
+            /** @description Reversible tools. */
+            draft_tools?: string[];
+            /** @description Suggested name. */
+            id: string;
+            /** @description Display name. */
+            label: string;
+            /** @description Tools known to be read-only. */
+            read_tools?: string[];
+            /** @description Server URL. */
+            url: string;
+        };
+        /** @description A suggested model. */
+        PresetModel: {
+            /**
+             * Format: double
+             * @description List price in EUR per million input tokens.
+             */
+            input_eur_per_mtok: number;
+            /** @description Display name. */
+            label: string;
+            /** @description Model name as the provider expects it. */
+            model: string;
+            /**
+             * Format: double
+             * @description List price in EUR per million output tokens.
+             */
+            output_eur_per_mtok: number;
+            /** @description Task it suits. */
+            task: string;
+        };
+        /** @description A suggested provider. */
+        PresetProvider: {
+            /** @description Base URL, if not the provider's default. */
+            base_url?: string | null;
+            /** @description Suggested name. */
+            id: string;
+            /** @description Where to create a key. */
+            key_url?: string | null;
+            /** @description `anthropic` or `openai`. */
+            kind: string;
+            /** @description Display name. */
+            label: string;
+            /** @description Suggested models. */
+            models?: components["schemas"]["PresetModel"][];
+        };
+        /** @description Every suggestion. */
+        Presets: {
+            /** @description Connectors. */
+            connectors?: components["schemas"]["PresetConnector"][];
+            /** @description Providers with their models. */
+            providers: components["schemas"]["PresetProvider"][];
+        };
         /** @description The arguments of a call, readable. */
         Preview: {
             /** @description The arguments apart from the text and internal references. */
@@ -4868,6 +5308,39 @@ export interface components {
             numbers?: components["schemas"]["ItemNumber"][];
             /** @description What is still open or at risk. */
             open?: components["schemas"]["DocumentItem"][];
+        };
+        /** @description A provider to add or replace. */
+        ProviderInput: {
+            /**
+             * @description Base URL, for example of an OpenAI compatible service. Must be a public
+             *     `https` URL unless the instance allows private endpoints.
+             */
+            base_url?: string | null;
+            /** @description `anthropic` or `openai`. */
+            kind: string;
+        };
+        /** @description A provider as it applies to the caller. */
+        ProviderView: {
+            /** @description Base URL, if not the provider's default. */
+            base_url?: string | null;
+            /** @description The layer that chose its kind and URL. */
+            defined_at: components["schemas"]["Layer"];
+            key?: components["schemas"]["Layer"] | null;
+            /**
+             * @description The credential that holds its key, for `PUT /credentials/{name}` or
+             *     `PUT /me/credentials/{name}`.
+             */
+            key_name: string;
+            /** @description `anthropic`, `openai`, `mock` or `demo`. */
+            kind: string;
+            /** @description Models by task. */
+            models: components["schemas"]["ModelView"][];
+            /** @description Name. */
+            name: string;
+            /** @description Whether it needs a key at all. */
+            needs_key: boolean;
+            /** @description The highest layer with an entry for it. */
+            source: components["schemas"]["Layer"];
         };
         /** @description The item a call answers, to quote it. */
         Quote: {
@@ -5018,6 +5491,30 @@ export interface components {
         RoleChange: {
             /** @description The new role. */
             role: components["schemas"]["Role"];
+        };
+        /** @description The route of a task. */
+        RouteInput: {
+            /** @description Fallback provider. */
+            fallback?: string | null;
+            /** @description Primary provider. */
+            provider: string;
+        };
+        /** @description The route of a task as it applies to the caller. */
+        RouteView: {
+            /** @description Fallback provider. */
+            fallback?: string | null;
+            /** @description Its model for the task. */
+            fallback_model?: string | null;
+            /** @description Its model for the task. */
+            model?: string | null;
+            /** @description Why it cannot work, if it cannot. */
+            problem?: string | null;
+            /** @description Primary provider. */
+            provider: string;
+            /** @description Where the route comes from. */
+            source: components["schemas"]["Layer"];
+            /** @description Task. */
+            task: string;
         };
         /** @description A standing rule. */
         Rule: {
@@ -5322,6 +5819,21 @@ export interface components {
              */
             updated_at?: string | null;
         };
+        /** @description Everything that applies to the caller, with the layer of every entry. */
+        SettingsView: {
+            /** @description Whether providers and connectors may use private addresses. */
+            allow_private_endpoints: boolean;
+            /** @description Whether the caller may change the tenant layer. */
+            can_manage: boolean;
+            /** @description Connectors, including the ones switched off. */
+            connectors: components["schemas"]["ConnectorView"][];
+            /** @description Providers. */
+            providers: components["schemas"]["ProviderView"][];
+            /** @description Routes by task. */
+            routing: components["schemas"]["RouteView"][];
+            /** @description Tasks the server routes to models. */
+            tasks: string[];
+        };
         /** @description A new password set by an administrator. */
         SetupRequest: {
             /** @description The password, at least 12 characters. */
@@ -5556,6 +6068,40 @@ export interface components {
             seq: number;
             /** @description Status. */
             status: string;
+        };
+        /** @description A provider as one layer stores it. */
+        StoredProvider: {
+            /** @description Base URL. */
+            base_url?: string | null;
+            /** @description `anthropic` or `openai`. */
+            kind: string;
+            /** @description Models of this layer. */
+            models: components["schemas"]["ModelView"][];
+            /** @description Name. */
+            name: string;
+        };
+        /** @description A route as one layer stores it. */
+        StoredRoute: {
+            /** @description Fallback provider. */
+            fallback?: string | null;
+            /** @description Primary provider. */
+            provider: string;
+            /** @description Task. */
+            task: string;
+        };
+        /** @description An entry of a lower layer that this layer switched. */
+        StoredSwitch: {
+            /** @description Whether it is on. */
+            enabled: boolean;
+            /** @description `connector`, `agent`, `automation` or `source`. */
+            kind: string;
+            /** @description Name of the entry. */
+            name: string;
+        };
+        /** @description Switches an entry on or off. */
+        SwitchInput: {
+            /** @description Whether it is in use. */
+            enabled: boolean;
         };
         /** @description A request for a token in another tenant. */
         SwitchRequest: {
@@ -5990,6 +6536,11 @@ export interface components {
             name: string;
             /** @description The text. */
             text: string;
+        };
+        /** @description A request for a new verification mail, before signing in. */
+        VerificationRequest: {
+            /** @description The email address of the account. */
+            email: string;
         };
         /** @description The weather of a day. */
         Weather: {
@@ -6633,7 +7184,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Not a member of the requested tenant */
+            /** @description Not a member of the requested tenant, or the email address is not confirmed yet */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -6693,7 +7244,7 @@ export interface operations {
                 content?: never;
             };
             /** @description Wrong current password */
-            401: {
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6757,7 +7308,7 @@ export interface operations {
                     "application/json": components["schemas"]["TokenIssued"];
                 };
             };
-            /** @description Nothing created yet, for example while the sign-up waits for approval */
+            /** @description No token yet: the sign-up waits for approval, or the account waits for its confirmed email address */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -6857,6 +7408,41 @@ export interface operations {
             };
             /** @description Invalid or expired token */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    request_verification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerificationRequest"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No mail is configured */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too many requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7357,6 +7943,13 @@ export interface operations {
                     "application/json": components["schemas"]["AskAnswer"];
                 };
             };
+            /** @description The entitlements refuse the question */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description The model could not answer */
             502: {
                 headers: {
@@ -7387,6 +7980,13 @@ export interface operations {
                 content: {
                     "text/event-stream": unknown;
                 };
+            };
+            /** @description The entitlements refuse the question */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -8309,7 +8909,10 @@ export interface operations {
     };
     connect: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `personal` or `tenant` (default) */
+                scope?: string;
+            };
             header?: never;
             path: {
                 /** @description Connector name */
@@ -8329,6 +8932,13 @@ export interface operations {
             };
             /** @description Cannot start the flow */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Connecting for the tenant needs the owner or admin role */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9454,6 +10064,90 @@ export interface operations {
             };
             /** @description Invalid name */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_personal_credentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    put_personal_credential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CredentialValue"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Empty value */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid name */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_personal_credential: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Credential name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown credential */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11261,6 +11955,25 @@ export interface operations {
             };
         };
     };
+    effective: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsView"];
+                };
+            };
+        };
+    };
     model_routes: {
         parameters: {
             query?: never;
@@ -11277,6 +11990,413 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ModelRoute"][];
                 };
+            };
+        };
+    };
+    presets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Presets"];
+                };
+            };
+        };
+    };
+    changes: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of changes */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeRecord"][];
+                };
+            };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_connector: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Connector name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectorInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The name exists in a lower layer, or a limit is reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or an endpoint that is not public */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_connector: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Connector name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switch_connector: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Connector name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwitchInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown connector */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    entries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LayerView"];
+                };
+            };
+            /** @description Unknown layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Provider name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicts with a lower layer, or a limit is reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid input or an endpoint that is not public */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Provider name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A route of the layer needs it */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_model: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Provider name */
+                name: string;
+                /** @description Task, such as `text` */
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown provider */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid model, price or task */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_model: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Provider name */
+                name: string;
+                /** @description Task */
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A route of the layer needs it */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_route: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Task, such as `text` */
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown task or provider without a model */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_route: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Task */
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -11472,6 +12592,13 @@ export interface operations {
             };
             /** @description Unknown thread */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The entitlements refuse the run or the question */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
