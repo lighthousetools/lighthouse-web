@@ -12,6 +12,7 @@ import { toast } from "../shell/state";
 import { Avatar, Badge, Btn, Confirm, Failure, Field, Modal, Progress, Seg, Skeleton } from "../ui";
 import { LanguagePicker } from "./LanguagePicker";
 import { MIN_PASSWORD } from "./Login";
+import { ModelSettings } from "./ModelSettings";
 import { Group, ReadOnly, SettingRow, copy } from "./settingsKit";
 import { Costs, Workspace } from "./Workspace";
 import "./settings.css";
@@ -182,6 +183,7 @@ function Credentials() {
         ))}
         <Failure error={names.error ?? remove.error} />
       </Group>
+      <MyCredentials />
       {!manage && <ReadOnly>{t("roles.keysAdmin")}</ReadOnly>}
       {manage && <Group title={t("settings.addCredential")} hint={t("settings.credentialsHint")}>
         {providers.length > 0 && (
@@ -204,6 +206,32 @@ function Credentials() {
         {save.error && <div className="st-pad"><Failure error={save.error} /></div>}
       </Group>}
     </>
+  );
+}
+
+/** The caller's own keys and tokens in this workspace. Nobody else uses them. */
+function MyCredentials() {
+  const client = useQueryClient();
+  const mine = useQuery({ queryKey: ["credentials", "mine"], queryFn: () => must(api.GET("/me/credentials")) });
+  const remove = useMutation({
+    mutationFn: (name: string) => must(api.DELETE("/me/credentials/{name}", { params: { path: { name } } })),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ["credentials"] });
+      void client.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+  if (mine.error || (mine.data?.length ?? 0) === 0) return null;
+  return (
+    <Group title={t("settings.myCredentials")} hint={t("settings.myCredentialsHint")}>
+      {mine.data?.map((item) => (
+        <SettingRow key={item} icon={<span className="st-ic"><KeyRound size={15} /></span>} title={<span className="mono">{item}</span>} sub={t("settings.encrypted")}>
+          <Btn size="sm" icon variant="ghost" aria-label={t("settings.deleteNamed", { name: item })} onClick={() => remove.mutate(item)}>
+            <Trash2 />
+          </Btn>
+        </SettingRow>
+      ))}
+      <Failure error={remove.error} />
+    </Group>
   );
 }
 
@@ -350,22 +378,6 @@ function DeleteAccount({ email, onClose }: { email: string; onClose: () => void 
   );
 }
 
-/** Which provider and model serve each task, with the fallback. Read-only: routing lives in the configuration. */
-function Models() {
-  const models = useQuery({ queryKey: ["settings", "models"], queryFn: () => must(api.GET("/settings/models")) });
-  if (models.isPending) return <Skeleton count={3} height={52} />;
-  return (
-    <Group title={t("settings.modelsTitle")} hint={t("settings.modelsHint")}>
-      {(models.data ?? []).map((route) => (
-        <SettingRow key={route.task} title={tOr(`settings.task.${route.task}`, route.task)} sub={route.fallback ? t("settings.fallback", { fallback: [route.fallback, route.fallback_model].filter(Boolean).join(" · ") }) : undefined}>
-          <span className="st-model"><b>{route.model ?? "–"}</b><small>{route.provider}</small></span>
-        </SettingRow>
-      ))}
-      {models.data?.length === 0 && <SettingRow title={t("settings.noModels")} />}
-    </Group>
-  );
-}
-
 /** A monthly budget: an alert when it is nearly used up. It never stops runs; the limit per run does that. */
 function Budget() {
   const client = useQueryClient();
@@ -429,7 +441,7 @@ function Budget() {
   );
 }
 
-const CONTENT: Record<string, () => ReactNode> = { models: Models, budget: Budget, general: General, devices: Devices, credentials: Credentials, account: Account, workspace: Workspace, costs: Costs };
+const CONTENT: Record<string, () => ReactNode> = { models: ModelSettings, budget: Budget, general: General, devices: Devices, credentials: Credentials, account: Account, workspace: Workspace, costs: Costs };
 
 export function Settings() {
   useLanguage();

@@ -1,0 +1,13 @@
+/* Settings in layers: source badges, the target picker and the forms of providers and connectors. */
+.lay-note { font-size: var(--t-125); line-height: 18px; }
+.lay-label { display: block; font-size: var(--t-12); color: var(--ink3); margin-top: var(--s1); }
+.lay-chips { display: flex; gap: var(--s1); flex-wrap: wrap; }
+.lay-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.lay-title { display: inline-flex; align-items: center; gap: var(--s2); }
+.lay-bad { color: var(--bad); }
+.lay-cta { display: flex; align-items: center; gap: var(--s3); margin: var(--s4) 0; flex-wrap: wrap; }
+.lay-legend { font-size: var(--t-12); line-height: 22px; margin-top: var(--s4); }
+.lay-url { font-size: var(--t-12); margin-top: 2px; overflow-wrap: anywhere; }
+.lay-switches { margin-bottom: var(--s4); }
+.lay-form { display: grid; gap: var(--s2); }
+@media (max-width: 640px) { .lay-two { grid-template-columns: minmax(0, 1fr); } }

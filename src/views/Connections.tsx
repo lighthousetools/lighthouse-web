@@ -1,23 +1,27 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, Eye, PencilLine, Plug, Plus } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Eye, KeyRound, PencilLine, Plug, Plus, Trash2 } from "lucide-react";
 import { Fragment, useState } from "react";
-import { api, must, type Schemas } from "../api/client";
-import { useConnectors } from "../data";
+import { api, must } from "../api/client";
 import { humanize, toolName } from "../format";
 import { t, useLanguage } from "../i18n";
 import { go, useRoute } from "../router";
 import { openExternal } from "../shell/bridge";
 import { toast } from "../shell/state";
-import { Badge, Btn, Empty, Failure, PageHeader, SearchField, Seg, ServiceIcon, Skeleton } from "../ui";
-import { canManage, useRole } from "../session";
+import { Badge, Btn, Confirm, Empty, Failure, Field, Modal, PageHeader, SearchField, Seg, ServiceIcon, Skeleton, Toggle } from "../ui";
+import { SecretModal, SourceBadge, TargetPicker, targetOf, useEffective, useManage, usePresets, useRefresh, words, type Target, type View } from "./layers";
 import "./connections.css";
 
-type Connector = Schemas["ConnectorInfo"];
+type Connector = View["connectors"][number];
 type Filter = "all" | "connected" | "open";
+type Auth = "none" | "bearer" | "oauth";
+
+const isConnected = (connector: Connector) => connector.enabled && connector.connected != null;
+const canConnect = (connector: Connector) => connector.auth === "oauth" || connector.auth === "bearer";
 
 function useConnect() {
   return useMutation({
-    mutationFn: (id: string) => must(api.POST("/connectors/{id}/connect", { params: { path: { id } } })),
+    mutationFn: ({ name, scope }: { name: string; scope: Target }) =>
+      must(api.POST("/connectors/{id}/connect", { params: { path: { id: name }, query: { scope: scope === "me" ? "personal" : "tenant" } } })),
     onSuccess: (started) => {
       openExternal(started.authorize_url);
       toast(t("connections.continueThere"));
@@ -36,12 +40,130 @@ function describe(connector: Connector) {
 }
 
 function StateBadge({ connector }: { connector: Connector }) {
-  return connector.connected ? <Badge tone="ok">{t("settings.connected")}</Badge> : <Badge tone="warn">{t("settings.notConnected")}</Badge>;
+  if (!connector.enabled) return <Badge>{t("connections.off")}</Badge>;
+  if (!isConnected(connector)) return <Badge tone="warn">{t("settings.notConnected")}</Badge>;
+  if (connector.connected === "personal") return <Badge tone="ok">{t("connections.connectedMine")}</Badge>;
+  return <Badge tone="ok">{t("settings.connected")}</Badge>;
+}
+
+/** Adds or changes a connector over HTTP, for the workspace or for the caller alone. */
+function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: () => void }) {
+  const manage = useManage();
+  const refresh = useRefresh();
+  const presets = usePresets();
+  const fixed = existing ? targetOf(existing.source, manage) : null;
+  const [target, setTarget] = useState<Target>(fixed ?? (manage ? "tenant" : "me"));
+  const [name, setName] = useState(existing?.name ?? "");
+  const [url, setUrl] = useState(existing?.url ?? "");
+  const [auth, setAuth] = useState<Auth>((existing?.auth as Auth | undefined) ?? "oauth");
+  const [clientId, setClientId] = useState(existing?.client_id ?? "");
+  const [scopes, setScopes] = useState(existing?.scopes.join(" ") ?? "");
+  const [reads, setReads] = useState(existing?.read_tools.join(", ") ?? "");
+  const [drafts, setDrafts] = useState(existing?.draft_tools.join(", ") ?? "");
+  const save = useMutation({
+    mutationFn: () =>
+      must(
+        api.PUT("/settings/{layer}/connectors/{name}", {
+          params: { path: { layer: target, name } },
+          body: {
+            url: url.trim(),
+            auth,
+            client_id: clientId.trim() || null,
+            scopes: words(scopes),
+            read_tools: words(reads),
+            draft_tools: words(drafts),
+            enabled: existing?.enabled ?? true,
+          },
+        }),
+      ),
+    onSuccess: () => {
+      toast(existing ? t("connections.saved") : t("connections.added", { name }));
+      refresh();
+      onClose();
+      if (!existing) go("connections", name);
+    },
+  });
+  const valid = /^[a-z][a-z0-9_-]{0,39}$/.test(name) && /^https?:\/\//.test(url.trim());
+  return (
+    <Modal
+      wide
+      title={existing ? t("connections.editTitle", { name: humanize(existing.name) }) : t("connections.addTitle")}
+      sub={t("connections.addHint")}
+      onClose={onClose}
+      actions={
+        <>
+          <Btn onClick={onClose}>{t("common.cancel")}</Btn>
+          <Btn variant="primary" disabled={!valid || save.isPending} onClick={() => save.mutate()}>{existing ? t("common.save") : t("connections.add")}</Btn>
+        </>
+      }
+    >
+      <div className="lay-form">
+      {!existing && <TargetPicker value={target} onChange={setTarget} />}
+      {!existing && (presets.data?.connectors?.length ?? 0) > 0 && (
+        <div className="lay-chips">
+          {(presets.data?.connectors ?? []).map((preset) => (
+            <Btn
+              key={preset.id}
+              size="sm"
+              variant={name === preset.id ? "primary" : ""}
+              onClick={() => {
+                setName(preset.id);
+                setUrl(preset.url);
+                setAuth((preset.auth as Auth) ?? "oauth");
+                setReads((preset.read_tools ?? []).join(", "));
+                setDrafts((preset.draft_tools ?? []).join(", "));
+              }}
+            >
+              {preset.label}
+            </Btn>
+          ))}
+        </div>
+      )}
+      <Field value={name} onChange={setName} disabled={!!existing} label={t("connections.name")} placeholder={t("connections.name")} />
+      {name && !/^[a-z][a-z0-9_-]{0,39}$/.test(name) && <small className="faint">{t("models.nameRule")}</small>}
+      <Field value={url} onChange={setUrl} label={t("connections.url")} placeholder="https://" />
+      <Seg<Auth> label={t("connections.auth")} value={auth} onChange={setAuth} options={[["oauth", t("connections.authOauth")], ["bearer", t("connections.authBearer")], ["none", t("connections.authNone")]]} />
+      {auth === "oauth" && (
+        <div className="lay-two">
+          <Field value={clientId} onChange={setClientId} label={t("connections.clientId")} placeholder={t("connections.clientIdHint")} />
+          <Field value={scopes} onChange={setScopes} label={t("connections.scopes")} placeholder={t("connections.scopes")} />
+        </div>
+      )}
+      <Field value={reads} onChange={setReads} label={t("connections.readTools")} placeholder={t("connections.readTools")} />
+      <Field value={drafts} onChange={setDrafts} label={t("connections.draftTools")} placeholder={t("connections.draftTools")} />
+      <small className="faint">{t("connections.toolsHint")}</small>
+      <Failure error={save.error} />
+      </div>
+    </Modal>
+  );
 }
 
 function Detail({ connector }: { connector: Connector }) {
   const connect = useConnect();
-  const manage = canManage(useRole());
+  const manage = useManage();
+  const refresh = useRefresh();
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [token, setToken] = useState<Target | null>(null);
+  const own = targetOf(connector.source, manage);
+  const personal = connector.source === "personal";
+  const toggle = useMutation({
+    mutationFn: ({ layer, enabled }: { layer: Target; enabled: boolean }) =>
+      must(api.PUT("/settings/{layer}/connectors/{name}/enabled", { params: { path: { layer, name: connector.name } }, body: { enabled } })),
+    onSuccess: refresh,
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const remove = useMutation({
+    mutationFn: (layer: Target) => must(api.DELETE("/settings/{layer}/connectors/{name}", { params: { path: { layer, name: connector.name } } })),
+    onSuccess: () => {
+      refresh();
+      go("connections");
+    },
+    onError: (error) => toast(error.message, "bad"),
+  });
+  const start = (scope: Target) => (connector.auth === "oauth" ? connect.mutate({ name: connector.name, scope }) : setToken(scope));
+  const sub =
+    connector.auth === "oauth" ? t("connections.oauth") : connector.auth === "bearer" ? t("connections.bearer", { name: connector.token_name ?? "" }) : connector.auth === "process" ? t("connections.process") : t("connections.open");
   return (
     <div className="cn">
       <button type="button" className="cn-back" onClick={() => go("connections")}>
@@ -54,23 +176,47 @@ function Detail({ connector }: { connector: Connector }) {
           <div className="t">
             <h1>{humanize(connector.name)}</h1>
             <StateBadge connector={connector} />
+            <SourceBadge source={connector.source} />
           </div>
-          <p>{connector.auth === "oauth" ? t("connections.oauth") : t("connections.credential", { name: connector.name })}</p>
+          <p>{sub}</p>
+          {connector.url && <p className="faint mono lay-url">{connector.url}</p>}
         </div>
         <div className="acts">
-          {!manage ? (
-            <small className="faint">{t("roles.connectorsAdmin")}</small>
-          ) : connector.auth === "oauth" ? (
-            <Btn variant={connector.connected ? "" : "primary"} disabled={connect.isPending} onClick={() => connect.mutate(connector.name)}>
-              <ExternalLink />
-              {connector.connected ? t("settings.reconnect") : t("settings.connect")}
+          {canConnect(connector) && connector.enabled && (
+            <Btn variant={connector.connected === "personal" ? "" : "primary"} disabled={connect.isPending} onClick={() => start("me")}>
+              {connector.auth === "oauth" ? <ExternalLink /> : <KeyRound />}
+              {connector.connected === "personal" ? t("connections.reconnectMine") : t("connections.connectMine")}
             </Btn>
-          ) : (
-            <Btn onClick={() => go("settings", "credentials")}>{t("connections.toCredentials")}</Btn>
+          )}
+          {canConnect(connector) && connector.enabled && !personal && manage && (
+            <Btn disabled={connect.isPending} onClick={() => start("tenant")}>{t("connections.connectShared")}</Btn>
           )}
         </div>
       </header>
       <Failure error={connect.error} />
+      {!personal && (
+        <div className="card lay-switches">
+          {manage && connector.source === "instance" && (
+            <div className="cn-perm">
+              <div className="grow"><b>{t("connections.useInWorkspace")}</b><small>{t("connections.useInWorkspaceHint")}</small></div>
+              <Toggle
+                label={t("connections.useInWorkspace")}
+                on={connector.disabled_by !== "tenant"}
+                onChange={() => toggle.mutate({ layer: "tenant", enabled: connector.disabled_by === "tenant" })}
+              />
+            </div>
+          )}
+          <div className="cn-perm">
+            <div className="grow"><b>{t("connections.useForMe")}</b><small>{connector.disabled_by === "tenant" ? t("connections.offForWorkspace") : t("connections.useForMeHint")}</small></div>
+            <Toggle
+              label={t("connections.useForMe")}
+              disabled={connector.disabled_by === "tenant"}
+              on={connector.disabled_by !== "personal"}
+              onChange={() => toggle.mutate({ layer: "me", enabled: connector.disabled_by === "personal" })}
+            />
+          </div>
+        </div>
+      )}
       <div className="sh">{t("connections.whatItMay")}<small>{connector.read_tools.length + connector.draft_tools.length}</small></div>
       <div className="card cn-tools">
         {connector.read_tools.map((tool) => (
@@ -90,6 +236,32 @@ function Detail({ connector }: { connector: Connector }) {
         {connector.read_tools.length + connector.draft_tools.length === 0 && <p className="st-emp">{t("connections.noTools")}</p>}
       </div>
       <p className="faint" style={{ fontSize: 12, marginTop: 12 }}>{t("connections.guard")}</p>
+      {connector.source === "instance" && <p className="faint" style={{ fontSize: 12 }}>{t("connections.fromServer")}</p>}
+      {connector.source === "tenant" && !manage && <p className="faint" style={{ fontSize: 12 }}>{t("roles.connectorsAdmin")}</p>}
+      {own && (
+        <div className="cn-danger">
+          <div className="grow">
+            <b>{personal ? t("connections.mineTitle") : t("connections.sharedTitle")}</b>
+            <small>{personal ? t("connections.mineHint") : t("connections.sharedHint")}</small>
+          </div>
+          <Toggle label={t("connections.enabled")} on={connector.disabled_by !== connector.source} onChange={() => toggle.mutate({ layer: own, enabled: connector.disabled_by === connector.source })} />
+          <Btn onClick={() => setEditing(true)}><PencilLine />{t("connections.edit")}</Btn>
+          <Btn variant="danger" onClick={() => setDeleting(true)}><Trash2 />{t("common.delete")}</Btn>
+        </div>
+      )}
+      {editing && <ConnectorModal existing={connector} onClose={() => setEditing(false)} />}
+      {token && connector.token_name && (
+        <SecretModal name={connector.token_name} title={t("connections.tokenTitle", { name: humanize(connector.name) })} defaultTarget={token} onClose={() => setToken(null)} />
+      )}
+      {deleting && own && (
+        <Confirm
+          title={t("connections.deleteConfirm", { name: humanize(connector.name) })}
+          body={t("connections.deleteBody")}
+          action={t("common.delete")}
+          onConfirm={() => remove.mutate(own)}
+          onClose={() => setDeleting(false)}
+        />
+      )}
     </div>
   );
 }
@@ -97,12 +269,12 @@ function Detail({ connector }: { connector: Connector }) {
 export function Connections() {
   useLanguage();
   const route = useRoute();
-  const connectors = useConnectors();
-  const connect = useConnect();
-  const manage = canManage(useRole());
+  const view = useEffective();
+  const manage = useManage();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const all = connectors.data ?? [];
+  const [adding, setAdding] = useState(false);
+  const all = view.data?.connectors ?? [];
   const current = route.param ? all.find((connector) => connector.name === route.param) : undefined;
   if (current) {
     return <div className="page"><Detail connector={current} /></div>;
@@ -110,18 +282,20 @@ export function Connections() {
   const needle = query.trim().toLowerCase();
   const shown = all.filter(
     (connector) =>
-      (filter === "all" || (filter === "connected" ? connector.connected : !connector.connected)) &&
+      (filter === "all" || (filter === "connected" ? isConnected(connector) : !isConnected(connector))) &&
       (!needle || `${connector.name} ${connector.read_tools.join(" ")} ${connector.draft_tools.join(" ")}`.toLowerCase().includes(needle)),
   );
-  const connected = all.filter((connector) => connector.connected).length;
+  const connected = all.filter(isConnected).length;
   const groups: [string, Connector[]][] = [
-    [t("settings.connected"), shown.filter((connector) => connector.connected)],
-    [t("settings.notConnected"), shown.filter((connector) => !connector.connected)],
+    [t("connections.mine"), shown.filter((connector) => connector.source === "personal")],
+    [t("connections.shared"), shown.filter((connector) => connector.source !== "personal")],
   ];
   return (
     <div className="page">
       <div className="cn">
-        <PageHeader title={t("nav.connections")} sub={t("connections.lead", { count: connected, total: all.length })} />
+        <PageHeader title={t("nav.connections")} sub={t("connections.lead", { count: connected, total: all.length })}>
+          <Btn variant="primary" onClick={() => setAdding(true)}><Plus />{t("connections.add")}</Btn>
+        </PageHeader>
         <div className="cn-bar">
           <Seg<Filter>
             label={t("connections.filter")}
@@ -132,10 +306,17 @@ export function Connections() {
           <span className="grow" />
           <div className="cn-q"><SearchField value={query} onChange={setQuery} placeholder={t("connections.search")} /></div>
         </div>
-        <Failure error={connectors.error ?? connect.error} />
-        {connectors.isPending && <Skeleton count={4} height={58} />}
-        {!connectors.isPending && all.length === 0 && (
-          <div className="card"><Empty icon={<Plug />} title={t("settings.connectorsEmpty")} sub={t("connections.emptyHint")} /></div>
+        <Failure error={view.error} />
+        {view.isPending && <Skeleton count={4} height={58} />}
+        {!view.isPending && all.length === 0 && (
+          <div className="card">
+            <Empty
+              icon={<Plug />}
+              title={t("connections.emptyTitle")}
+              sub={manage ? t("connections.emptyHint") : t("connections.emptyHintMine")}
+              action={<Btn variant="primary" onClick={() => setAdding(true)}><Plus />{t("connections.add")}</Btn>}
+            />
+          </div>
         )}
         {all.length > 0 && shown.length === 0 && (
           <div className="cn-none"><b>{t("palette.empty")}</b><Btn size="sm" onClick={() => { setFilter("all"); setQuery(""); }}>{t("connections.showAll")}</Btn></div>
@@ -152,33 +333,21 @@ export function Connections() {
                       <span className="n"><b>{humanize(connector.name)}</b><StateBadge connector={connector} /></span>
                       <span className="d">{describe(connector)}</span>
                     </span>
-                    {connector.connected ? (
+                    {isConnected(connector) ? (
                       <span className="cn-add on" title={t("settings.connected")}><Check size={14} /></span>
-                    ) : !manage ? null : connector.auth === "oauth" ? (
+                    ) : connector.enabled && canConnect(connector) ? (
                       <button
                         type="button"
                         className="cn-add"
                         aria-label={t("connections.connectNamed", { name: connector.name })}
                         onClick={(event) => {
                           event.stopPropagation();
-                          connect.mutate(connector.name);
+                          go("connections", connector.name);
                         }}
                       >
                         <Plus size={14} />
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="cn-add"
-                        aria-label={t("connections.toCredentials")}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          go("settings", "credentials");
-                        }}
-                      >
-                        <Plus size={14} />
-                      </button>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -186,6 +355,7 @@ export function Connections() {
           ) : null,
         )}
       </div>
+      {adding && <ConnectorModal onClose={() => setAdding(false)} />}
     </div>
   );
 }

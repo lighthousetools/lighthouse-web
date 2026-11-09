@@ -65,6 +65,13 @@ workspace's keys for model providers and connectors, the budget and the costs pe
 its keys and the budget read-only; owners and admins change them, and only owners hand out the owner role or delete the
 workspace. When the server still refuses an action (403), the app shows its reason.
 
+Models and connections come in three layers: the server's (read-only), the workspace's and each person's own. Every
+entry shows its source as a badge. Owners and admins add providers from the server's presets, models with prices, keys
+and the route per task for the whole workspace; every member can do the same for themselves, and their own choice wins
+for their runs. Under Connections, people add MCP servers over HTTPS for the workspace or only for themselves, connect
+their own account to a shared service, and switch a connection off for themselves. Owners and admins also connect
+shared accounts and switch server connections off for the workspace.
+
 ## Languages
 
 Strings live in `src/i18n`, one file per language, and a test checks that both cover every key. Viewers pick a language on
