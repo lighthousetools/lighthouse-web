@@ -49,7 +49,8 @@
 
 /* The company choice and waiting sessions live at the top of the sidebar. */
 .sidebar .firm { margin: 2px 0 6px; } .sidebar .firm .seg { display: flex; width: 100%; } .sidebar .firm .seg button { flex: 1; min-width: 0; justify-content: center; overflow: hidden; text-overflow: ellipsis; }
-.sb-pill { display: flex; align-items: center; gap: 8px; height: 30px; margin: 0 0 6px; padding: 0 10px; border-radius: var(--r-full); background: #0b0b10; color: #fff; font-size: var(--t-12); }
+.sidebar .sb-pill, .sb-pill { display: flex; align-items: center; gap: 8px; height: 30px; margin: 0 0 6px; padding: 0 10px; border-radius: var(--r-full); background: #0b0b10; color: #fff; font-size: var(--t-12); }
+.sidebar .sb-pill:hover { background: #24242b; color: #fff; }
 .sb-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex: none; }
 
 /* Native vibrancy: the Mac app sets data-native-vibrancy="1" and draws its own material behind the web view.

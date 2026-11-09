@@ -273,7 +273,7 @@ function Composer({ session, pending }: { session: Session; pending: number }) {
   );
 }
 
-function Timeline({ detail }: { detail: Schemas["SessionDetail"] }) {
+export function Timeline({ detail }: { detail: Schemas["SessionDetail"] }) {
   const entries = [
     ...detail.timeline.map((event) => ({ at: event.created_at, kind: "event" as const, event })),
     ...detail.messages.map((message) => ({ at: message.created_at, kind: "message" as const, message })),
@@ -293,8 +293,14 @@ function Timeline({ detail }: { detail: Schemas["SessionDetail"] }) {
           </div>
         ) : entry.event.kind === "prompt" ? (
           <div key={`e${index}`} className="cl-me"><div>{entry.event.summary}</div></div>
+        ) : entry.event.kind === "say" ? (
+          <div key={`e${index}`} className="cl-say"><Markdown source={entry.event.summary ?? ""} /></div>
         ) : entry.event.kind === "stop" ? (
-          <div key={`e${index}`} className="cl-say">{entry.event.summary ? <Markdown source={entry.event.summary} /> : <span className="cl-dim">{t("sessions.stopped", { time: time(entry.event.created_at) })}</span>}</div>
+          entry.event.summary ? (
+            <div key={`e${index}`} className="cl-say"><Markdown source={entry.event.summary} /></div>
+          ) : (
+            <div key={`e${index}`} className="cl-dim">{t("sessions.stopped", { time: time(entry.event.created_at) })}</div>
+          )
         ) : (
           <div key={`e${index}`} className="cl-asked">
             {entry.event.file_path ? <FileCode2 size={13} className="faint" /> : <Terminal size={13} className="faint" />}
