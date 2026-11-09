@@ -43,6 +43,17 @@
         ],
         "summary": "Creates or replaces an agent. The ID comes from the file.",
         "operationId": "save_agent",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "`tenant` or `me`. By default the tenant for owners and admins, their own for members",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -162,6 +173,15 @@
             "in": "path",
             "description": "Agent ID",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "`tenant` or `me`. By default the layer it comes from",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -1100,6 +1120,17 @@
         ],
         "summary": "Creates or replaces an automation. The ID comes from the file.",
         "operationId": "save_automation",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "`tenant` or `me`. By default the tenant for owners and admins, their own for members",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1298,6 +1329,15 @@
             "in": "path",
             "description": "Automation ID",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "`tenant` or `me`. By default the layer it comes from",
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -9107,12 +9147,247 @@
         ]
       }
     },
+    "/settings/{layer}/skills/{name}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Adds or replaces a skill in a layer, as a `SKILL.md` file.",
+        "operationId": "put_skill",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Skill name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSource"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "422": {
+            "description": "Invalid file"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes a skill of a layer.",
+        "operationId": "delete_skill",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Skill name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/sources/{name}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Adds or replaces a connected source of a layer. A shared source's mail and\ncalendar items belong to the tenant's first owner; all items of a personal\nsource belong to the caller and reach nobody else. It syncs with the\nconnector and tokens its owner has, and may only call read-only tools.",
+        "operationId": "put_source",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Source name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "403": {
+            "description": "Needs the owner or admin role"
+          },
+          "409": {
+            "description": "The name exists in a lower layer, or a limit is reached"
+          },
+          "422": {
+            "description": "Invalid source, or a tool that is not read-only"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes a connected source of a layer with its items.",
+        "operationId": "delete_source",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Source name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/sources/{name}/enabled": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Switches a source on or off: one of the layer itself, or for the tenant one\nof the instance. A person cannot switch a shared source off, since it keeps\nrefreshing for the others.",
+        "operationId": "switch_source",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Source name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown source"
+          },
+          "409": {
+            "description": "A shared source"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/settings/{layer}/values/{key}": {
       "put": {
         "tags": [
           "layers"
         ],
-        "summary": "Sets a single setting in a layer: `talk.agent`, `notifications`, `weather`,\n`timezone` or `language`.",
+        "summary": "Sets a single setting in a layer. See `GET /settings/values` for the keys.",
         "operationId": "put_value",
         "parameters": [
           {
@@ -9187,6 +9462,65 @@
           "204": {},
           "404": {
             "description": "Not in this layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/{kind}/{id}/enabled": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Switches an agent, automation or skill on or off in a layer: one of the\nlayer itself, or one of a lower layer for this layer only. `kind` is `agents`,\n`automations` or `skills`.",
+        "operationId": "switch_file",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "`agents`, `automations` or `skills`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID or name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown entry"
           }
         },
         "security": [
@@ -10542,13 +10876,28 @@
             },
             "description": "Delivery targets."
           },
+          "disabled_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The layer that switched it off, if one did."
+          },
           "editable": {
             "type": "boolean",
             "description": "Whether the apps can change it."
           },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it may run for the caller."
+          },
           "id": {
             "type": "string",
             "description": "Agent ID."
+          },
+          "layer": {
+            "type": "string",
+            "description": "Where it comes from: `instance`, `tenant` or `personal`."
           },
           "max_cost_eur": {
             "type": "number",
@@ -11047,6 +11396,13 @@
             "type": "string",
             "description": "What it is for."
           },
+          "disabled_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The layer that switched it off, if one did."
+          },
           "editable": {
             "type": "boolean",
             "description": "Whether the apps can change the file."
@@ -11058,6 +11414,10 @@
           "id": {
             "type": "string",
             "description": "Automation ID."
+          },
+          "layer": {
+            "type": "string",
+            "description": "Where it comes from: `instance`, `tenant` or `personal`."
           },
           "name": {
             "type": "string",
@@ -15065,6 +15425,29 @@
         },
         "additionalProperties": false
       },
+      "PresetSource": {
+        "type": "object",
+        "description": "A suggested connected source.",
+        "required": [
+          "id",
+          "label",
+          "definition"
+        ],
+        "properties": {
+          "definition": {
+            "description": "The source in the shape of `[sources.<name>]`, to edit."
+          },
+          "id": {
+            "type": "string",
+            "description": "Suggested name."
+          },
+          "label": {
+            "type": "string",
+            "description": "Display name."
+          }
+        },
+        "additionalProperties": false
+      },
       "Presets": {
         "type": "object",
         "description": "Every suggestion.",
@@ -15085,6 +15468,13 @@
               "$ref": "#/components/schemas/PresetProvider"
             },
             "description": "Providers with their models."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PresetSource"
+            },
+            "description": "Connected sources."
           }
         },
         "additionalProperties": false
@@ -16350,7 +16740,8 @@
           "allow_private_endpoints",
           "providers",
           "routing",
-          "connectors"
+          "connectors",
+          "sources"
         ],
         "properties": {
           "allow_private_endpoints": {
@@ -16381,6 +16772,13 @@
               "$ref": "#/components/schemas/RouteView"
             },
             "description": "Routes by task."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SourceView"
+            },
+            "description": "Connected sources, including the ones switched off."
           },
           "tasks": {
             "type": "array",
@@ -16501,9 +16899,31 @@
             "type": "string",
             "description": "What it is for."
           },
+          "disabled_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The layer that switched it off, if one did."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it is in use for the caller."
+          },
+          "layer": {
+            "type": "string",
+            "description": "Where it comes from: `instance`, `tenant` or `personal`."
+          },
           "name": {
             "type": "string",
             "description": "Skill name."
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The file, for one created in the apps."
           }
         }
       },
@@ -16587,9 +17007,24 @@
             "description": "Refresh interval in seconds.",
             "minimum": 0
           },
+          "label": {
+            "type": "string",
+            "description": "The name people gave it. `name` is what the API and items refer to it by."
+          },
           "name": {
             "type": "string",
             "description": "Source name."
+          },
+          "personal": {
+            "type": "boolean",
+            "description": "Whether it belongs to the caller alone. Its items reach nobody else."
+          },
+          "problem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it cannot refresh now."
           },
           "service": {
             "type": "string",
@@ -16609,6 +17044,22 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "SourceInput": {
+        "type": "object",
+        "description": "A connected source to add or replace.",
+        "required": [
+          "definition"
+        ],
+        "properties": {
+          "definition": {
+            "description": "The source in the shape of `[sources.<name>]`: `connector`, and `domain`,\n`preset`, `service`, `account`, `interval`, `collections`, `actions`.\nSee `docs/connected.md`."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it refreshes. Defaults to on."
           }
         }
       },
@@ -16641,6 +17092,74 @@
               "null"
             ],
             "description": "Address to open it, if it lives outside Lighthouse."
+          }
+        }
+      },
+      "SourceView": {
+        "type": "object",
+        "description": "A connected source as it applies to the caller.",
+        "required": [
+          "name",
+          "key",
+          "connector",
+          "source",
+          "enabled"
+        ],
+        "properties": {
+          "connector": {
+            "type": "string",
+            "description": "The connector whose tools fill it."
+          },
+          "definition": {
+            "description": "Its settings as stored, absent for one of the instance."
+          },
+          "disabled_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Layer",
+                "description": "The layer that switched it off, if one did."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`mail`, `calendar`, `issues`, `code` and so on, if it names one itself."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether it refreshes."
+          },
+          "interval": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Refresh interval, such as `15m`."
+          },
+          "key": {
+            "type": "string",
+            "description": "What items, refreshes and actions refer to it by."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name."
+          },
+          "preset": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The bundled preset it starts from."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "The layer that defines it."
           }
         }
       },
@@ -17852,7 +18371,7 @@
         "properties": {
           "key": {
             "type": "string",
-            "description": "`talk.agent`, `notifications`, `weather`, `timezone` or `language`."
+            "description": "`talk.agent`, `notifications`, `weather`, `timezone`, `language`,\n`accounts`, `addresses`, `publishing`, `slack_channels` or `brain`."
           },
           "source": {
             "$ref": "#/components/schemas/Layer",

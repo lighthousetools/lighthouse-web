@@ -2869,7 +2869,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/settings/{layer}/values/{key}": {
+    "/settings/{layer}/skills/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Adds or replaces a skill in a layer, as a `SKILL.md` file. */
+        put: operations["put_skill"];
+        post?: never;
+        /** Deletes a skill of a layer. */
+        delete: operations["delete_skill"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/sources/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2878,13 +2896,75 @@ export interface paths {
         };
         get?: never;
         /**
-         * Sets a single setting in a layer: `talk.agent`, `notifications`, `weather`,
-         *     `timezone` or `language`.
+         * Adds or replaces a connected source of a layer. A shared source's mail and
+         *     calendar items belong to the tenant's first owner; all items of a personal
+         *     source belong to the caller and reach nobody else. It syncs with the
+         *     connector and tokens its owner has, and may only call read-only tools.
          */
+        put: operations["put_source"];
+        post?: never;
+        /** Deletes a connected source of a layer with its items. */
+        delete: operations["delete_source"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/sources/{name}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switches a source on or off: one of the layer itself, or for the tenant one
+         *     of the instance. A person cannot switch a shared source off, since it keeps
+         *     refreshing for the others.
+         */
+        put: operations["switch_source"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/values/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets a single setting in a layer. See `GET /settings/values` for the keys. */
         put: operations["put_value"];
         post?: never;
         /** Deletes a single setting of a layer, so the lower layer's applies again. */
         delete: operations["delete_value"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/{kind}/{id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Switches an agent, automation or skill on or off in a layer: one of the
+         *     layer itself, or one of a lower layer for this layer only. `kind` is `agents`,
+         *     `automations` or `skills`.
+         */
+        put: operations["switch_file"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3339,10 +3419,16 @@ export interface components {
             corrections?: number;
             /** @description Delivery targets. */
             deliver: string[];
+            /** @description The layer that switched it off, if one did. */
+            disabled_by?: string | null;
             /** @description Whether the apps can change it. */
             editable: boolean;
+            /** @description Whether it may run for the caller. */
+            enabled?: boolean;
             /** @description Agent ID. */
             id: string;
+            /** @description Where it comes from: `instance`, `tenant` or `personal`. */
+            layer?: string;
             /**
              * Format: double
              * @description The cost limit of one run, in EUR.
@@ -3579,12 +3665,16 @@ export interface components {
         AutomationInfo: {
             /** @description What it is for. */
             description: string;
+            /** @description The layer that switched it off, if one did. */
+            disabled_by?: string | null;
             /** @description Whether the apps can change the file. */
             editable: boolean;
             /** @description Whether it runs on its trigger. */
             enabled: boolean;
             /** @description Automation ID. */
             id: string;
+            /** @description Where it comes from: `instance`, `tenant` or `personal`. */
+            layer?: string;
             /** @description Display name. */
             name: string;
             /**
@@ -5311,12 +5401,23 @@ export interface components {
             /** @description Suggested models. */
             models?: components["schemas"]["PresetModel"][];
         };
+        /** @description A suggested connected source. */
+        PresetSource: {
+            /** @description The source in the shape of `[sources.<name>]`, to edit. */
+            definition: unknown;
+            /** @description Suggested name. */
+            id: string;
+            /** @description Display name. */
+            label: string;
+        };
         /** @description Every suggestion. */
         Presets: {
             /** @description Connectors. */
             connectors?: components["schemas"]["PresetConnector"][];
             /** @description Providers with their models. */
             providers: components["schemas"]["PresetProvider"][];
+            /** @description Connected sources. */
+            sources?: components["schemas"]["PresetSource"][];
         };
         /** @description The arguments of a call, readable. */
         Preview: {
@@ -5874,6 +5975,8 @@ export interface components {
             providers: components["schemas"]["ProviderView"][];
             /** @description Routes by task. */
             routing: components["schemas"]["RouteView"][];
+            /** @description Connected sources, including the ones switched off. */
+            sources: components["schemas"]["SourceView"][];
             /** @description Tasks the server routes to models. */
             tasks: string[];
         };
@@ -5926,8 +6029,16 @@ export interface components {
         SkillInfo: {
             /** @description What it is for. */
             description: string;
+            /** @description The layer that switched it off, if one did. */
+            disabled_by?: string | null;
+            /** @description Whether it is in use for the caller. */
+            enabled?: boolean;
+            /** @description Where it comes from: `instance`, `tenant` or `personal`. */
+            layer?: string;
             /** @description Skill name. */
             name: string;
+            /** @description The file, for one created in the apps. */
+            source?: string | null;
         };
         /** @description When to show an item again. */
         Snooze: {
@@ -5961,13 +6072,30 @@ export interface components {
              * @description Refresh interval in seconds.
              */
             interval_seconds: number;
+            /** @description The name people gave it. `name` is what the API and items refer to it by. */
+            label?: string;
             /** @description Source name. */
             name: string;
+            /** @description Whether it belongs to the caller alone. Its items reach nobody else. */
+            personal?: boolean;
+            /** @description Why it cannot refresh now. */
+            problem?: string | null;
             /** @description The service behind it, such as `gmail` or `github`, for its logo. */
             service: string;
             /** @description Whether the last success is older than two intervals, or missing. */
             stale: boolean;
             status?: components["schemas"]["SyncStatus"] | null;
+        };
+        /** @description A connected source to add or replace. */
+        SourceInput: {
+            /**
+             * @description The source in the shape of `[sources.<name>]`: `connector`, and `domain`,
+             *     `preset`, `service`, `account`, `interval`, `collections`, `actions`.
+             *     See `docs/connected.md`.
+             */
+            definition: unknown;
+            /** @description Whether it refreshes. Defaults to on. */
+            enabled?: boolean;
         };
         /**
          * @description A link to the thing something came from, such as a run, an approval, a mail
@@ -5982,6 +6110,28 @@ export interface components {
             reference: string;
             /** @description Address to open it, if it lives outside Lighthouse. */
             url?: string | null;
+        };
+        /** @description A connected source as it applies to the caller. */
+        SourceView: {
+            /** @description The connector whose tools fill it. */
+            connector: string;
+            /** @description Its settings as stored, absent for one of the instance. */
+            definition?: unknown;
+            disabled_by?: components["schemas"]["Layer"] | null;
+            /** @description `mail`, `calendar`, `issues`, `code` and so on, if it names one itself. */
+            domain?: string | null;
+            /** @description Whether it refreshes. */
+            enabled: boolean;
+            /** @description Refresh interval, such as `15m`. */
+            interval?: string | null;
+            /** @description What items, refreshes and actions refer to it by. */
+            key: string;
+            /** @description Its name. */
+            name: string;
+            /** @description The bundled preset it starts from. */
+            preset?: string | null;
+            /** @description The layer that defines it. */
+            source: components["schemas"]["Layer"];
         };
         /** @description A split. */
         Split: {
@@ -6575,7 +6725,10 @@ export interface components {
         };
         /** @description A single setting as it applies to the caller. */
         ValueView: {
-            /** @description `talk.agent`, `notifications`, `weather`, `timezone` or `language`. */
+            /**
+             * @description `talk.agent`, `notifications`, `weather`, `timezone`, `language`,
+             *     `accounts`, `addresses`, `publishing`, `slack_channels` or `brain`.
+             */
             key: string;
             /** @description Where it comes from. */
             source: components["schemas"]["Layer"];
@@ -6667,7 +6820,10 @@ export interface operations {
     };
     save_agent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `tenant` or `me`. By default the tenant for owners and admins, their own for members */
+                layer?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6756,7 +6912,10 @@ export interface operations {
     };
     delete_agent: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `tenant` or `me`. By default the layer it comes from */
+                layer?: string;
+            };
             header?: never;
             path: {
                 /** @description Agent ID */
@@ -7547,7 +7706,10 @@ export interface operations {
     };
     save_automation: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `tenant` or `me`. By default the tenant for owners and admins, their own for members */
+                layer?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7703,7 +7865,10 @@ export interface operations {
     };
     delete_automation: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description `tenant` or `me`. By default the layer it comes from */
+                layer?: string;
+            };
             header?: never;
             path: {
                 /** @description Automation ID */
@@ -12471,6 +12636,184 @@ export interface operations {
             };
         };
     };
+    put_skill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Skill name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentSource"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid file */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_skill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Skill name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Source name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Needs the owner or admin role */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The name exists in a lower layer, or a limit is reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid source, or a tool that is not read-only */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Source name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switch_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Source name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwitchInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown source */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description A shared source */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     put_value: {
         parameters: {
             query?: never;
@@ -12532,6 +12875,41 @@ export interface operations {
                 content?: never;
             };
             /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    switch_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description `agents`, `automations` or `skills` */
+                kind: string;
+                /** @description ID or name */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SwitchInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown entry */
             404: {
                 headers: {
                     [name: string]: unknown;
