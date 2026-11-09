@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, must, type Schemas } from "../api/client";
-import { t, tOr } from "../i18n";
+import { languageChoice, setLanguage, t, tOr } from "../i18n";
 import { canManage, useRole } from "../session";
 import { toast } from "../shell/state";
 import { Badge, Btn, Failure, Field, Modal, Seg } from "../ui";
@@ -21,6 +21,19 @@ export function useEffective() {
 
 export function usePresets() {
   return useQuery({ queryKey: ["settings", "presets"], queryFn: () => must(api.GET("/settings/presets")), staleTime: Infinity });
+}
+
+export function useValues() {
+  return useQuery({ queryKey: ["settings", "values"], queryFn: () => must(api.GET("/settings/values")) });
+}
+
+/** Takes the language stored for this person, unless this browser has chosen one itself. */
+export function useFollowLanguage() {
+  const values = useValues();
+  const stored = values.data?.find?.((item) => item.key === "language")?.value;
+  useEffect(() => {
+    if ((stored === "de" || stored === "en") && languageChoice() === "system") setLanguage(stored);
+  }, [stored]);
 }
 
 /** Reloads everything a settings change can touch. */
@@ -69,7 +82,7 @@ export function TargetPicker({ value, onChange }: { value: Target; onChange: (va
 export const words = (text: string) => text.split(/[\s,]+/).map((word) => word.trim()).filter(Boolean);
 
 /** Stores a key or token in the workspace vault or the caller's own one. */
-export function SecretModal({ name, title, defaultTarget, onClose }: { name: string; title: string; defaultTarget: Target; onClose: () => void }) {
+export function SecretModal({ name, title, defaultTarget, ownAllowed = true, onClose }: { name: string; title: string; defaultTarget: Target; ownAllowed?: boolean; onClose: () => void }) {
   const refresh = useRefresh();
   const manage = useManage();
   const [target, setTarget] = useState<Target>(manage ? defaultTarget : "me");
@@ -98,7 +111,7 @@ export function SecretModal({ name, title, defaultTarget, onClose }: { name: str
       }
     >
       <div className="lay-form">
-      <TargetPicker value={target} onChange={setTarget} />
+      {ownAllowed && <TargetPicker value={target} onChange={setTarget} />}
       <Field type="password" value={value} onChange={setValue} label={t("settings.value")} placeholder={t("settings.value")} onEnter={() => value && save.mutate()} />
       <Failure error={save.error} />
       </div>

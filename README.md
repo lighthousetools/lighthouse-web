@@ -72,6 +72,9 @@ for their runs. Under Connections, people add MCP servers over HTTPS for the wor
 their own account to a shared service, and switch a connection off for themselves. Owners and admins also connect
 shared accounts and switch server connections off for the workspace.
 
+Preferences hold language, time zone, the Talk agent, notifications and the place for the weather, each with its source
+and a way back to the default. Members change their own; owners and admins also change the workspace's.
+
 ## Languages
 
 Strings live in `src/i18n`, one file per language, and a test checks that both cover every key. Viewers pick a language on

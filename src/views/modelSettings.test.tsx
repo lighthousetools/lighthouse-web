@@ -18,6 +18,7 @@ const VIEW = {
       key_name: "anthropic",
       key: null,
       needs_key: true,
+      own_key: true,
       models: [{ task: "text", model: "server-model", input_eur_per_mtok: 3, output_eur_per_mtok: 15, source: "instance" }],
     },
     {
@@ -29,6 +30,7 @@ const VIEW = {
       key_name: "provider:local",
       key: "tenant",
       needs_key: true,
+      own_key: false,
       models: [{ task: "text", model: "local-model", input_eur_per_mtok: 0, output_eur_per_mtok: 0, source: "tenant" }],
     },
   ],
@@ -93,6 +95,8 @@ describe("model settings", () => {
     expect(await screen.findByText("You can add your own providers, keys and models. They apply to you only.")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Reset Text to the default" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Remove" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Add key" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Replace key" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Change" }));
     fireEvent.click(await screen.findByRole("button", { name: "Save" }));
     await waitFor(() => expect(callsTo(calls, "PUT", "/settings/me/routing/text")).toHaveLength(1));

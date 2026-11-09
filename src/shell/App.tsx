@@ -18,6 +18,7 @@ import { Light } from "./Light";
 import { watchLook } from "./look";
 import { groupOf, visibleNav } from "./nav";
 import { useDomains, useOrganizations } from "../views/connected";
+import { useFollowLanguage } from "../views/layers";
 import { orgStore, setOrg } from "./org";
 import { Palette } from "./Palette";
 import { closeInspector, inspector, palette, toasts } from "./state";
@@ -365,6 +366,7 @@ function BridgeSync() {
 
 function Shell() {
   useLanguage();
+  useFollowLanguage();
   const route = useRoute();
   const live = useLiveUpdates();
   const open = palette.use();

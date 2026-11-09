@@ -298,7 +298,7 @@ function Providers({ view }: { view: View }) {
             hint={[provider.kind === "openai" ? t("models.openaiCompatible") : "Anthropic", provider.base_url].filter(Boolean).join(" · ")}
           >
             <SettingRow icon={<span className="st-ic"><KeyRound size={15} /></span>} title={keyText(provider)} sub={provider.needs_key ? <span className="mono">{provider.key_name}</span> : undefined}>
-              {provider.needs_key && <Btn size="sm" onClick={() => setKeyFor(provider)}>{provider.key ? t("models.replaceKey") : t("models.addKey")}</Btn>}
+              {provider.needs_key && (manage || provider.own_key) && <Btn size="sm" onClick={() => setKeyFor(provider)}>{provider.key ? t("models.replaceKey") : t("models.addKey")}</Btn>}
             </SettingRow>
             {provider.models.map((model) => {
               const target = targetOf(model.source, manage);
@@ -333,7 +333,7 @@ function Providers({ view }: { view: View }) {
       {adding && <ProviderModal view={view} onClose={() => setAdding(false)} />}
       {modelFor && <ModelModal view={view} provider={modelFor} onClose={() => setModelFor(null)} />}
       {keyFor && (
-        <SecretModal name={keyFor.key_name} title={t("models.keyTitle", { provider: keyFor.name })} defaultTarget={keyFor.defined_at === "personal" ? "me" : "tenant"} onClose={() => setKeyFor(null)} />
+        <SecretModal name={keyFor.key_name} title={t("models.keyTitle", { provider: keyFor.name })} defaultTarget={keyFor.defined_at === "personal" ? "me" : "tenant"} ownAllowed={keyFor.own_key} onClose={() => setKeyFor(null)} />
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Check, Copy, Cpu, Globe, KeyRound, Wallet, Laptop, LogOut, Monitor, Smartphone, Terminal, Trash2, UserRound, Users, type LucideIcon } from "lucide-react";
+import { BarChart3, Check, Copy, Cpu, Globe, KeyRound, Wallet, Laptop, LogOut, Monitor, SlidersHorizontal, Smartphone, Terminal, Trash2, UserRound, Users, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { api, currentDevice, must, storeToken } from "../api/client";
 import { useMe } from "../data";
@@ -13,6 +13,7 @@ import { Avatar, Badge, Btn, Confirm, Failure, Field, Modal, Progress, Seg, Skel
 import { LanguagePicker } from "./LanguagePicker";
 import { MIN_PASSWORD } from "./Login";
 import { ModelSettings } from "./ModelSettings";
+import { Preferences } from "./Preferences";
 import { Group, ReadOnly, SettingRow, copy } from "./settingsKit";
 import { Costs, Workspace } from "./Workspace";
 import "./settings.css";
@@ -25,6 +26,7 @@ const SECTIONS: Section[] = [
   { id: "workspace", label: "settings.workspace", lead: "settings.workspaceLead", icon: Users },
   { id: "devices", label: "settings.devices", lead: "settings.devicesLead", icon: Laptop },
   { id: "credentials", label: "settings.credentials", lead: "settings.credentialsLead", icon: KeyRound },
+  { id: "preferences", label: "settings.preferences", lead: "settings.preferencesLead", icon: SlidersHorizontal },
   { id: "models", label: "settings.models", lead: "settings.modelsLead", icon: Cpu },
   { id: "budget", label: "settings.budget", lead: "settings.budgetLead", icon: Wallet },
   { id: "costs", label: "settings.costs", lead: "settings.costsLead", icon: BarChart3, manage: true },
@@ -441,7 +443,7 @@ function Budget() {
   );
 }
 
-const CONTENT: Record<string, () => ReactNode> = { models: ModelSettings, budget: Budget, general: General, devices: Devices, credentials: Credentials, account: Account, workspace: Workspace, costs: Costs };
+const CONTENT: Record<string, () => ReactNode> = { models: ModelSettings, preferences: Preferences, budget: Budget, general: General, devices: Devices, credentials: Credentials, account: Account, workspace: Workspace, costs: Costs };
 
 export function Settings() {
   useLanguage();
