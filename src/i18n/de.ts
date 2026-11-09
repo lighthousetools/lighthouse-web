@@ -2036,7 +2036,7 @@ export const de: Record<Key, string> = {
   "prefs.timezoneHint": "Für die Anzeige in den Apps, etwa Europe/Berlin. Zeitpläne behalten die Zone des Servers.",
   "prefs.talkAgent": "Talk antwortet mit",
   "prefs.talkAgentHint": "Der Agent, der deine Unterhaltungen beantwortet.",
-  "prefs.brainAnswers": "Second Brain",
+  "prefs.brainAnswers": "Assistent mit deinen Verbindungen",
   "prefs.notifications": "Benachrichtigungen",
   "prefs.notificationsHint": "Was dich außerhalb der Apps erreicht. Die Apps bleiben immer aktuell.",
   "prefs.decisions": "Ein Lauf wartet auf eine Entscheidung",

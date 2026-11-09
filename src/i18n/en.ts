@@ -2033,7 +2033,7 @@ export const en = {
   "prefs.timezoneHint": "Shown in the apps, for example Europe/Berlin. Schedules keep the zone of the server.",
   "prefs.talkAgent": "Talk answers with",
   "prefs.talkAgentHint": "The agent that answers your conversations.",
-  "prefs.brainAnswers": "Second Brain",
+  "prefs.brainAnswers": "Assistant with your connections",
   "prefs.notifications": "Notifications",
   "prefs.notificationsHint": "What reaches you outside the apps. The apps always stay up to date.",
   "prefs.decisions": "A run waits for a decision",
