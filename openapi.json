@@ -8550,6 +8550,34 @@
         ]
       }
     },
+    "/settings/values": {
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Lists the single settings that apply to the caller, each with its source.",
+        "operationId": "values",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValueView"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/settings/{layer}/changes": {
       "get": {
         "tags": [
@@ -9060,6 +9088,95 @@
             "name": "task",
             "in": "path",
             "description": "Task",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Not in this layer"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/settings/{layer}/values/{key}": {
+      "put": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Sets a single setting in a layer: `talk.agent`, `notifications`, `weather`,\n`timezone` or `language`.",
+        "operationId": "put_value",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Setting key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "description": "Unknown key"
+          },
+          "422": {
+            "description": "Invalid value"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Deletes a single setting of a layer, so the lower layer's applies again.",
+        "operationId": "delete_value",
+        "parameters": [
+          {
+            "name": "layer",
+            "in": "path",
+            "description": "`tenant` or `me`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Setting key",
             "required": true,
             "schema": {
               "type": "string"
@@ -15089,6 +15206,7 @@
           "defined_at",
           "key_name",
           "needs_key",
+          "own_key",
           "models"
         ],
         "properties": {
@@ -15136,6 +15254,10 @@
           "needs_key": {
             "type": "boolean",
             "description": "Whether it needs a key at all."
+          },
+          "own_key": {
+            "type": "boolean",
+            "description": "Whether a member's own key can be used for it. Not for a URL an owner\nor admin of the tenant chose."
           },
           "source": {
             "$ref": "#/components/schemas/Layer",
@@ -17716,6 +17838,28 @@
             ],
             "format": "uuid",
             "description": "The user the runs worked for."
+          }
+        }
+      },
+      "ValueView": {
+        "type": "object",
+        "description": "A single setting as it applies to the caller.",
+        "required": [
+          "key",
+          "value",
+          "source"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "`talk.agent`, `notifications`, `weather`, `timezone` or `language`."
+          },
+          "source": {
+            "$ref": "#/components/schemas/Layer",
+            "description": "Where it comes from."
+          },
+          "value": {
+            "description": "The value. Its shape depends on the key, see `docs/api.md`."
           }
         }
       },

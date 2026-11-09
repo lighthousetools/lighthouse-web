@@ -2705,6 +2705,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the single settings that apply to the caller, each with its source. */
+        get: operations["values"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/settings/{layer}/changes": {
         parameters: {
             query?: never;
@@ -2847,6 +2864,27 @@ export interface paths {
         post?: never;
         /** Deletes the route of a task in a layer, so the lower layer's applies again. */
         delete: operations["delete_route"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings/{layer}/values/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets a single setting in a layer: `talk.agent`, `notifications`, `weather`,
+         *     `timezone` or `language`.
+         */
+        put: operations["put_value"];
+        post?: never;
+        /** Deletes a single setting of a layer, so the lower layer's applies again. */
+        delete: operations["delete_value"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5339,6 +5377,11 @@ export interface components {
             name: string;
             /** @description Whether it needs a key at all. */
             needs_key: boolean;
+            /**
+             * @description Whether a member's own key can be used for it. Not for a URL an owner
+             *     or admin of the tenant chose.
+             */
+            own_key: boolean;
             /** @description The highest layer with an entry for it. */
             source: components["schemas"]["Layer"];
         };
@@ -6529,6 +6572,15 @@ export interface components {
              * @description The user the runs worked for.
              */
             user_id?: string | null;
+        };
+        /** @description A single setting as it applies to the caller. */
+        ValueView: {
+            /** @description `talk.agent`, `notifications`, `weather`, `timezone` or `language`. */
+            key: string;
+            /** @description Where it comes from. */
+            source: components["schemas"]["Layer"];
+            /** @description The value. Its shape depends on the key, see `docs/api.md`. */
+            value: unknown;
         };
         /** @description An alternative text of a post. */
         Variant: {
@@ -12012,6 +12064,25 @@ export interface operations {
             };
         };
     };
+    values: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueView"][];
+                };
+            };
+        };
+    };
     changes: {
         parameters: {
             query?: {
@@ -12380,6 +12451,75 @@ export interface operations {
                 layer: string;
                 /** @description Task */
                 task: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not in this layer */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    put_value: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Setting key */
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown key */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid value */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_value: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description `tenant` or `me` */
+                layer: string;
+                /** @description Setting key */
+                key: string;
             };
             cookie?: never;
         };
