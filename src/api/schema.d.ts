@@ -4268,10 +4268,12 @@ export interface components {
             read_tools: string[];
         };
         /**
-         * @description An MCP connector over streamable HTTP. Connectors that start a process on
-         *     the server exist only in `lighthouse.toml`.
+         * @description An MCP connector over streamable HTTP, or a REST API with an OpenAPI
+         *     description when `api` is set. Connectors that start a process on the
+         *     server exist only in `lighthouse.toml`.
          */
         ConnectorInput: {
+            api?: components["schemas"]["RestApi"] | null;
             /** @description `none`, `bearer` (token in the vault as `mcp:<name>`) or `oauth`. */
             auth?: string;
             /** @description Pre-registered OAuth client ID, if the server has no dynamic registration. */
@@ -4285,8 +4287,8 @@ export interface components {
             /** @description OAuth scopes to request. */
             scopes?: string[];
             /**
-             * @description Server URL. Must be a public `https` URL unless the instance allows
-             *     private endpoints.
+             * @description Server URL, or the URL of the OpenAPI description when `api` is set.
+             *     Must be a public `https` URL unless the instance allows private endpoints.
              */
             url: string;
         };
@@ -4305,6 +4307,7 @@ export interface components {
         };
         /** @description A connector as it applies to the caller. */
         ConnectorView: {
+            api?: components["schemas"]["RestApi"] | null;
             /** @description `none`, `bearer`, `oauth` or `process`. */
             auth: string;
             /** @description Pre-registered OAuth client ID. */
@@ -4325,7 +4328,7 @@ export interface components {
             source: components["schemas"]["Layer"];
             /** @description The credential of its bearer token, if it uses one. */
             token_name?: string | null;
-            /** @description `http`, `openapi` or `stdio`. Only the instance has `stdio` and `openapi` connectors. */
+            /** @description `http`, `openapi` or `stdio`. Only the instance has `stdio` connectors. */
             transport: string;
             /** @description Server URL of an `http` connector, or the description of an `openapi` one. */
             url?: string | null;
@@ -5759,6 +5762,7 @@ export interface components {
         };
         /** @description A suggested MCP connector. */
         PresetConnector: {
+            api?: components["schemas"]["RestApi"] | null;
             /** @description `none`, `bearer` or `oauth`. */
             auth: string;
             /** @description A group for browsing, such as `crm` or `storage`. */
@@ -6011,6 +6015,24 @@ export interface components {
              * @description Entry ID.
              */
             id: string;
+        };
+        /**
+         * @description A REST API with an OpenAPI 3 description, used like an MCP server: every
+         *     operation becomes a tool named after its method and path, such as
+         *     `get_deals_id` for `GET /deals/{id}`.
+         */
+        RestApi: {
+            /** @description Base URL of the API, if not the first server of the description. */
+            base_url?: string | null;
+            /**
+             * @description How the key from the vault entry `mcp:<name>` is sent: `none`, `bearer`,
+             *     `header` or `query`.
+             */
+            key?: string;
+            /** @description The header or query parameter for `header` and `query`. */
+            key_name?: string | null;
+            /** @description Only these operations, such as `get_deals`. Empty means every operation. */
+            operations?: string[];
         };
         /** @description What the owner sees of a proposed call. */
         Review: {

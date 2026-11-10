@@ -16,6 +16,8 @@ import "./connections.css";
 type Connector = View["connectors"][number];
 type Filter = "all" | "connected" | "open";
 type Auth = "none" | "bearer" | "oauth";
+type Kind = "mcp" | "rest";
+type Key = "none" | "bearer" | "header" | "query";
 
 const isConnected = (connector: Connector) => connector.enabled && connector.connected != null;
 const canConnect = (connector: Connector) => connector.auth === "oauth" || connector.auth === "bearer";
@@ -62,6 +64,12 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
   const [scopes, setScopes] = useState(existing?.scopes.join(" ") ?? "");
   const [reads, setReads] = useState(existing?.read_tools.join(", ") ?? "");
   const [drafts, setDrafts] = useState(existing?.draft_tools.join(", ") ?? "");
+  const [kind, setKind] = useState<Kind>(existing?.transport === "openapi" ? "rest" : "mcp");
+  const [key, setKey] = useState<Key>((existing?.api?.key as Key | undefined) ?? "bearer");
+  const [keyName, setKeyName] = useState(existing?.api?.key_name ?? "");
+  const [baseUrl, setBaseUrl] = useState(existing?.api?.base_url ?? "");
+  const [operations, setOperations] = useState(existing?.api?.operations?.join(", ") ?? "");
+  const rest = kind === "rest";
   const save = useMutation({
     mutationFn: () =>
       must(
@@ -69,12 +77,20 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
           params: { path: { layer: target, name } },
           body: {
             url: url.trim(),
-            auth,
-            client_id: clientId.trim() || null,
-            scopes: words(scopes),
+            auth: rest ? (key === "none" ? "none" : "bearer") : auth,
+            client_id: rest ? null : clientId.trim() || null,
+            scopes: rest ? [] : words(scopes),
             read_tools: words(reads),
             draft_tools: words(drafts),
             enabled: existing?.enabled ?? true,
+            api: rest
+              ? {
+                  key,
+                  key_name: key === "header" || key === "query" ? keyName.trim() : null,
+                  base_url: baseUrl.trim() || null,
+                  operations: words(operations),
+                }
+              : null,
           },
         }),
       ),
@@ -85,7 +101,13 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       if (!existing) go("connections", name);
     },
   });
-  const valid = /^[a-z][a-z0-9_-]{0,39}$/.test(name) && /^https?:\/\//.test(url.trim()) && !url.includes("{");
+  const needsKeyName = rest && (key === "header" || key === "query");
+  const valid =
+    /^[a-z][a-z0-9_-]{0,39}$/.test(name) &&
+    /^https?:\/\//.test(url.trim()) &&
+    !url.includes("{") &&
+    (!needsKeyName || /^[A-Za-z0-9_.-]+$/.test(keyName.trim())) &&
+    (!rest || !baseUrl.trim() || /^https?:\/\//.test(baseUrl.trim()));
   return (
     <Modal
       wide
@@ -109,6 +131,11 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
             setName(preset.id);
             setUrl(preset.url);
             setAuth((preset.auth as Auth) ?? "oauth");
+            setKind(preset.api ? "rest" : "mcp");
+            setKey((preset.api?.key as Key | undefined) ?? "bearer");
+            setKeyName(preset.api?.key_name ?? "");
+            setBaseUrl(preset.api?.base_url ?? "");
+            setOperations((preset.api?.operations ?? []).join(", "));
             setReads((preset.read_tools ?? []).join(", "));
             setDrafts((preset.draft_tools ?? []).join(", "));
           }}
@@ -116,9 +143,27 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       )}
       <Field value={name} onChange={setName} disabled={!!existing} label={t("connections.name")} placeholder={t("connections.name")} />
       {name && !/^[a-z][a-z0-9_-]{0,39}$/.test(name) && <small className="faint">{t("models.nameRule")}</small>}
-      <Field value={url} onChange={setUrl} label={t("connections.url")} placeholder="https://" />
-      <Seg<Auth> label={t("connections.auth")} value={auth} onChange={setAuth} options={[["oauth", t("connections.authOauth")], ["bearer", t("connections.authBearer")], ["none", t("connections.authNone")]]} />
-      {auth === "oauth" && (
+      <Seg<Kind> label={t("connections.kind")} value={kind} onChange={setKind} options={[["mcp", t("connections.kindMcp")], ["rest", t("connections.kindRest")]]} />
+      <Field value={url} onChange={setUrl} label={rest ? t("connections.specUrl") : t("connections.url")} placeholder="https://" />
+      {rest ? (
+        <>
+          <small className="faint">{t("connections.restHint")}</small>
+          <Seg<Key>
+            label={t("connections.key")}
+            value={key}
+            onChange={setKey}
+            options={[["bearer", t("connections.keyBearer")], ["header", t("connections.keyHeader")], ["query", t("connections.keyQuery")], ["none", t("connections.keyNone")]]}
+          />
+          <div className="lay-two">
+            {needsKeyName && <Field value={keyName} onChange={setKeyName} label={t("connections.keyName")} placeholder="x-api-key" />}
+            <Field value={baseUrl} onChange={setBaseUrl} label={t("connections.baseUrl")} placeholder={t("connections.baseUrlHint")} />
+          </div>
+          <Field value={operations} onChange={setOperations} label={t("connections.operations")} placeholder={t("connections.operationsHint")} />
+        </>
+      ) : (
+        <Seg<Auth> label={t("connections.auth")} value={auth} onChange={setAuth} options={[["oauth", t("connections.authOauth")], ["bearer", t("connections.authBearer")], ["none", t("connections.authNone")]]} />
+      )}
+      {!rest && auth === "oauth" && (
         <div className="lay-two">
           <Field value={clientId} onChange={setClientId} label={t("connections.clientId")} placeholder={t("connections.clientIdHint")} />
           <Field value={scopes} onChange={setScopes} label={t("connections.scopes")} placeholder={t("connections.scopes")} />
@@ -158,7 +203,17 @@ function Detail({ connector }: { connector: Connector }) {
   });
   const start = (scope: Target) => (connector.auth === "oauth" ? connect.mutate({ name: connector.name, scope }) : setToken(scope));
   const sub =
-    connector.auth === "oauth" ? t("connections.oauth") : connector.auth === "bearer" ? t("connections.bearer", { name: connector.token_name ?? "" }) : connector.auth === "process" ? t("connections.process") : t("connections.open");
+    connector.transport === "openapi"
+      ? connector.auth === "bearer"
+        ? t("connections.rest", { name: connector.token_name ?? "" })
+        : t("connections.restOpen")
+      : connector.auth === "oauth"
+        ? t("connections.oauth")
+        : connector.auth === "bearer"
+          ? t("connections.bearer", { name: connector.token_name ?? "" })
+          : connector.auth === "process"
+            ? t("connections.process")
+            : t("connections.open");
   return (
     <div className="cn">
       <button type="button" className="cn-back" onClick={() => go("connections")}>

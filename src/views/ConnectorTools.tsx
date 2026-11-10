@@ -58,6 +58,7 @@ export function ConnectorTools({ connector, editable, layer }: { connector: Conn
             read_tools: lists.read_tools,
             draft_tools: lists.draft_tools,
             enabled: connector.enabled,
+            api: connector.api ?? null,
           },
         }),
       ),

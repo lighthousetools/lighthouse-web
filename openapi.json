@@ -8508,7 +8508,7 @@
         "tags": [
           "ready"
         ],
-        "summary": "What a run read, readable, such as `Mail \u00b7 3 threads`.",
+        "summary": "What a run read, readable, such as `Mail · 3 threads`.",
         "operationId": "run_basis",
         "parameters": [
           {
@@ -12083,7 +12083,7 @@
       },
       "Basis": {
         "type": "object",
-        "description": "Something a run read or used, readable, such as `Mail \u00b7 3 threads`.",
+        "description": "Something a run read or used, readable, such as `Mail · 3 threads`.",
         "required": [
           "tool",
           "label"
@@ -12839,11 +12839,22 @@
       },
       "ConnectorInput": {
         "type": "object",
-        "description": "An MCP connector over streamable HTTP. Connectors that start a process on\nthe server exist only in `lighthouse.toml`.",
+        "description": "An MCP connector over streamable HTTP, or a REST API with an OpenAPI\ndescription when `api` is set. Connectors that start a process on the\nserver exist only in `lighthouse.toml`.",
         "required": [
           "url"
         ],
         "properties": {
+          "api": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RestApi",
+                "description": "Makes it a REST API connector. `auth` is then `none`, or `bearer` for a\nkey in the vault as `mcp:<name>`."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "auth": {
             "type": "string",
             "description": "`none`, `bearer` (token in the vault as `mcp:<name>`) or `oauth`."
@@ -12882,7 +12893,7 @@
           },
           "url": {
             "type": "string",
-            "description": "Server URL. Must be a public `https` URL unless the instance allows\nprivate endpoints."
+            "description": "Server URL, or the URL of the OpenAPI description when `api` is set.\nMust be a public `https` URL unless the instance allows private endpoints."
           }
         }
       },
@@ -12933,6 +12944,17 @@
           "enabled"
         ],
         "properties": {
+          "api": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RestApi",
+                "description": "The REST API settings of an `openapi` connector."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "auth": {
             "type": "string",
             "description": "`none`, `bearer`, `oauth` or `process`."
@@ -13008,7 +13030,7 @@
           },
           "transport": {
             "type": "string",
-            "description": "`http`, `openapi` or `stdio`. Only the instance has `stdio` and `openapi` connectors."
+            "description": "`http`, `openapi` or `stdio`. Only the instance has `stdio` connectors."
           },
           "url": {
             "type": [
@@ -13434,7 +13456,7 @@
               "string",
               "null"
             ],
-            "description": "A line under the title, such as \"Mail from John Roe \u00b7 yesterday\"."
+            "description": "A line under the title, such as \"Mail from John Roe · yesterday\"."
           },
           "text": {
             "type": "string",
@@ -16293,6 +16315,17 @@
           "auth"
         ],
         "properties": {
+          "api": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RestApi",
+                "description": "For a REST API: `url` is its OpenAPI description, and this says how the key is sent."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "auth": {
             "type": "string",
             "description": "`none`, `bearer` or `oauth`."
@@ -16955,6 +16988,38 @@
             "description": "Entry ID."
           }
         }
+      },
+      "RestApi": {
+        "type": "object",
+        "description": "A REST API with an OpenAPI 3 description, used like an MCP server: every\noperation becomes a tool named after its method and path, such as\n`get_deals_id` for `GET /deals/{id}`.",
+        "properties": {
+          "base_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Base URL of the API, if not the first server of the description."
+          },
+          "key": {
+            "type": "string",
+            "description": "How the key from the vault entry `mcp:<name>` is sent: `none`, `bearer`,\n`header` or `query`."
+          },
+          "key_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The header or query parameter for `header` and `query`."
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Only these operations, such as `get_deals`. Empty means every operation."
+          }
+        },
+        "additionalProperties": false
       },
       "Review": {
         "type": "object",
@@ -19545,7 +19610,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The highest of the day, in \u00b0C."
+            "description": "The highest of the day, in °C."
           },
           "location": {
             "type": [
@@ -19560,7 +19625,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The lowest of the day, in \u00b0C."
+            "description": "The lowest of the day, in °C."
           },
           "source": {
             "type": [
@@ -19579,7 +19644,7 @@
               "null"
             ],
             "format": "double",
-            "description": "The temperature now, in \u00b0C."
+            "description": "The temperature now, in °C."
           }
         }
       },

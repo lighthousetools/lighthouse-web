@@ -65,6 +65,52 @@ describe("connections", () => {
     expect(body).toMatchObject({ url: "https://mcp.linear.app/mcp", auth: "oauth", read_tools: ["list_issues"] });
   });
 
+  it("add a REST API from the catalog with how its key is sent", async () => {
+    const calls = serve({
+      "GET /settings/effective": () => view([], false),
+      "GET /settings/presets": () => ({
+        providers: [],
+        connectors: [
+          {
+            id: "pipedrive",
+            label: "Pipedrive",
+            url: "https://developers.example.com/openapi.yaml",
+            auth: "bearer",
+            api: { key: "header", key_name: "x-api-token" },
+            read_tools: [],
+            draft_tools: [],
+          },
+        ],
+      }),
+      "GET /me": () => ({ ...OWNER, role: "member" }),
+      "PUT /settings/me/connectors/pipedrive": () => new Response(null, { status: 204 }),
+    });
+    show(<Connections />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Add connection" }))[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: /^Pipedrive/ }));
+    expect(await screen.findByLabelText("URL of the OpenAPI description")).toBeTruthy();
+    expect((screen.getByLabelText("Name of the header or parameter") as HTMLInputElement).value).toBe("x-api-token");
+    fireEvent.click(screen.getAllByRole("button", { name: "Add connection" }).at(-1)!);
+    await waitFor(() => expect(callsTo(calls, "PUT", "/settings/me/connectors/pipedrive")).toHaveLength(1));
+    const body = await callsTo(calls, "PUT", "/settings/me/connectors/pipedrive")[0]!.json();
+    expect(body).toMatchObject({
+      url: "https://developers.example.com/openapi.yaml",
+      auth: "bearer",
+      client_id: null,
+      api: { key: "header", key_name: "x-api-token", base_url: null, operations: [] },
+    });
+  });
+
+  it("describe a REST API by its key", async () => {
+    location.hash = "#connections/crm";
+    serve({
+      "GET /settings/effective": () =>
+        view([connector("crm", "tenant", { transport: "openapi", auth: "bearer", token_name: "mcp:crm", api: { key: "query", key_name: "api_token" } })]),
+    });
+    show(<Connections />);
+    expect(await screen.findByText("REST API, key stored as mcp:crm.")).toBeTruthy();
+  });
+
   it("let a member connect a shared service with their own account only", async () => {
     location.hash = "#connections/linear";
     const calls = serve({
