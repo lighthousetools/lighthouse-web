@@ -101,6 +101,46 @@ describe("connections", () => {
     });
   });
 
+  it("add a REST API that signs in with OAuth and a registered app", async () => {
+    const calls = serve({
+      "GET /settings/effective": () => view([], false),
+      "GET /settings/presets": () => ({
+        providers: [],
+        connectors: [
+          {
+            id: "microsoft-calendar",
+            label: "Microsoft 365 Calendar",
+            url: "lighthouse:microsoft-graph-calendar",
+            auth: "oauth",
+            scopes: ["offline_access", "Calendars.ReadWrite"],
+            api: { key: "none", authorize_url: "https://login.example.com/authorize", token_url: "https://login.example.com/token", operations: ["get_me_calendarview"] },
+            read_tools: [],
+            draft_tools: [],
+          },
+        ],
+      }),
+      "GET /me": () => ({ ...OWNER, role: "member" }),
+      "PUT /settings/me/connectors/microsoft-calendar": () => new Response(null, { status: 204 }),
+    });
+    show(<Connections />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Add connection" }))[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: /^Microsoft 365 Calendar/ }));
+    expect(((await screen.findByLabelText("Token URL")) as HTMLInputElement).value).toBe("https://login.example.com/token");
+    const add = screen.getAllByRole("button", { name: "Add connection" }).at(-1)! as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Client ID"), { target: { value: "app-1" } });
+    fireEvent.click(add);
+    await waitFor(() => expect(callsTo(calls, "PUT", "/settings/me/connectors/microsoft-calendar")).toHaveLength(1));
+    const body = await callsTo(calls, "PUT", "/settings/me/connectors/microsoft-calendar")[0]!.json();
+    expect(body).toMatchObject({
+      url: "lighthouse:microsoft-graph-calendar",
+      auth: "oauth",
+      client_id: "app-1",
+      scopes: ["offline_access", "Calendars.ReadWrite"],
+      api: { key: "none", authorize_url: "https://login.example.com/authorize", token_url: "https://login.example.com/token", operations: ["get_me_calendarview"] },
+    });
+  });
+
   it("describe a REST API by its key", async () => {
     location.hash = "#connections/crm";
     serve({

@@ -5783,6 +5783,8 @@ export interface components {
             read_tools?: string[];
             /** @description `dynamic` when the server registers clients itself, `preregistered` when you register an OAuth app first. */
             registration?: string | null;
+            /** @description OAuth scopes to request. */
+            scopes?: string[];
             /** @description Server URL. */
             url: string;
             /** @description Who runs the server. */
@@ -6022,6 +6024,8 @@ export interface components {
          *     `get_deals_id` for `GET /deals/{id}`.
          */
         RestApi: {
+            /** @description Authorization endpoint for `auth = "oauth"`. The connector's `client_id` and `scopes` go with it. */
+            authorize_url?: string | null;
             /** @description Base URL of the API, if not the first server of the description. */
             base_url?: string | null;
             /**
@@ -6033,6 +6037,8 @@ export interface components {
             key_name?: string | null;
             /** @description Only these operations, such as `get_deals`. Empty means every operation. */
             operations?: string[];
+            /** @description Token endpoint for `auth = "oauth"`. */
+            token_url?: string | null;
         };
         /** @description What the owner sees of a proposed call. */
         Review: {

@@ -18,6 +18,13 @@ const stageOf = (deal: Item) => deal.state ?? field(deal, "stage") ?? "—";
 const nextStep = (deal: Item) => field(deal, "next_step") ?? field(deal, "next_activity") ?? deal.summary;
 
 /** Stages in pipeline order: as the numbers list them, then any others the deals use. */
+/** The service's ID of a stage, read from a deal of the same source that is in it, for services that move deals by ID. */
+export function stageIdOf(deals: Pick<Item, "source" | "state" | "data">[], stage: string, source: string): unknown {
+  const raw = (item: Pick<Item, "data">) => (item.data as Record<string, unknown> | null)?.stage_id ?? undefined;
+  const deal = deals.find((item) => item.source === source && stageOf(item as Item) === stage && raw(item) != null);
+  return deal ? raw(deal) : undefined;
+}
+
 export function stageOrder(deals: Pick<Item, "state" | "data">[], known: string[] = []) {
   const seen = [...known];
   for (const deal of deals) {
@@ -168,7 +175,8 @@ export function Pipeline() {
     const deal = all.find((item) => item.id === event.dataTransfer.getData("text/plain"));
     if (!deal || stageOf(deal) === stage) return;
     const name = canDo(sources.data, "deals", "move", deal.source) ? "move" : "update";
-    action.mutate({ item: deal.id, action: name, input: { stage } });
+    const stageId = stageIdOf(all, stage, deal.source);
+    action.mutate({ item: deal.id, action: name, input: stageId == null ? { stage } : { stage, stage_id: stageId } });
   };
   if (!sources.isPending && !domains.has("deals")) return <div className="page"><NoSource domain="deals" /></div>;
   const count = (value: Filter) => all.filter((deal) => value === "all" || (value === "mine" ? has(deal, "mine") : value === "cold" ? has(deal, "cold") : !deal.amount)).length;

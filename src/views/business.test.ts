@@ -5,7 +5,7 @@ import { contractStep } from "./Contracts";
 import { balanceHistory } from "./Finance";
 import { invoiceState } from "./Invoices";
 import { insights, monthChange, revenueSeries } from "./Numbers";
-import { stageOrder } from "./Pipeline";
+import { stageIdOf, stageOrder } from "./Pipeline";
 import { unread, visitsPerDay } from "./Rooms";
 import { quotesFor } from "./Stocks";
 import type { Item } from "./connected";
@@ -24,6 +24,9 @@ describe("business pages", () => {
 
   it("orders stages as the numbers list them, then the rest", () => {
     expect(stageOrder([item({ state: "Won" }), item({ state: "Lead" })], ["Lead", "Offer"])).toEqual(["Lead", "Offer", "Won"]);
+    const deals = [item({ state: "Offer", data: { stage_id: 7 } }), item({ source: "other", state: "Lead", data: { stage_id: 9 } })];
+    expect(stageIdOf(deals, "Offer", "crm")).toBe(7);
+    expect(stageIdOf(deals, "Lead", "crm")).toBeUndefined();
   });
 
   it("reads revenue, its change and what needs a look", () => {

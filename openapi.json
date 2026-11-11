@@ -16387,6 +16387,13 @@
             ],
             "description": "`dynamic` when the server registers clients itself, `preregistered` when you register an OAuth app first."
           },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "OAuth scopes to request."
+          },
           "url": {
             "type": "string",
             "description": "Server URL."
@@ -16993,6 +17000,13 @@
         "type": "object",
         "description": "A REST API with an OpenAPI 3 description, used like an MCP server: every\noperation becomes a tool named after its method and path, such as\n`get_deals_id` for `GET /deals/{id}`.",
         "properties": {
+          "authorize_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Authorization endpoint for `auth = \"oauth\"`. The connector's `client_id` and `scopes` go with it."
+          },
           "base_url": {
             "type": [
               "string",
@@ -17017,6 +17031,13 @@
               "type": "string"
             },
             "description": "Only these operations, such as `get_deals`. Empty means every operation."
+          },
+          "token_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Token endpoint for `auth = \"oauth\"`."
           }
         },
         "additionalProperties": false

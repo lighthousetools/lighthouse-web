@@ -17,7 +17,7 @@ type Connector = View["connectors"][number];
 type Filter = "all" | "connected" | "open";
 type Auth = "none" | "bearer" | "oauth";
 type Kind = "mcp" | "rest";
-type Key = "none" | "bearer" | "header" | "query";
+type Key = "none" | "bearer" | "header" | "query" | "oauth";
 
 const isConnected = (connector: Connector) => connector.enabled && connector.connected != null;
 const canConnect = (connector: Connector) => connector.auth === "oauth" || connector.auth === "bearer";
@@ -65,11 +65,14 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
   const [reads, setReads] = useState(existing?.read_tools.join(", ") ?? "");
   const [drafts, setDrafts] = useState(existing?.draft_tools.join(", ") ?? "");
   const [kind, setKind] = useState<Kind>(existing?.transport === "openapi" ? "rest" : "mcp");
-  const [key, setKey] = useState<Key>((existing?.api?.key as Key | undefined) ?? "bearer");
+  const [key, setKey] = useState<Key>(existing?.transport === "openapi" && existing.auth === "oauth" ? "oauth" : ((existing?.api?.key as Key | undefined) ?? "bearer"));
+  const [authorizeUrl, setAuthorizeUrl] = useState(existing?.api?.authorize_url ?? "");
+  const [tokenUrl, setTokenUrl] = useState(existing?.api?.token_url ?? "");
   const [keyName, setKeyName] = useState(existing?.api?.key_name ?? "");
   const [baseUrl, setBaseUrl] = useState(existing?.api?.base_url ?? "");
   const [operations, setOperations] = useState(existing?.api?.operations?.join(", ") ?? "");
   const rest = kind === "rest";
+  const signsIn = rest ? key === "oauth" : auth === "oauth";
   const save = useMutation({
     mutationFn: () =>
       must(
@@ -77,18 +80,20 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
           params: { path: { layer: target, name } },
           body: {
             url: url.trim(),
-            auth: rest ? (key === "none" ? "none" : "bearer") : auth,
-            client_id: rest ? null : clientId.trim() || null,
-            scopes: rest ? [] : words(scopes),
+            auth: rest ? (key === "oauth" ? "oauth" : key === "none" ? "none" : "bearer") : auth,
+            client_id: signsIn ? clientId.trim() || null : null,
+            scopes: signsIn ? words(scopes) : [],
             read_tools: words(reads),
             draft_tools: words(drafts),
             enabled: existing?.enabled ?? true,
             api: rest
               ? {
-                  key,
+                  key: key === "oauth" ? "none" : key,
                   key_name: key === "header" || key === "query" ? keyName.trim() : null,
                   base_url: baseUrl.trim() || null,
                   operations: words(operations),
+                  authorize_url: key === "oauth" ? authorizeUrl.trim() : null,
+                  token_url: key === "oauth" ? tokenUrl.trim() : null,
                 }
               : null,
           },
@@ -104,7 +109,8 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
   const needsKeyName = rest && (key === "header" || key === "query");
   const valid =
     /^[a-z][a-z0-9_-]{0,39}$/.test(name) &&
-    /^https?:\/\//.test(url.trim()) &&
+    (/^https?:\/\//.test(url.trim()) || (rest && /^lighthouse:[a-z0-9-]+$/.test(url.trim()))) &&
+    (!rest || key !== "oauth" || (/^https?:\/\//.test(authorizeUrl.trim()) && /^https?:\/\//.test(tokenUrl.trim()) && !!clientId.trim())) &&
     !url.includes("{") &&
     (!needsKeyName || /^[A-Za-z0-9_.-]+$/.test(keyName.trim())) &&
     (!rest || !baseUrl.trim() || /^https?:\/\//.test(baseUrl.trim()));
@@ -132,7 +138,10 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
             setUrl(preset.url);
             setAuth((preset.auth as Auth) ?? "oauth");
             setKind(preset.api ? "rest" : "mcp");
-            setKey((preset.api?.key as Key | undefined) ?? "bearer");
+            setKey(preset.api?.authorize_url ? "oauth" : ((preset.api?.key as Key | undefined) ?? "bearer"));
+            setAuthorizeUrl(preset.api?.authorize_url ?? "");
+            setTokenUrl(preset.api?.token_url ?? "");
+            setScopes((preset.scopes ?? []).join(" "));
             setKeyName(preset.api?.key_name ?? "");
             setBaseUrl(preset.api?.base_url ?? "");
             setOperations((preset.api?.operations ?? []).join(", "));
@@ -152,8 +161,14 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
             label={t("connections.key")}
             value={key}
             onChange={setKey}
-            options={[["bearer", t("connections.keyBearer")], ["header", t("connections.keyHeader")], ["query", t("connections.keyQuery")], ["none", t("connections.keyNone")]]}
+            options={[["bearer", t("connections.keyBearer")], ["header", t("connections.keyHeader")], ["query", t("connections.keyQuery")], ["oauth", t("connections.keyOauth")], ["none", t("connections.keyNone")]]}
           />
+          {key === "oauth" && (
+            <div className="lay-two">
+              <Field value={authorizeUrl} onChange={setAuthorizeUrl} label={t("connections.authorizeUrl")} placeholder="https://" />
+              <Field value={tokenUrl} onChange={setTokenUrl} label={t("connections.tokenUrl")} placeholder="https://" />
+            </div>
+          )}
           <div className="lay-two">
             {needsKeyName && <Field value={keyName} onChange={setKeyName} label={t("connections.keyName")} placeholder="x-api-key" />}
             <Field value={baseUrl} onChange={setBaseUrl} label={t("connections.baseUrl")} placeholder={t("connections.baseUrlHint")} />
@@ -163,7 +178,7 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       ) : (
         <Seg<Auth> label={t("connections.auth")} value={auth} onChange={setAuth} options={[["oauth", t("connections.authOauth")], ["bearer", t("connections.authBearer")], ["none", t("connections.authNone")]]} />
       )}
-      {!rest && auth === "oauth" && (
+      {signsIn && (
         <div className="lay-two">
           <Field value={clientId} onChange={setClientId} label={t("connections.clientId")} placeholder={t("connections.clientIdHint")} />
           <Field value={scopes} onChange={setScopes} label={t("connections.scopes")} placeholder={t("connections.scopes")} />
