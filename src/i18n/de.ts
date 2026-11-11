@@ -2107,6 +2107,8 @@ export const de: Record<Key, string> = {
   "connections.authBearer": "Token",
   "connections.authNone": "Keine",
   "connections.clientId": "Client-ID",
+  "connections.clientSecret": "Client-Secret",
+  "connections.clientSecretTitle": "Client-Secret für {name}",
   "connections.clientIdHint": "Optional",
   "connections.scopes": "Scopes",
   "connections.readTools": "Lesende Werkzeuge",

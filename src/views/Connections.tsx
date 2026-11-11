@@ -185,6 +185,7 @@ function Detail({ connector }: { connector: Connector }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [token, setToken] = useState<Target | null>(null);
+  const [clientSecret, setClientSecret] = useState(false);
   const own = targetOf(connector.source, manage);
   const personal = connector.source === "personal";
   const toggle = useMutation({
@@ -232,6 +233,9 @@ function Detail({ connector }: { connector: Connector }) {
           {connector.url && <p className="faint mono lay-url">{connector.url}</p>}
         </div>
         <div className="acts">
+          {connector.auth === "oauth" && connector.client_id && connector.enabled && (
+            <Btn onClick={() => setClientSecret(true)}><KeyRound />{t("connections.clientSecret")}</Btn>
+          )}
           {canConnect(connector) && connector.enabled && (
             <Btn variant={connector.connected === "personal" ? "" : "primary"} disabled={connect.isPending} onClick={() => start("me")}>
               {connector.auth === "oauth" ? <ExternalLink /> : <KeyRound />}
@@ -284,6 +288,14 @@ function Detail({ connector }: { connector: Connector }) {
         </div>
       )}
       {editing && <ConnectorModal existing={connector} onClose={() => setEditing(false)} />}
+      {clientSecret && (
+        <SecretModal
+          name={`oauth-client:${connector.name}`}
+          title={t("connections.clientSecretTitle", { name: humanize(connector.name) })}
+          defaultTarget="me"
+          onClose={() => setClientSecret(false)}
+        />
+      )}
       {token && connector.token_name && (
         <SecretModal name={connector.token_name} title={t("connections.tokenTitle", { name: humanize(connector.name) })} defaultTarget={token} onClose={() => setToken(null)} />
       )}

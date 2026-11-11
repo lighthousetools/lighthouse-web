@@ -2104,6 +2104,8 @@ export const en = {
   "connections.authBearer": "Token",
   "connections.authNone": "None",
   "connections.clientId": "Client ID",
+  "connections.clientSecret": "Client secret",
+  "connections.clientSecretTitle": "Client secret for {name}",
   "connections.clientIdHint": "Optional",
   "connections.scopes": "Scopes",
   "connections.readTools": "Reading tools",

@@ -111,6 +111,21 @@ describe("connections", () => {
     expect(await screen.findByText("REST API, key stored as mcp:crm.")).toBeTruthy();
   });
 
+  it("store the client secret of a registered OAuth app", async () => {
+    location.hash = "#connections/github";
+    const calls = serve({
+      "GET /settings/effective": () => view([connector("github", "tenant", { client_id: "Iv1.abc" })], false),
+      "GET /me": () => ({ ...OWNER, role: "member" }),
+      "PUT /me/credentials/oauth-client%3Agithub": () => new Response(null, { status: 204 }),
+    });
+    show(<Connections />);
+    fireEvent.click(await screen.findByRole("button", { name: "Client secret" }));
+    fireEvent.change(await screen.findByLabelText("Value"), { target: { value: "s3cret" } });
+    fireEvent.click(screen.getByRole("button", { name: "Store" }));
+    await waitFor(() => expect(callsTo(calls, "PUT", "/me/credentials/oauth-client%3Agithub")).toHaveLength(1));
+    expect(await callsTo(calls, "PUT", "/me/credentials/oauth-client%3Agithub")[0]!.json()).toEqual({ value: "s3cret" });
+  });
+
   it("let a member connect a shared service with their own account only", async () => {
     location.hash = "#connections/linear";
     const calls = serve({
