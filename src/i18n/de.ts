@@ -2113,6 +2113,7 @@ export const de: Record<Key, string> = {
   "connections.clientSecret": "Client-Secret",
   "connections.clientSecretTitle": "Client-Secret für {name}",
   "connections.clientIdHint": "Client-ID (optional)",
+  "connections.sharedApp": "Dieser Server meldet sich mit der App an, die für alle eingerichtet ist. Du brauchst keine Client-ID.",
   "connections.scopes": "Scopes, durch Leerzeichen getrennt",
   "connections.readTools": "Lesende Werkzeuge",
   "connections.draftTools": "Entwurfs-Werkzeuge",

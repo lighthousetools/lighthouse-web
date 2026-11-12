@@ -4318,6 +4318,11 @@ export interface components {
             draft_tools: string[];
             /** @description Whether it is in use for the caller. */
             enabled: boolean;
+            /**
+             * @description Whether it signs in with an OAuth app of the instance. Its client ID is then not shown, since it is not one
+             *     of the connector's settings.
+             */
+            instance_app?: boolean;
             /** @description Name. */
             name: string;
             /** @description Tools known to be read-only. */
@@ -5773,6 +5778,8 @@ export interface components {
             draft_tools?: string[];
             /** @description Suggested name. */
             id: string;
+            /** @description Whether this server signs in with an OAuth app of the instance, so no client ID is needed. */
+            instance_app?: boolean;
             /** @description The vendor's page to create a token, for `bearer`. */
             key_url?: string | null;
             /** @description Display name. */

@@ -141,6 +141,51 @@ describe("connections", () => {
     });
   });
 
+  it("add a calendar that signs in with the app of the server, without a client ID", async () => {
+    const calls = serve({
+      "GET /settings/effective": () => view([], false),
+      "GET /settings/presets": () => ({
+        providers: [],
+        connectors: [
+          {
+            id: "microsoft-calendar",
+            label: "Microsoft 365 Calendar",
+            url: "lighthouse:microsoft-graph-calendar",
+            auth: "oauth",
+            instance_app: true,
+            api: { key: "none", authorize_url: "https://login.example.com/authorize", token_url: "https://login.example.com/token" },
+            read_tools: [],
+            draft_tools: [],
+          },
+        ],
+      }),
+      "GET /me": () => ({ ...OWNER, role: "member" }),
+      "PUT /settings/me/connectors/microsoft-calendar": () => new Response(null, { status: 204 }),
+    });
+    show(<Connections />);
+    fireEvent.click((await screen.findAllByRole("button", { name: "Add connection" }))[0]!);
+    fireEvent.click(await screen.findByRole("button", { name: /^Microsoft 365 Calendar/ }));
+    expect(await screen.findByText("This server signs in with the app set up for everyone. No client ID needed.")).toBeTruthy();
+    expect(screen.queryByLabelText("Client ID")).toBeNull();
+    const add = screen.getAllByRole("button", { name: "Add connection" }).at(-1)! as HTMLButtonElement;
+    expect(add.disabled).toBe(false);
+    fireEvent.click(add);
+    await waitFor(() => expect(callsTo(calls, "PUT", "/settings/me/connectors/microsoft-calendar")).toHaveLength(1));
+    const body = await callsTo(calls, "PUT", "/settings/me/connectors/microsoft-calendar")[0]!.json();
+    expect(body).toMatchObject({ auth: "oauth", client_id: null });
+  });
+
+  it("offer no client secret for a connection that uses the app of the server", async () => {
+    location.hash = "#connections/github";
+    serve({
+      "GET /settings/effective": () => view([connector("github", "tenant", { instance_app: true })], false),
+      "GET /me": () => ({ ...OWNER, role: "member" }),
+    });
+    show(<Connections />);
+    expect(await screen.findByRole("button", { name: "Connect my account" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Client secret" })).toBeNull();
+  });
+
   it("describe a REST API by its key", async () => {
     location.hash = "#connections/crm";
     serve({

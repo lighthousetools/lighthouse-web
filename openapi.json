@@ -12999,6 +12999,10 @@
             "type": "boolean",
             "description": "Whether it is in use for the caller."
           },
+          "instance_app": {
+            "type": "boolean",
+            "description": "Whether it signs in with an OAuth app of the instance. Its client ID is then not shown, since it is not one\nof the connector's settings."
+          },
           "name": {
             "type": "string",
             "description": "Name."
@@ -16354,6 +16358,10 @@
           "id": {
             "type": "string",
             "description": "Suggested name."
+          },
+          "instance_app": {
+            "type": "boolean",
+            "description": "Whether this server signs in with an OAuth app of the instance, so no client ID is needed."
           },
           "key_url": {
             "type": [

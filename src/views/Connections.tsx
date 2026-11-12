@@ -61,6 +61,8 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
   const [url, setUrl] = useState(existing?.url ?? "");
   const [auth, setAuth] = useState<Auth>((existing?.auth as Auth | undefined) ?? "oauth");
   const [clientId, setClientId] = useState(existing?.client_id ?? "");
+  // The server signs this connector in with an app of its own, so it needs no client ID.
+  const [sharedApp, setSharedApp] = useState(existing?.instance_app ?? false);
   const [scopes, setScopes] = useState(existing?.scopes.join(" ") ?? "");
   const [reads, setReads] = useState(existing?.read_tools.join(", ") ?? "");
   const [drafts, setDrafts] = useState(existing?.draft_tools.join(", ") ?? "");
@@ -81,7 +83,7 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
           body: {
             url: url.trim(),
             auth: rest ? (key === "oauth" ? "oauth" : key === "none" ? "none" : "bearer") : auth,
-            client_id: signsIn ? clientId.trim() || null : null,
+            client_id: signsIn && !sharedApp ? clientId.trim() || null : null,
             scopes: signsIn ? words(scopes) : [],
             read_tools: words(reads),
             draft_tools: words(drafts),
@@ -110,7 +112,7 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
   const valid =
     /^[a-z][a-z0-9_-]{0,39}$/.test(name) &&
     (/^https?:\/\//.test(url.trim()) || (rest && /^lighthouse:[a-z0-9-]+$/.test(url.trim()))) &&
-    (!rest || key !== "oauth" || (/^https?:\/\//.test(authorizeUrl.trim()) && /^https?:\/\//.test(tokenUrl.trim()) && !!clientId.trim())) &&
+    (!rest || key !== "oauth" || (/^https?:\/\//.test(authorizeUrl.trim()) && /^https?:\/\//.test(tokenUrl.trim()) && (sharedApp || !!clientId.trim()))) &&
     !url.includes("{") &&
     (!needsKeyName || /^[A-Za-z0-9_.-]+$/.test(keyName.trim())) &&
     (!rest || !baseUrl.trim() || /^https?:\/\//.test(baseUrl.trim()));
@@ -135,6 +137,7 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
           selected={name}
           onPick={(preset) => {
             setName(preset.id);
+            setSharedApp(!!preset.instance_app);
             setUrl(preset.url);
             setAuth((preset.auth as Auth) ?? "oauth");
             setKind(preset.api ? "rest" : "mcp");
@@ -178,9 +181,10 @@ function ConnectorModal({ existing, onClose }: { existing?: Connector; onClose: 
       ) : (
         <Seg<Auth> label={t("connections.auth")} value={auth} onChange={setAuth} options={[["oauth", t("connections.authOauth")], ["bearer", t("connections.authBearer")], ["none", t("connections.authNone")]]} />
       )}
+      {signsIn && sharedApp && <small className="faint">{t("connections.sharedApp")}</small>}
       {signsIn && (
         <div className="lay-two">
-          <Field value={clientId} onChange={setClientId} label={t("connections.clientId")} placeholder={t("connections.clientIdHint")} />
+          {!sharedApp && <Field value={clientId} onChange={setClientId} label={t("connections.clientId")} placeholder={t("connections.clientIdHint")} />}
           <Field value={scopes} onChange={setScopes} label={t("connections.scopes")} placeholder={t("connections.scopes")} />
         </div>
       )}

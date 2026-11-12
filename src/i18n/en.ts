@@ -2110,6 +2110,7 @@ export const en = {
   "connections.clientSecret": "Client secret",
   "connections.clientSecretTitle": "Client secret for {name}",
   "connections.clientIdHint": "Client ID (optional)",
+  "connections.sharedApp": "This server signs in with the app set up for everyone. No client ID needed.",
   "connections.scopes": "Scopes, separated by spaces",
   "connections.readTools": "Reading tools",
   "connections.draftTools": "Draft tools",
